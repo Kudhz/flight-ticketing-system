@@ -85,8 +85,13 @@ async function getPeriodFlights(year, month, signal) {
   return result.data.map(mapApiFlight);
 }
 
-async function saveHistoryPdf(pdfBlob) {
-  const response = await fetch("/server/index.php?path=/api/flight-pdf", {
+async function saveHistoryPdf(pdfBlob, year, month) {
+  const params = new URLSearchParams({
+    path: "/api/flight-pdf",
+    year: String(year),
+    month: String(month),
+  });
+  const response = await fetch(`/server/index.php?${params}`, {
     method: "POST",
     headers: { "Content-Type": "application/pdf" },
     body: pdfBlob,
@@ -459,7 +464,7 @@ function FlightDataPages({ page }) {
 
       const pdfBlob = doc.output("blob");
       const historyPdfName =
-        page === "history" ? await saveHistoryPdf(pdfBlob) : null;
+        page === "history" ? await saveHistoryPdf(pdfBlob, year, month) : null;
 
       if (previewWindow) {
         const pdfUrl = URL.createObjectURL(pdfBlob);

@@ -387,6 +387,19 @@ try {
             sendJson(400, ['error' => 'Isi file bukan PDF yang valid.']);
         }
 
+        $year = filter_var($_GET['year'] ?? null, FILTER_VALIDATE_INT);
+        $month = filter_var($_GET['month'] ?? null, FILTER_VALIDATE_INT);
+        if (
+            $year === false ||
+            $year < 2024 ||
+            $year > 2100 ||
+            $month === false ||
+            $month < 1 ||
+            $month > 12
+        ) {
+            sendJson(400, ['error' => 'Bulan atau tahun laporan tidak valid.']);
+        }
+
         $pdfDirectory = dirname(__DIR__) . '/flight-pdf';
         if (
             !is_dir($pdfDirectory) &&
@@ -399,10 +412,21 @@ try {
             throw new RuntimeException('Folder flight-pdf tidak dapat ditulis oleh PHP.');
         }
 
-        $fileName = (new DateTimeImmutable(
-            'now',
-            new DateTimeZone('Asia/Makassar')
-        ))->format('d-m-Y') . '.pdf';
+        $monthNames = [
+            1 => 'januari',
+            2 => 'februari',
+            3 => 'maret',
+            4 => 'april',
+            5 => 'mei',
+            6 => 'juni',
+            7 => 'juli',
+            8 => 'agustus',
+            9 => 'september',
+            10 => 'oktober',
+            11 => 'november',
+            12 => 'desember',
+        ];
+        $fileName = sprintf('data-flight-%s-%d.pdf', $monthNames[$month], $year);
         $targetPath = $pdfDirectory . '/' . $fileName;
         $temporaryPath = tempnam($pdfDirectory, '.flight-pdf-');
         if ($temporaryPath === false) {
