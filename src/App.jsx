@@ -29,6 +29,7 @@ const ROUTES = [
     label: "Melonguane (MNA) - Manado (MDC)",
   },
 ];
+const DEFAULT_ROUTE = "MNA-MDC";
 const FLIGHT_DAYS = new Set([1, 3, 6]);
 const localDateISO = (date = new Date()) => {
   const today = date;
@@ -165,7 +166,7 @@ function App() {
   const [theme, setTheme] = useState(
     () => window.localStorage.getItem("seatflow-theme-v2") || "dark",
   );
-  const [selectedRoute, setSelectedRoute] = useState(ROUTES[0].value);
+  const [selectedRoute, setSelectedRoute] = useState(DEFAULT_ROUTE);
   const [selectedDate, setSelectedDate] = useState(DEFAULT_DATE);
   const [selectedMonth, setSelectedMonth] = useState(DEFAULT_DATE.slice(0, 7));
   const [search, setSearch] = useState("");
@@ -176,12 +177,12 @@ function App() {
   const [editForm, setEditForm] = useState({
     name: "",
     phone: "",
-    route: ROUTES[0].value,
+    route: DEFAULT_ROUTE,
   });
   const [toast, setToast] = useState("");
   const [form, setForm] = useState({
     passengers: [{ name: "", phone: "" }],
-    route: ROUTES[0].value,
+    route: DEFAULT_ROUTE,
     date: DEFAULT_DATE,
   });
 
