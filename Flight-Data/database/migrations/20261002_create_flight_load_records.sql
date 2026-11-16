@@ -1,0 +1,20 @@
+CREATE TABLE IF NOT EXISTS flight_load_records (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  billing_year SMALLINT UNSIGNED NOT NULL,
+  billing_month TINYINT UNSIGNED NOT NULL,
+  flight_day TINYINT UNSIGNED NOT NULL,
+  pax INT UNSIGNED NOT NULL DEFAULT 0,
+  passenger_weight DECIMAL(10, 2) NOT NULL DEFAULT 0,
+  baggage_pieces INT UNSIGNED NOT NULL DEFAULT 0,
+  baggage_weight DECIMAL(10, 2) NOT NULL DEFAULT 0,
+  cabin_baggage_pieces INT UNSIGNED NOT NULL DEFAULT 0,
+  cabin_baggage_weight DECIMAL(10, 2) NOT NULL DEFAULT 0,
+  cargo_pieces INT UNSIGNED NOT NULL DEFAULT 0,
+  cargo_weight DECIMAL(10, 2) NOT NULL DEFAULT 0,
+  total_weight DECIMAL(10, 2) NOT NULL DEFAULT 0,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  INDEX idx_load_period (billing_year, billing_month),
+  INDEX idx_load_period_day (billing_year, billing_month, flight_day)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

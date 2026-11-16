@@ -1,0 +1,2 @@
+ALTER TABLE flight_records
+  MODIFY COLUMN route VARCHAR(10) NOT NULL;

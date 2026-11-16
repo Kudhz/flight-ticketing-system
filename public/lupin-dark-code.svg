@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="680" viewBox="0 0 1200 680" role="img" aria-labelledby="title desc">
+  <title id="title">Lupin dark coding logo</title>
+  <desc id="desc">Dark developer-themed Lupin logo. Green L initial inside terminal icon.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1200" y2="680" gradientUnits="userSpaceOnUse"><stop stop-color="#0B1020"/><stop offset="1" stop-color="#111827"/></linearGradient>
+    <linearGradient id="green" x1="170" y1="215" x2="400" y2="455" gradientUnits="userSpaceOnUse"><stop stop-color="#35E59B"/><stop offset="1" stop-color="#16A56E"/></linearGradient>
+    <filter id="glow" x="-25%" y="-25%" width="150%" height="150%"><feGaussianBlur stdDeviation="10" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+  </defs>
+  <rect width="1200" height="680" rx="56" fill="url(#bg)"/>
+  <rect x="28" y="28" width="1144" height="624" rx="38" fill="none" stroke="#233044" stroke-width="3"/>
+
+  <!-- Terminal icon with L inside -->
+  <rect x="120" y="157" width="366" height="366" rx="62" fill="#07131A" stroke="#1E3A35" stroke-width="7"/>
+  <path d="M120 250H486" stroke="#1E3A35" stroke-width="7"/>
+  <circle cx="177" cy="204" r="9" fill="#FF6B6B"/><circle cx="207" cy="204" r="9" fill="#F7C948"/><circle cx="237" cy="204" r="9" fill="#24C78B"/>
+  <text x="298" y="425" text-anchor="middle" fill="url(#green)" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace" font-size="212" font-weight="700" filter="url(#glow)">L</text>
+  <path d="M205 453H394" stroke="#24C78B" stroke-opacity=".38" stroke-width="7" stroke-linecap="round"/>
+
+  <!-- Wordmark -->
+  <text x="551" y="337" fill="#E6FFF3" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace" font-size="122" font-weight="700" letter-spacing="-7">Lupin</text>
+  <text x="558" y="401" fill="#24C78B" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace" font-size="28" font-weight="700" letter-spacing="3">&gt; BUILD / WIRE / AUTOMATE_</text>
+  <rect x="558" y="440" width="477" height="3" rx="2" fill="#1F3C37"/>
+  <text x="558" y="486" fill="#7A9A91" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace" font-size="21" letter-spacing="1">ELECTRICAL · SOFTWARE · DEVOPS</text>
+</svg>
