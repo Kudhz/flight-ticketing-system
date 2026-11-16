@@ -264,7 +264,7 @@ function FlightDataPages({ page }) {
   const incomeFlights = flights.filter((flight) =>
     INCOME_ROUTES.has(flight.route),
   );
-  const visibleFlights = page === "income" ? incomeFlights : flights;
+  const visibleFlights = page === "history" ? flights : incomeFlights;
   const isLoading = status.type === "loading";
   const dashboardValue = (value) =>
     isLoading ? "..." : status.type === "error" ? "—" : value;
@@ -282,6 +282,9 @@ function FlightDataPages({ page }) {
     setPdfError("");
     setIsPdfLoading(true);
     try {
+      const pdfMonth = page === "dashboard" ? RECENT_PERIODS[0].month : month;
+      const pdfYear = page === "dashboard" ? RECENT_PERIODS[0].year : year;
+      const pdfMonthName = MONTHS[Number(pdfMonth) - 1];
       const [{ jsPDF }] = await Promise.all([
         import("jspdf"),
         import("jspdf-autotable"),
@@ -292,16 +295,15 @@ function FlightDataPages({ page }) {
         format: "a4",
       });
 
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(14);
-      doc.text(
-        `${page === "history" ? "RIWAYAT PENERBANGAN" : "PENGHASILAN FEE TIKET"} - ${monthName.toUpperCase()} ${year}`,
-        doc.internal.pageSize.getWidth() / 2,
-        15,
-        { align: "center" },
-      );
-
       if (page === "history") {
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(14);
+        doc.text(
+          `RIWAYAT PENERBANGAN - ${monthName.toUpperCase()} ${year}`,
+          doc.internal.pageSize.getWidth() / 2,
+          15,
+          { align: "center" },
+        );
         doc.autoTable({
           startY: 23,
           head: [["RINGKASAN BULANAN", "JUMLAH"]],
@@ -407,59 +409,63 @@ function FlightDataPages({ page }) {
           },
         });
       } else {
+        const margin = 30 * 25.4 / 72;
+        const tableWidth = doc.internal.pageSize.getWidth() - margin * 2;
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(16);
+        doc.text(
+          "TAGIHAN FEE TIKET SUSI AIR MELONGUANE",
+          doc.internal.pageSize.getWidth() / 2,
+          margin + 6,
+          { align: "center" },
+        );
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(14);
+        doc.text(
+          `PERIODE BULAN ${pdfMonthName.toUpperCase()} ${pdfYear}`,
+          doc.internal.pageSize.getWidth() / 2,
+          margin + 17,
+          { align: "center" },
+        );
         doc.autoTable({
-          startY: 23,
-          head: [["RUTE", "PENERBANGAN", "PAX", "PENGHASILAN"]],
-          body: ["MNA-MDC", "MNA-IAX"].map((route) => [
-            route,
-            totals.routes[route].flights,
-            totals.routes[route].pax,
-            formatCurrency(totals.routes[route].income),
-          ]),
-          foot: [
-            [
-              "TOTAL",
-              totals.incomeFlights,
-              totals.incomePax,
-              formatCurrency(totals.income),
-            ],
-          ],
-          theme: "grid",
-          styles: { fontSize: 9, cellPadding: 2.5 },
-          headStyles: { fontStyle: "bold", fillColor: [23, 118, 109] },
-          footStyles: {
-            fontStyle: "bold",
-            fillColor: [232, 244, 240],
-            textColor: [23, 59, 62],
-          },
-        });
-        doc.autoTable({
-          startY: doc.lastAutoTable.finalY + 8,
-          head: [["TANGGAL", "RUTE", "PAX", "FEE PER PAX", "PENGHASILAN"]],
+          startY: margin + 36,
+          margin: { left: margin, right: margin, bottom: margin + 10 },
+          head: [["Tanggal", "Nomor Penerbangan", "Jumlah Penumpang"]],
           body: incomeFlights.map((flight) => [
-            formatPdfDate(flight.date, month, year),
-            flight.route,
+            new Date(
+              Number(pdfYear),
+              Number(pdfMonth) - 1,
+              flight.date,
+            ).toLocaleDateString("id-ID"),
+            "",
             flight.pax,
-            formatCurrency(flight.feeTicket),
-            formatCurrency(flight.pax * flight.feeTicket),
           ]),
-          foot: [
-            ["TOTAL", "", totals.incomePax, "", formatCurrency(totals.income)],
-          ],
           theme: "grid",
-          styles: { fontSize: 9, cellPadding: 2.5 },
-          headStyles: { fontStyle: "bold", fillColor: [23, 118, 109] },
-          footStyles: {
-            fontStyle: "bold",
-            fillColor: [232, 244, 240],
-            textColor: [23, 59, 62],
+          styles: {
+            fontSize: 12,
+            cellPadding: 5 * 25.4 / 72,
+            lineColor: [0, 0, 0],
+            lineWidth: 0.35,
+            textColor: [0, 0, 0],
+          },
+          headStyles: {
+            fontStyle: "normal",
+            fillColor: [240, 240, 240],
+            textColor: [0, 0, 0],
           },
           columnStyles: {
-            2: { halign: "right" },
-            3: { halign: "right" },
-            4: { halign: "right" },
+            0: { cellWidth: tableWidth * 0.2 },
+            1: { cellWidth: tableWidth * 0.5 },
+            2: { cellWidth: tableWidth * 0.3 },
           },
         });
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(12);
+        doc.text(
+          `Total Penumpang: ${totals.incomePax}`,
+          margin,
+          doc.internal.pageSize.getHeight() - margin,
+        );
       }
 
       const pdfBlob = doc.output("blob");
@@ -475,7 +481,7 @@ function FlightDataPages({ page }) {
           historyPdfName ||
           (page === "history"
             ? `Riwayat_Penerbangan_${monthName}_${year}.pdf`
-            : `Fee_Ticket_Melonguane_${monthName}_${year}.pdf`),
+            : `Fee_Ticket_Melonguane_${pdfMonthName}_${pdfYear}.pdf`),
         );
       }
     } catch (error) {
@@ -619,6 +625,24 @@ function FlightDataPages({ page }) {
               ))}
             </div>
           </section>
+          <div className="flight-report-actions">
+            <button
+              type="button"
+              className="secondary-button"
+              onClick={() => exportPdf("preview")}
+              disabled={isLoading || visibleFlights.length === 0 || isPdfLoading}
+            >
+              {isPdfLoading ? "Membuat PDF..." : "Preview PDF"}
+            </button>
+            <button
+              type="button"
+              className="primary-button"
+              onClick={() => exportPdf("download")}
+              disabled={isLoading || visibleFlights.length === 0 || isPdfLoading}
+            >
+              Download PDF
+            </button>
+          </div>
         </>
       ) : page === "history" ? (
         <>

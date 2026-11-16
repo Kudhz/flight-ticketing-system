@@ -31,3 +31,5 @@ Set `FINANCE_USERNAME` and `FINANCE_PASSWORD` in the project-root `.env` file. T
 The login uses an HttpOnly, SameSite session cookie. Use the same site origin for the frontend and PHP APIs so the session protects both page access and Flight Data requests.
 
 Riwayat Flight PDF previews and downloads also save a server copy under `flight-pdf/` as `data-flight-{bulan}-{tahun}.pdf`, for example `data-flight-november-2026.pdf`. The PHP process must be able to create and write to that folder. The folder is ignored by Git because it contains generated reports.
+
+The Penghasilan PDF buttons export the current month's fee-ticket report; Rincian Penghasilan exports the selected month. Their template lists dates and passenger counts, with flight-number cells left blank because the Flight Data API does not provide flight numbers.
