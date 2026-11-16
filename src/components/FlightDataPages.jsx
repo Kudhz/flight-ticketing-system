@@ -85,6 +85,21 @@ async function getPeriodFlights(year, month, signal) {
   return result.data.map(mapApiFlight);
 }
 
+async function saveHistoryPdf(pdfBlob) {
+  const response = await fetch("/server/index.php?path=/api/flight-pdf", {
+    method: "POST",
+    headers: { "Content-Type": "application/pdf" },
+    body: pdfBlob,
+  });
+  const result = await response.json().catch(() => ({}));
+
+  if (!response.ok || result.success !== true || !result.filename) {
+    throw new Error(result.error || "PDF gagal disimpan ke folder server.");
+  }
+
+  return result.filename;
+}
+
 function FlightDataPages({ page }) {
   const [month, setMonth] = useState(String(CURRENT_DATE.getMonth() + 1));
   const [year, setYear] = useState(String(CURRENT_YEAR));
@@ -442,15 +457,20 @@ function FlightDataPages({ page }) {
         });
       }
 
+      const pdfBlob = doc.output("blob");
+      const historyPdfName =
+        page === "history" ? await saveHistoryPdf(pdfBlob) : null;
+
       if (previewWindow) {
-        const pdfUrl = URL.createObjectURL(doc.output("blob"));
+        const pdfUrl = URL.createObjectURL(pdfBlob);
         previewWindow.location.href = pdfUrl;
         window.setTimeout(() => URL.revokeObjectURL(pdfUrl), 60_000);
       } else {
         doc.save(
-          page === "history"
+          historyPdfName ||
+          (page === "history"
             ? `Riwayat_Penerbangan_${monthName}_${year}.pdf`
-            : `Fee_Ticket_Melonguane_${monthName}_${year}.pdf`,
+            : `Fee_Ticket_Melonguane_${monthName}_${year}.pdf`),
         );
       }
     } catch (error) {

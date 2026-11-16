@@ -350,6 +350,91 @@ try {
         sendJson(405, ['error' => 'Method tidak didukung.']);
     }
 
+    if ($path === '/api/flight-pdf') {
+        if ($method !== 'POST') {
+            header('Allow: POST');
+            sendJson(405, ['error' => 'Method tidak didukung.']);
+        }
+
+        $contentType = strtolower(trim(explode(
+            ';',
+            $_SERVER['CONTENT_TYPE'] ?? ''
+        )[0]));
+        if ($contentType !== 'application/pdf') {
+            sendJson(415, ['error' => 'Konten harus berupa PDF.']);
+        }
+
+        $maxPdfBytes = 10 * 1024 * 1024;
+        $contentLength = filter_var(
+            $_SERVER['CONTENT_LENGTH'] ?? null,
+            FILTER_VALIDATE_INT
+        );
+        if ($contentLength !== false && $contentLength > $maxPdfBytes) {
+            sendJson(413, ['error' => 'Ukuran PDF melebihi batas 10 MB.']);
+        }
+
+        $pdfBytes = file_get_contents(
+            'php://input',
+            false,
+            null,
+            0,
+            $maxPdfBytes + 1
+        );
+        if ($pdfBytes === false || strlen($pdfBytes) > $maxPdfBytes) {
+            sendJson(413, ['error' => 'Ukuran PDF melebihi batas 10 MB.']);
+        }
+        if (!str_starts_with($pdfBytes, '%PDF-')) {
+            sendJson(400, ['error' => 'Isi file bukan PDF yang valid.']);
+        }
+
+        $pdfDirectory = dirname(__DIR__) . '/flight-pdf';
+        if (
+            !is_dir($pdfDirectory) &&
+            !mkdir($pdfDirectory, 0775, true) &&
+            !is_dir($pdfDirectory)
+        ) {
+            throw new RuntimeException('Folder flight-pdf tidak dapat dibuat.');
+        }
+        if (!is_writable($pdfDirectory)) {
+            throw new RuntimeException('Folder flight-pdf tidak dapat ditulis oleh PHP.');
+        }
+
+        $fileName = (new DateTimeImmutable(
+            'now',
+            new DateTimeZone('Asia/Makassar')
+        ))->format('d-m-Y') . '.pdf';
+        $targetPath = $pdfDirectory . '/' . $fileName;
+        $temporaryPath = tempnam($pdfDirectory, '.flight-pdf-');
+        if ($temporaryPath === false) {
+            throw new RuntimeException('File sementara PDF tidak dapat dibuat.');
+        }
+
+        try {
+            $writtenBytes = file_put_contents($temporaryPath, $pdfBytes, LOCK_EX);
+            if ($writtenBytes !== strlen($pdfBytes)) {
+                throw new RuntimeException('PDF tidak dapat ditulis dengan lengkap.');
+            }
+
+            if (
+                !rename($temporaryPath, $targetPath) &&
+                (
+                    DIRECTORY_SEPARATOR !== '\\' ||
+                    !is_file($targetPath) ||
+                    !unlink($targetPath) ||
+                    !rename($temporaryPath, $targetPath)
+                )
+            ) {
+                throw new RuntimeException('PDF tidak dapat disimpan ke folder flight-pdf.');
+            }
+        } finally {
+            if (is_file($temporaryPath)) {
+                unlink($temporaryPath);
+            }
+        }
+
+        sendJson(201, ['success' => true, 'filename' => $fileName]);
+    }
+
     $database = getDatabase();
 
     if ($method === 'GET') {
