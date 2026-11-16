@@ -472,8 +472,8 @@ function FlightDataPages({ page }) {
           },
         });
 
-        let summaryY = doc.lastAutoTable.finalY + 9;
-        if (summaryY + 64 > pageHeight - margin) {
+        let summaryY = doc.lastAutoTable.finalY + 6;
+        if (summaryY + 43 > pageHeight - margin) {
           doc.addPage();
           summaryY = margin + 4;
         }
@@ -484,33 +484,33 @@ function FlightDataPages({ page }) {
         doc.setFont("helvetica", "bold");
         doc.text("Ringkasan:", margin, summaryY);
         doc.setFont("helvetica", "normal");
-        doc.text(`Total PAX MNA-MDC: ${totals.routes["MNA-MDC"].pax}`, margin, summaryY + 7);
-        doc.text(`Total Flight MNA-MDC: ${totals.routes["MNA-MDC"].flights}`, margin, summaryY + 14);
-        doc.text(`Total PAX MNA-IAX: ${totals.routes["MNA-IAX"].pax}`, rightX, summaryY + 7);
-        doc.text(`Total Flight MNA-IAX: ${totals.routes["MNA-IAX"].flights}`, rightX, summaryY + 14);
+        doc.text(`Total PAX MNA-MDC: ${totals.routes["MNA-MDC"].pax}`, margin, summaryY + 5);
+        doc.text(`Total Flight MNA-MDC: ${totals.routes["MNA-MDC"].flights}`, margin, summaryY + 10);
+        doc.text(`Total PAX MNA-IAX: ${totals.routes["MNA-IAX"].pax}`, rightX, summaryY + 5);
+        doc.text(`Total Flight MNA-IAX: ${totals.routes["MNA-IAX"].flights}`, rightX, summaryY + 10);
         doc.setFont("helvetica", "bold");
-        doc.text("Total Keseluruhan:", margin, summaryY + 25);
+        doc.text("Total Keseluruhan:", margin, summaryY + 17);
         doc.setFont("helvetica", "normal");
-        doc.text(`Total PAX: ${totals.incomePax}`, margin, summaryY + 32);
-        doc.text(`Total Fee MNA-MDC: ${formatAmount(totals.routes["MNA-MDC"].income)}`, margin, summaryY + 39);
-        doc.text(`Total Fee MNA-IAX: ${formatAmount(totals.routes["MNA-IAX"].income)}`, margin, summaryY + 46);
-        doc.text(`Total Fee Agent: ${formatAmount(totals.income)}`, margin, summaryY + 53);
-        doc.text(`Total Flight: ${totals.incomeFlights}`, margin, summaryY + 60);
+        doc.text(`Total PAX: ${totals.incomePax}`, margin, summaryY + 22);
+        doc.text(`Total Fee MNA-MDC: ${formatAmount(totals.routes["MNA-MDC"].income)}`, margin, summaryY + 27);
+        doc.text(`Total Fee MNA-IAX: ${formatAmount(totals.routes["MNA-IAX"].income)}`, margin, summaryY + 32);
+        doc.text(`Total Fee Agent: ${formatAmount(totals.income)}`, margin, summaryY + 37);
+        doc.text(`Total Flight: ${totals.incomeFlights}`, margin, summaryY + 42);
         const signedDate = new Intl.DateTimeFormat("id-ID", {
           timeZone: "Asia/Makassar",
           day: "numeric",
           month: "long",
           year: "numeric",
         }).format(new Date());
-        doc.text(`Melonguane, ${signedDate}`, rightX + 24, summaryY + 25, { align: "center" });
-        doc.addImage(signature, "PNG", rightX, summaryY + 27, 48, 28);
+        doc.text(`Melonguane, ${signedDate}`, rightX + 24, summaryY + 17, { align: "center" });
+        doc.addImage(signature, "PNG", rightX, summaryY + 18, 48, 18);
         doc.setFont("helvetica", "bold");
-        doc.text("Witri Lia Anggraini", rightX + 24, summaryY + 56, { align: "center" });
+        doc.text("Witri Lia Anggraini", rightX + 24, summaryY + 37, { align: "center" });
         doc.setFont("helvetica", "normal");
         doc.text(
           "BRI - 5788 0104 1260 535",
           rightX + 24,
-          summaryY + 63,
+          summaryY + 42,
           { align: "center" },
         );
       }
