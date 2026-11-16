@@ -473,7 +473,7 @@ function FlightDataPages({ page }) {
         });
 
         let summaryY = doc.lastAutoTable.finalY + 6;
-        if (summaryY + 43 > pageHeight - margin) {
+        if (summaryY + 54 > pageHeight - margin) {
           doc.addPage();
           summaryY = margin + 4;
         }
@@ -503,14 +503,14 @@ function FlightDataPages({ page }) {
           year: "numeric",
         }).format(new Date());
         doc.text(`Melonguane, ${signedDate}`, rightX + 24, summaryY + 17, { align: "center" });
-        doc.addImage(signature, "PNG", rightX, summaryY + 18, 48, 18);
+        doc.addImage(signature, "PNG", rightX, summaryY + 19, 48, 28);
         doc.setFont("helvetica", "bold");
-        doc.text("Witri Lia Anggraini", rightX + 24, summaryY + 37, { align: "center" });
+        doc.text("Witri Lia Anggraini", rightX + 24, summaryY + 48, { align: "center" });
         doc.setFont("helvetica", "normal");
         doc.text(
           "BRI - 5788 0104 1260 535",
           rightX + 24,
-          summaryY + 42,
+          summaryY + 53,
           { align: "center" },
         );
       }
