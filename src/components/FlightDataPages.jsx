@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import signatureUrl from "../assets/ttd.png";
 
 const API_URL = "/flights.php";
 const MONTHS = [
@@ -39,7 +40,9 @@ const mapApiFlight = (flight) => ({
   date: Number(flight.flight_day),
   route: String(flight.route || ""),
   pax: Number(flight.pax) || 0,
+  basicFare: Number(flight.basic_fare) || 0,
   feeTicket: Number(flight.fee_ticket) || 0,
+  note: String(flight.note || ""),
   passengerWeight: Number(flight.passenger_weight) || 0,
   baggagePieces: Number(flight.baggage_pieces) || 0,
   baggageWeight: Number(flight.baggage_weight) || 0,
@@ -409,62 +412,106 @@ function FlightDataPages({ page }) {
           },
         });
       } else {
-        const margin = 30 * 25.4 / 72;
-        const tableWidth = doc.internal.pageSize.getWidth() - margin * 2;
+        const margin = 14;
+        const pageWidth = doc.internal.pageSize.getWidth();
+        const pageHeight = doc.internal.pageSize.getHeight();
+        const tableWidth = pageWidth - margin * 2;
+        const signature = new Image();
+        await new Promise((resolve, reject) => {
+          signature.onload = resolve;
+          signature.onerror = () => reject(new Error("Gambar tanda tangan tidak dapat dimuat."));
+          signature.src = signatureUrl;
+        });
+
         doc.setFont("helvetica", "bold");
-        doc.setFontSize(16);
+        doc.setFontSize(11);
         doc.text(
-          "TAGIHAN FEE TIKET SUSI AIR MELONGUANE",
-          doc.internal.pageSize.getWidth() / 2,
-          margin + 6,
-          { align: "center" },
-        );
-        doc.setFont("helvetica", "normal");
-        doc.setFontSize(14);
-        doc.text(
-          `PERIODE BULAN ${pdfMonthName.toUpperCase()} ${pdfYear}`,
-          doc.internal.pageSize.getWidth() / 2,
-          margin + 17,
+          [
+            "TAGIHAN FEE TIKET SUSI AIR MELONGUANE",
+            `PERIODE BULAN ${pdfMonthName.toUpperCase()} ${pdfYear}`,
+          ],
+          pageWidth / 2,
+          15,
           { align: "center" },
         );
         doc.autoTable({
-          startY: margin + 36,
-          margin: { left: margin, right: margin, bottom: margin + 10 },
-          head: [["Tanggal", "Nomor Penerbangan", "Jumlah Penumpang"]],
-          body: incomeFlights.map((flight) => [
-            new Date(
-              Number(pdfYear),
-              Number(pdfMonth) - 1,
-              flight.date,
-            ).toLocaleDateString("id-ID"),
-            "",
+          startY: 30,
+          margin: { left: margin, right: margin, bottom: margin },
+          head: [["NO", "TANGGAL", "ROUTE", "PAX", "BASIC FARE", "FEE TIKET", "KETERANGAN"]],
+          body: incomeFlights.map((flight, index) => [
+            index + 1,
+            `${flight.date} ${pdfMonthName} ${pdfYear}`,
+            flight.route,
             flight.pax,
+            flight.basicFare.toLocaleString("id-ID"),
+            flight.feeTicket.toLocaleString("id-ID"),
+            flight.note,
           ]),
           theme: "grid",
           styles: {
-            fontSize: 12,
-            cellPadding: 5 * 25.4 / 72,
-            lineColor: [0, 0, 0],
+            fontSize: 8,
+            cellPadding: 2,
+            lineColor: [80, 80, 80],
             lineWidth: 0.35,
-            textColor: [0, 0, 0],
+            textColor: [80, 80, 80],
           },
           headStyles: {
-            fontStyle: "normal",
-            fillColor: [240, 240, 240],
+            fontStyle: "bold",
+            halign: "center",
+            fillColor: [26, 189, 156],
             textColor: [0, 0, 0],
           },
           columnStyles: {
-            0: { cellWidth: tableWidth * 0.2 },
-            1: { cellWidth: tableWidth * 0.5 },
-            2: { cellWidth: tableWidth * 0.3 },
+            0: { cellWidth: tableWidth * 12 / 182, halign: "center" },
+            1: { cellWidth: tableWidth * 35 / 182 },
+            2: { cellWidth: tableWidth * 25 / 182, halign: "center" },
+            3: { cellWidth: tableWidth * 15 / 182, halign: "center" },
+            4: { cellWidth: tableWidth * 35 / 182, halign: "right" },
+            5: { cellWidth: tableWidth * 35 / 182, halign: "right" },
+            6: { cellWidth: tableWidth * 25 / 182, halign: "center" },
           },
         });
+
+        let summaryY = doc.lastAutoTable.finalY + 9;
+        if (summaryY + 64 > pageHeight - margin) {
+          doc.addPage();
+          summaryY = margin + 4;
+        }
+        const rightX = pageWidth - margin - 48;
+        const formatAmount = (amount) => amount.toLocaleString("id-ID");
+        doc.setTextColor(0, 0, 0);
+        doc.setFontSize(9);
+        doc.setFont("helvetica", "bold");
+        doc.text("Ringkasan:", margin, summaryY);
         doc.setFont("helvetica", "normal");
-        doc.setFontSize(12);
+        doc.text(`Total PAX MNA-MDC: ${totals.routes["MNA-MDC"].pax}`, margin, summaryY + 7);
+        doc.text(`Total Flight MNA-MDC: ${totals.routes["MNA-MDC"].flights}`, margin, summaryY + 14);
+        doc.text(`Total PAX MNA-IAX: ${totals.routes["MNA-IAX"].pax}`, rightX, summaryY + 7);
+        doc.text(`Total Flight MNA-IAX: ${totals.routes["MNA-IAX"].flights}`, rightX, summaryY + 14);
+        doc.setFont("helvetica", "bold");
+        doc.text("Total Keseluruhan:", margin, summaryY + 25);
+        doc.setFont("helvetica", "normal");
+        doc.text(`Total PAX: ${totals.incomePax}`, margin, summaryY + 32);
+        doc.text(`Total Fee MNA-MDC: ${formatAmount(totals.routes["MNA-MDC"].income)}`, margin, summaryY + 39);
+        doc.text(`Total Fee MNA-IAX: ${formatAmount(totals.routes["MNA-IAX"].income)}`, margin, summaryY + 46);
+        doc.text(`Total Fee Agent: ${formatAmount(totals.income)}`, margin, summaryY + 53);
+        doc.text(`Total Flight: ${totals.incomeFlights}`, margin, summaryY + 60);
+        const signedDate = new Intl.DateTimeFormat("id-ID", {
+          timeZone: "Asia/Makassar",
+          day: "numeric",
+          month: "long",
+          year: "numeric",
+        }).format(new Date());
+        doc.text(`Melonguane, ${signedDate}`, rightX + 24, summaryY + 25, { align: "center" });
+        doc.addImage(signature, "PNG", rightX, summaryY + 27, 48, 28);
+        doc.setFont("helvetica", "bold");
+        doc.text("Witri Lia Anggraini", rightX + 24, summaryY + 56, { align: "center" });
+        doc.setFont("helvetica", "normal");
         doc.text(
-          `Total Penumpang: ${totals.incomePax}`,
-          margin,
-          doc.internal.pageSize.getHeight() - margin,
+          "BRI - 5788 0104 1260 535",
+          rightX + 24,
+          summaryY + 63,
+          { align: "center" },
         );
       }
 
