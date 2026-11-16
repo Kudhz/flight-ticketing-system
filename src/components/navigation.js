@@ -15,8 +15,18 @@ export const NAV_GROUPS = [
   {
     label: "KEUANGAN",
     items: [
-      { id: "flightDashboard", label: "Penghasilan", icon: "currency" },
-      { id: "flightIncome", label: "Rincian Penghasilan", icon: "income" },
+      {
+        id: "flightDashboard",
+        label: "Penghasilan",
+        icon: "currency",
+        requiresFinanceAuth: true,
+      },
+      {
+        id: "flightIncome",
+        label: "Rincian Penghasilan",
+        icon: "income",
+        requiresFinanceAuth: true,
+      },
     ],
   },
 ];

@@ -93,6 +93,8 @@ const normalizePassengerName = (name) =>
     .trim()
     .toLocaleUpperCase("id-ID");
 const PHP_API_ENDPOINT = "/server/index.php";
+const FINANCE_PAGES = new Set(["flightDashboard", "flightIncome"]);
+const FINANCE_AUTH_ENDPOINT = `${PHP_API_ENDPOINT}?path=/api/finance`;
 
 const apiRequest = async (path, options = {}) => {
   const headers = { ...options.headers };
@@ -107,6 +109,8 @@ const apiRequest = async (path, options = {}) => {
   }
   return result;
 };
+
+const financeAuthUrl = (action) => `${FINANCE_AUTH_ENDPOINT}/${action}`;
 
 const bookingsFromApiResponse = (result) => {
   const bookings = [
@@ -150,6 +154,14 @@ function App() {
   const [dataError, setDataError] = useState("");
   const [isSavingBooking, setIsSavingBooking] = useState(false);
   const [activePage, setActivePage] = useState("overview");
+  const [isFinanceAuthenticated, setIsFinanceAuthenticated] = useState(false);
+  const [financeAuthConfigured, setFinanceAuthConfigured] = useState(null);
+  const [pendingFinancePage, setPendingFinancePage] = useState(null);
+  const [isFinanceLoginOpen, setIsFinanceLoginOpen] = useState(false);
+  const [financeUsername, setFinanceUsername] = useState("");
+  const [financePassword, setFinancePassword] = useState("");
+  const [financeLoginError, setFinanceLoginError] = useState("");
+  const [isFinanceSubmitting, setIsFinanceSubmitting] = useState(false);
   const [theme, setTheme] = useState(
     () => window.localStorage.getItem("seatflow-theme-v2") || "dark",
   );
@@ -194,6 +206,26 @@ function App() {
     }
 
     loadBookings();
+    return () => {
+      isCurrent = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    let isCurrent = true;
+
+    async function checkFinanceSession() {
+      try {
+        const result = await apiRequest(financeAuthUrl("session"));
+        if (!isCurrent) return;
+        setFinanceAuthConfigured(result.configured === true);
+        setIsFinanceAuthenticated(result.authenticated === true);
+      } catch (error) {
+        if (isCurrent) setFinanceLoginError(error.message);
+      }
+    }
+
+    checkFinanceSession();
     return () => {
       isCurrent = false;
     };
@@ -287,8 +319,78 @@ function App() {
     window.setTimeout(() => setToast(""), 2800);
   }
 
-  function navigateToPage(page) {
+  async function navigateToPage(page) {
+    if (FINANCE_PAGES.has(page)) {
+      setPendingFinancePage(page);
+      setFinanceLoginError("");
+      try {
+        const result = await apiRequest(financeAuthUrl("session"));
+        setFinanceAuthConfigured(result.configured === true);
+        setIsFinanceAuthenticated(result.authenticated === true);
+        if (result.authenticated === true) {
+          setActivePage(page);
+          setPendingFinancePage(null);
+          return;
+        }
+        if (FINANCE_PAGES.has(activePage)) setActivePage("overview");
+        if (result.configured !== true) {
+          setFinanceLoginError(
+            "Akun Keuangan belum dikonfigurasi di server.",
+          );
+        }
+      } catch (error) {
+        setFinanceLoginError(error.message);
+      }
+      setIsFinanceLoginOpen(true);
+      return;
+    }
     setActivePage(page);
+  }
+
+  async function loginFinance(event) {
+    event.preventDefault();
+    setIsFinanceSubmitting(true);
+    setFinanceLoginError("");
+    try {
+      const result = await apiRequest(financeAuthUrl("login"), {
+        method: "POST",
+        body: JSON.stringify({
+          username: financeUsername.trim(),
+          password: financePassword,
+        }),
+      });
+      setIsFinanceAuthenticated(result.authenticated === true);
+      setFinanceAuthConfigured(true);
+      setFinancePassword("");
+      setIsFinanceLoginOpen(false);
+      setActivePage(pendingFinancePage || "flightDashboard");
+      setPendingFinancePage(null);
+    } catch (error) {
+      setFinanceLoginError(error.message);
+    } finally {
+      setIsFinanceSubmitting(false);
+    }
+  }
+
+  async function logoutFinance() {
+    setIsFinanceSubmitting(true);
+    setFinanceLoginError("");
+    try {
+      await apiRequest(financeAuthUrl("logout"), {
+        method: "POST",
+        body: JSON.stringify({}),
+      });
+      setIsFinanceAuthenticated(false);
+      setPendingFinancePage(null);
+      setIsFinanceLoginOpen(false);
+      if (FINANCE_PAGES.has(activePage)) setActivePage("overview");
+      showMessage("Anda telah keluar dari Keuangan.");
+    } catch (error) {
+      setFinanceLoginError(error.message);
+      setIsFinanceLoginOpen(true);
+    } finally {
+      setIsFinanceSubmitting(false);
+    }
   }
 
   async function refreshBookings() {
@@ -460,6 +562,10 @@ function App() {
       <AppSidebar
         activePage={activePage}
         bookingCount={bookings.length}
+        isFinanceAuthenticated={isFinanceAuthenticated}
+        isFinanceSubmitting={isFinanceSubmitting}
+        onFinanceLogin={() => navigateToPage("flightDashboard")}
+        onFinanceLogout={logoutFinance}
         onNavigate={navigateToPage}
       />
 
@@ -1163,6 +1269,103 @@ function App() {
                   disabled={isUpdatingBooking}
                 >
                   {isUpdatingBooking ? "Menyimpan..." : "Simpan perubahan"}
+                </button>
+              </div>
+            </form>
+          </section>
+        </div>
+      )}
+      {isFinanceLoginOpen && (
+        <div
+          className="modal-backdrop"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget && !isFinanceSubmitting) {
+              setIsFinanceLoginOpen(false);
+              setPendingFinancePage(null);
+              setFinancePassword("");
+            }
+          }}
+        >
+          <section
+            className="booking-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="finance-login-title"
+          >
+            <div className="modal-heading">
+              <div>
+                <span className="section-kicker">AREA TERBATAS</span>
+                <h2 id="finance-login-title">Masuk ke Keuangan</h2>
+              </div>
+              <button
+                className="close-button"
+                type="button"
+                onClick={() => {
+                  setIsFinanceLoginOpen(false);
+                  setPendingFinancePage(null);
+                  setFinancePassword("");
+                }}
+                disabled={isFinanceSubmitting}
+                aria-label="Tutup"
+              >
+                ×
+              </button>
+            </div>
+            <p className="modal-description">
+              Masuk dengan akun yang diizinkan untuk membuka data penghasilan.
+            </p>
+            {financeAuthConfigured === false && (
+              <div className="finance-auth-notice" role="status">
+                Login Keuangan belum dikonfigurasi. Isi
+                FINANCE_USERNAME dan FINANCE_PASSWORD pada file .env server.
+              </div>
+            )}
+            {financeLoginError && (
+              <div className="finance-auth-error" role="alert">
+                {financeLoginError}
+              </div>
+            )}
+            <form onSubmit={loginFinance}>
+              <label>
+                Username
+                <input
+                  required
+                  autoComplete="username"
+                  value={financeUsername}
+                  onChange={(event) => setFinanceUsername(event.target.value)}
+                  disabled={isFinanceSubmitting}
+                />
+              </label>
+              <label>
+                Kata sandi
+                <input
+                  required
+                  type="password"
+                  autoComplete="current-password"
+                  value={financePassword}
+                  onChange={(event) => setFinancePassword(event.target.value)}
+                  disabled={isFinanceSubmitting}
+                />
+              </label>
+              <div className="modal-actions">
+                <button
+                  className="secondary-button"
+                  type="button"
+                  onClick={() => {
+                    setIsFinanceLoginOpen(false);
+                    setPendingFinancePage(null);
+                    setFinancePassword("");
+                  }}
+                  disabled={isFinanceSubmitting}
+                >
+                  Batal
+                </button>
+                <button
+                  className="primary-button"
+                  type="submit"
+                  disabled={isFinanceSubmitting}
+                >
+                  {isFinanceSubmitting ? "Memeriksa..." : "Masuk"}
                 </button>
               </div>
             </form>

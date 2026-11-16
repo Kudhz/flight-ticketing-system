@@ -3,8 +3,11 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/config.php';
+require_once dirname(__DIR__, 3) . '/server/finance-auth.php';
 
 cors();
+startFinanceSession();
+$isFinanceUser = financeSessionIsAuthenticated();
 
 function parseMonth(mixed $value): ?int
 {
@@ -58,8 +61,15 @@ function readWeight(mixed $value): ?float
 }
 
 try {
-    $pdo = database();
     $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
+    if ($method === 'POST' && !$isFinanceUser) {
+        sendJson([
+            'success' => false,
+            'message' => 'Login Keuangan diperlukan.',
+        ], 401);
+    }
+
+    $pdo = database();
 
     if ($method === 'GET') {
         $conditions = [];
@@ -110,6 +120,19 @@ try {
             $summary['total_flights'] += (int) $routeSummary['total_flights'];
             $summary['total_pax'] += (int) $routeSummary['total_pax'];
             $summary['total_fee'] += (float) $routeSummary['total_fee'];
+        }
+
+        if (!$isFinanceUser) {
+            $records = array_map(static function (array $record): array {
+                unset($record['basic_fare'], $record['fee_ticket']);
+                return $record;
+            }, $records);
+            $byRoute = array_map(static function (array $routeSummary): array {
+                unset($routeSummary['total_fee']);
+                return $routeSummary;
+            }, $byRoute);
+            unset($summary['total_fee']);
+            $summary['by_route'] = $byRoute;
         }
 
         sendJson([

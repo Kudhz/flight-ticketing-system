@@ -40,7 +40,22 @@ const NAV_ICONS = {
   ),
 };
 
-function AppSidebar({ activePage, bookingCount, onNavigate }) {
+function AppSidebar({
+  activePage,
+  bookingCount,
+  isFinanceAuthenticated,
+  isFinanceSubmitting,
+  onFinanceLogin,
+  onFinanceLogout,
+  onNavigate,
+}) {
+  const visibleGroups = NAV_GROUPS.map((group) => ({
+    ...group,
+    items: group.items.filter(
+      (item) => !item.requiresFinanceAuth || isFinanceAuthenticated,
+    ),
+  })).filter((group) => group.items.length > 0);
+
   return (
     <aside className="sidebar">
       <div className="brand">
@@ -51,7 +66,7 @@ function AppSidebar({ activePage, bookingCount, onNavigate }) {
           <strong>Lupin Portal</strong>
         </span>
       </div>
-      {NAV_GROUPS.map((group) => (
+      {visibleGroups.map((group) => (
         <nav className="nav-group" key={group.label} aria-label={group.label}>
           <div className="side-label">{group.label}</div>
           {group.items.map((item) => (
@@ -63,7 +78,14 @@ function AppSidebar({ activePage, bookingCount, onNavigate }) {
               onClick={() => onNavigate(item.id)}
             >
               <span className="nav-glyph" aria-hidden="true">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.7"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
                   {NAV_ICONS[item.icon]}
                 </svg>
               </span>
@@ -83,6 +105,28 @@ function AppSidebar({ activePage, bookingCount, onNavigate }) {
             <p>Pantau manifest dan status tiket.</p>
           </div>
         </div>
+        <button
+          className="sidebar-finance-action"
+          type="button"
+          onClick={isFinanceAuthenticated ? onFinanceLogout : onFinanceLogin}
+          disabled={isFinanceSubmitting}
+          title={
+            isFinanceAuthenticated ? "Keluar dari Keuangan" : "Login Keuangan"
+          }
+          aria-label={
+            isFinanceAuthenticated ? "Keluar dari Keuangan" : "Login Keuangan"
+          }
+        >
+          <span className="sidebar-finance-icon" aria-hidden="true">
+            {isFinanceAuthenticated ? "↪" : "↗"}
+          </span>
+          <span
+            className="sidebar-finance-label"
+            data-mobile-label={isFinanceAuthenticated ? "Keluar" : "Login"}
+          >
+            {isFinanceAuthenticated ? "Logout" : "Login"}
+          </span>
+        </button>
       </div>
     </aside>
   );

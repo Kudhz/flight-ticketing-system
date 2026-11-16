@@ -6,6 +6,8 @@ const FLIGHT_DAYS = [1, 3, 6];
 const ROUTES = ['MNA-IAX', 'MNA-MDC'];
 const STATUSES = ['Menunggu verifikasi', 'Booked', 'Dibayar'];
 
+require_once __DIR__ . '/finance-auth.php';
+
 function sendJson(int $status, array $data = []): void
 {
     http_response_code($status);
@@ -293,6 +295,59 @@ try {
 
     if ($method === 'GET' && $path === '/api/health') {
         sendJson(200, ['status' => 'ok']);
+    }
+
+    if ($path === '/api/finance/session' && $method === 'GET') {
+        startFinanceSession();
+        $financeConfig = financeAuthConfiguration();
+        sendJson(200, [
+            'configured' => $financeConfig !== null,
+            'authenticated' => financeSessionIsAuthenticated($financeConfig),
+        ]);
+    }
+
+    if ($path === '/api/finance/login' && $method === 'POST') {
+        $financeConfig = financeAuthConfiguration();
+        if ($financeConfig === null) {
+            sendJson(503, ['error' => 'Login Keuangan belum dikonfigurasi di server.']);
+        }
+
+        $body = requestBody();
+        $username = $body['username'] ?? null;
+        $password = $body['password'] ?? null;
+        if (
+            !is_string($username) ||
+            strlen($username) > 100 ||
+            !is_string($password) ||
+            strlen($password) > 4096
+        ) {
+            sendJson(400, ['error' => 'Username atau kata sandi tidak valid.']);
+        }
+
+        $validUsername = hash_equals($financeConfig['username'], $username);
+        $validPassword = hash_equals($financeConfig['password'], $password);
+        if (!$validUsername || !$validPassword) {
+            sendJson(401, ['error' => 'Username atau kata sandi salah.']);
+        }
+
+        startFinanceSession();
+        session_regenerate_id(true);
+        $_SESSION['finance_username'] = $financeConfig['username'];
+        sendJson(200, ['authenticated' => true]);
+    }
+
+    if ($path === '/api/finance/logout' && $method === 'POST') {
+        destroyFinanceSession();
+        sendJson(200, ['authenticated' => false]);
+    }
+
+    if (in_array($path, [
+        '/api/finance/session',
+        '/api/finance/login',
+        '/api/finance/logout',
+    ], true)) {
+        header('Allow: ' . ($path === '/api/finance/session' ? 'GET' : 'POST'));
+        sendJson(405, ['error' => 'Method tidak didukung.']);
     }
 
     $database = getDatabase();
