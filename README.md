@@ -22,6 +22,42 @@ Existing browser `localStorage` bookings are not copied automatically to MySQL. 
 
 All PHP files live in `server/`: `index.php` (bookings, login, PDF), `flights.php` (Flight Data API), `finance-auth.php`, and `flights-config.php` (Flight Data database connection, configured with `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER` and `DB_PASSWORD` in the PHP-FPM environment). The Flight Data database migrations are in `Flight-Data/database/migrations`. The separate Flight Data React application has been consolidated into the Ticketing frontend.
 
+## Node.js API (alternatif PHP)
+
+Folder `node-api/` berisi API Node.js (Express + mysql2) dengan kontrak yang sama seperti PHP. API PHP di `server/` tetap utuh, sehingga bisa dibandingkan atau dikembalikan kapan saja. Salinan semua file yang diubah untuk migrasi ini ada di `backup/2026-11-18_pre-node-api/`.
+
+| Endpoint Node.js | Setara PHP |
+| --- | --- |
+| `GET/POST/PATCH/DELETE /api/bookings` | `server/index.php` (pemesanan, `?id=` untuk PATCH/DELETE) |
+| `GET /api/finance/session`, `POST /api/finance/login`, `POST /api/finance/logout` | `server/index.php?path=/api/finance/...` |
+| `POST /api/flight-pdf?year=&month=` | `server/index.php?path=/api/flight-pdf` |
+| `GET/POST /api/flights` | `server/flights.php` |
+| `GET /api/health` | `server/index.php?path=/api/health` |
+
+Menjalankan di lokal:
+
+1. `cd node-api` lalu `npm install`.
+2. Isi `.env` di root proyek (atau `node-api/.env`) dengan `FINANCE_USERNAME`, `FINANCE_PASSWORD`, dan variabel `BOOKINGS_DB_*` serta `FLIGHTS_DB_*`; daftar lengkapnya ada di `.env.example`. Variabel yang sudah ada di environment proses (misalnya dari PM2 atau systemd) selalu didahulukan.
+3. `npm start` (atau `npm run dev` untuk auto-reload). Server mendengarkan `127.0.0.1:3001`; `npm test` menjalankan tesnya.
+4. Frontend memakai PHP secara bawaan. Untuk memakai Node.js, set `VITE_API_BACKEND=node` lalu jalankan ulang `npm run dev` atau `npm run build`. Saat `npm run dev`, Vite meneruskan `/api` ke `127.0.0.1:3001`.
+
+Di server, jalankan `node-api` dengan PM2 atau systemd, lalu teruskan `/api/` dari Nginx:
+
+```nginx
+location /api/ {
+    proxy_pass http://127.0.0.1:3001;
+    proxy_set_header Host $host;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    client_max_body_size 10m;
+}
+```
+
+Catatan perilaku:
+
+- Sesi login Keuangan memakai cookie `lupin_finance` yang ditandatangani (HttpOnly, SameSite=Lax, berlaku 12 jam) dan tidak disimpan di server. Logout menghapus cookie di browser. Isi `SESSION_SECRET` agar sesi tetap valid setelah password diganti.
+- Webhook ke n8n saat status menjadi Booked dikirim di latar belakang dan tidak menahan respons. URL-nya diatur lewat `BOOKING_WEBHOOK_URL` (`off` untuk menonaktifkan).
+- Dua database tetap terpisah: `ticketing_db` untuk pemesanan dan `db-jmt` untuk Flight Data.
+
 ## Keuangan access
 
 The Penghasilan and Rincian Penghasilan pages require the credentials in `.env`. Their sidebar tabs are hidden until the server confirms an authenticated session; the login/logout button is at the bottom of the sidebar. Other pages, including Riwayat Flight and Ticketing, remain public. The Flight Data API removes ticket-fee fields for unauthenticated requests and requires an authenticated session for writes.

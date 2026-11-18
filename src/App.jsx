@@ -3,6 +3,7 @@ import AppSidebar from "./components/AppSidebar";
 import FlightScheduleTabs from "./components/FlightScheduleTabs";
 import FlightDataPages from "./components/FlightDataPages";
 import { NAV_ITEMS } from "./components/navigation";
+import { BOOKINGS_ENDPOINT, FINANCE_AUTH_ENDPOINT } from "./apiConfig";
 import "./App.css";
 
 const BOOKING_LIMIT = 12;
@@ -93,9 +94,7 @@ const normalizePassengerName = (name) =>
   String(name || "")
     .trim()
     .toLocaleUpperCase("id-ID");
-const PHP_API_ENDPOINT = "/server/index.php";
 const FINANCE_PAGES = new Set(["flightDashboard", "flightIncome"]);
-const FINANCE_AUTH_ENDPOINT = `${PHP_API_ENDPOINT}?path=/api/finance`;
 
 const apiRequest = async (path, options = {}) => {
   const headers = { ...options.headers };
@@ -138,7 +137,7 @@ const bookingsFromApiResponse = (result) => {
 };
 
 const fetchBookings = async () => {
-  const result = await apiRequest(PHP_API_ENDPOINT);
+  const result = await apiRequest(BOOKINGS_ENDPOINT);
   return bookingsFromApiResponse(result);
 };
 
@@ -451,7 +450,7 @@ function App() {
     setIsSavingBooking(true);
     setDataError("");
     try {
-      const booking = await apiRequest(PHP_API_ENDPOINT, {
+      const booking = await apiRequest(BOOKINGS_ENDPOINT, {
         method: "POST",
         body: JSON.stringify({
           passengers,
@@ -485,7 +484,7 @@ function App() {
   async function updateStatus(id, status) {
     setDataError("");
     try {
-      const updatedBooking = await apiRequest(`${PHP_API_ENDPOINT}?id=${id}`, {
+      const updatedBooking = await apiRequest(`${BOOKINGS_ENDPOINT}?id=${id}`, {
         method: "PATCH",
         body: JSON.stringify({ status }),
       });
@@ -523,7 +522,7 @@ function App() {
     setDataError("");
     try {
       const updatedBooking = await apiRequest(
-        `${PHP_API_ENDPOINT}?id=${editingBooking.id}`,
+        `${BOOKINGS_ENDPOINT}?id=${editingBooking.id}`,
         {
           method: "PATCH",
           body: JSON.stringify({
@@ -550,7 +549,7 @@ function App() {
   async function deleteBooking(id) {
     setDataError("");
     try {
-      await apiRequest(`${PHP_API_ENDPOINT}?id=${id}`, { method: "DELETE" });
+      await apiRequest(`${BOOKINGS_ENDPOINT}?id=${id}`, { method: "DELETE" });
       setBookings((current) => current.filter((booking) => booking.id !== id));
       showMessage("Data pemesanan dihapus dari MySQL.");
     } catch (error) {

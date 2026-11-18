@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import signatureUrl from "../assets/ttd.png";
+import { FLIGHTS_ENDPOINT, flightPdfUrl } from "../apiConfig";
 
-const API_URL = "/server/flights.php";
 const MONTHS = [
   "Januari",
   "Februari",
@@ -76,7 +76,7 @@ const formatPdfDate = (day, month, year) =>
 
 async function getPeriodFlights(year, month, signal) {
   const params = new URLSearchParams({ year, month: String(month) });
-  const response = await fetch(`${API_URL}?${params}`, { signal });
+  const response = await fetch(`${FLIGHTS_ENDPOINT}?${params}`, { signal });
   const result = await response.json().catch(() => null);
 
   if (!response.ok || !result?.success || !Array.isArray(result.data)) {
@@ -89,12 +89,7 @@ async function getPeriodFlights(year, month, signal) {
 }
 
 async function saveHistoryPdf(pdfBlob, year, month) {
-  const params = new URLSearchParams({
-    path: "/api/flight-pdf",
-    year: String(year),
-    month: String(month),
-  });
-  const response = await fetch(`/server/index.php?${params}`, {
+  const response = await fetch(flightPdfUrl(year, month), {
     method: "POST",
     headers: { "Content-Type": "application/pdf" },
     body: pdfBlob,
