@@ -10,7 +10,7 @@ React/Vite frontend with a PHP/PDO API served by the local PHP server.
 4. Copy `.env.example` to `.env` and set `FINANCE_USERNAME` and `FINANCE_PASSWORD`. The local `.env` file is ignored by Git.
 5. Run `npm install` in the project root.
 6. Start the single frontend application with `npm run dev` from the project root. The Ticketing sidebar's Flight Data section contains read-only Dashboard, Riwayat Bulanan, and Penghasilan pages, styled consistently with the rest of Ticketing. The dashboard summarizes the current month's flights and the four latest months of ticket income; the other pages provide period details. Flight Data is read from the API only; no flight records are entered or modified in the UI.
-7. Open the Vite URL shown in the terminal. Vite forwards `/server/...` requests to `http://127.0.0.1:9495`. The Flight Data pages request `/flights.php` from the local web server.
+7. Open the Vite URL shown in the terminal. Vite forwards `/server/...` requests to `http://127.0.0.1:9495`. The Flight Data pages request `/server/flights.php`.
 
 Check the PHP API directly at `http://127.0.0.1:9495/server/index.php?path=/api/health`. The React app calls `server/index.php` through the Vite proxy: GET returns the booking list, POST creates one or more bookings, PATCH updates a booking's status or passenger name, phone, and route, and DELETE removes a booking. PATCH and DELETE include `?id=<booking-id>`.
 
@@ -20,7 +20,7 @@ Check seat availability with `GET http://127.0.0.1:9495/server/index.php?route=M
 
 Existing browser `localStorage` bookings are not copied automatically to MySQL. Export them from the old UI first if you need to keep those records.
 
-The Flight Data PHP API and its database migrations remain as backend support; the separate Flight Data React application has been consolidated into the Ticketing frontend.
+All PHP files live in `server/`: `index.php` (bookings, login, PDF), `flights.php` (Flight Data API), `finance-auth.php`, and `flights-config.php` (Flight Data database connection, configured with `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER` and `DB_PASSWORD` in the PHP-FPM environment). The Flight Data database migrations are in `Flight-Data/database/migrations`. The separate Flight Data React application has been consolidated into the Ticketing frontend.
 
 ## Keuangan access
 

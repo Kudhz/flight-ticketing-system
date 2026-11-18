@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import signatureUrl from "../assets/ttd.png";
 
-const API_URL = "/flights.php";
+const API_URL = "/server/flights.php";
 const MONTHS = [
   "Januari",
   "Februari",
