@@ -14,7 +14,7 @@ function database(): PDO
     $user = getenv('DB_USER') ?: 'DB-JMT';
     $password = getenv('DB_PASSWORD') ?: '';
 
-    $dsn = "mysql:host={$host};port={$port};dbname={$name};charset=utf8mb4";
+    $dsn = "mysql:host=127.0.0.1;port=43306;dbname=DB-JMT;password=DB_PASSWORD;charset=utf8mb4";
 
     return new PDO($dsn, $user, $password, [
         PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
