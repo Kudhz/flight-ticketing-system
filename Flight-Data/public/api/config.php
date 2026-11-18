@@ -8,13 +8,13 @@ declare(strict_types=1);
  */
 function database(): PDO
 {
-    $host = getenv('DB_HOST') ?: '127.0.0.1';
-    $port = getenv('DB_PORT') ?: '43306';
-    $name = getenv('DB_NAME') ?: 'db-jmt';
-    $user = getenv('DB_USER') ?: 'DB-JMT';
-    $password = getenv('DB_PASSWORD') ?: '';
+    $host = "127.0.0.1";
+    $port = "43306";
+    $name = "db-jmt";
+    $user = "DB-JMT";
+    $password = "DB_PASSWORD";
 
-    $dsn = "mysql:host=127.0.0.1;port=43306;dbname=DB-JMT;password=DB_PASSWORD;charset=utf8mb4";
+    $dsn = "mysql:host={$host};port={$port};dbname={$name};charset=utf8mb4";
 
     return new PDO($dsn, $user, $password, [
         PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
