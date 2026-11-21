@@ -17,6 +17,10 @@ const MONTHS = {
   desember: 12,
 };
 const ALLOWED_ROUTES = ["MDC-MNA", "MNA-IAX", "IAX-MNA", "MNA-MDC"];
+const ROUTE_FARES = {
+  "MNA-IAX": { basic_fare: 380000, fee_ticket: 19000 },
+  "MNA-MDC": { basic_fare: 483000, fee_ticket: 24150 },
+};
 
 const fail = (status, message) => new HttpError(status, { success: false, message });
 
@@ -174,8 +178,9 @@ function validateFlights(flights, period) {
     const day = readInteger(flight.flight_day ?? flight.date ?? null);
     const route = flight.route ?? null;
     const passengers = readPassengerTypes(flight);
-    const basicFare = flight.basic_fare ?? flight.basicFare ?? null;
-    const feeTicket = flight.fee_ticket ?? flight.feeTicket ?? null;
+    const routeFare = ROUTE_FARES[route];
+    const basicFare = routeFare?.basic_fare ?? flight.basic_fare ?? flight.basicFare ?? null;
+    const feeTicket = routeFare?.fee_ticket ?? flight.fee_ticket ?? flight.feeTicket ?? null;
 
     if (!isValidDay(year, month, day)) {
       throw fail(400, `Tanggal penerbangan tidak valid ${sequence(index)}`);
@@ -237,7 +242,7 @@ async function readFlights(pool, query, isFinanceUser) {
     values,
   );
   const [byRoute] = await pool.execute(
-    `SELECT route, COUNT(*) AS total_flights, COALESCE(SUM(pax), 0) AS total_pax, COALESCE(SUM(adult_pax), 0) AS total_adult_pax, COALESCE(SUM(child_pax), 0) AS total_child_pax, COALESCE(SUM(infant_pax), 0) AS total_infant_pax, COALESCE(SUM(pax * fee_ticket), 0) AS total_fee FROM flight_records${where} GROUP BY route ORDER BY route`,
+    `SELECT route, COUNT(*) AS total_flights, COALESCE(SUM(pax), 0) AS total_pax, COALESCE(SUM(adult_pax), 0) AS total_adult_pax, COALESCE(SUM(child_pax), 0) AS total_child_pax, COALESCE(SUM(infant_pax), 0) AS total_infant_pax, COALESCE(SUM((adult_pax + child_pax) * fee_ticket), 0) AS total_fee FROM flight_records${where} GROUP BY route ORDER BY route`,
     values,
   );
 

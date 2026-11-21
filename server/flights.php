@@ -125,7 +125,7 @@ try {
         $recordsQuery->execute($params);
         $records = $recordsQuery->fetchAll();
 
-        $summaryQuery = $pdo->prepare("SELECT route, COUNT(*) AS total_flights, COALESCE(SUM(pax), 0) AS total_pax, COALESCE(SUM(adult_pax), 0) AS total_adult_pax, COALESCE(SUM(child_pax), 0) AS total_child_pax, COALESCE(SUM(infant_pax), 0) AS total_infant_pax, COALESCE(SUM(pax * fee_ticket), 0) AS total_fee FROM flight_records{$where} GROUP BY route ORDER BY route");
+        $summaryQuery = $pdo->prepare("SELECT route, COUNT(*) AS total_flights, COALESCE(SUM(pax), 0) AS total_pax, COALESCE(SUM(adult_pax), 0) AS total_adult_pax, COALESCE(SUM(child_pax), 0) AS total_child_pax, COALESCE(SUM(infant_pax), 0) AS total_infant_pax, COALESCE(SUM((adult_pax + child_pax) * fee_ticket), 0) AS total_fee FROM flight_records{$where} GROUP BY route ORDER BY route");
         $summaryQuery->execute($params);
         $byRoute = $summaryQuery->fetchAll();
 
@@ -266,8 +266,13 @@ try {
             $day = readInteger($flight['flight_day'] ?? $flight['date'] ?? null);
             $route = $flight['route'] ?? null;
             $passengers = readPassengerTypes($flight);
-            $basicFare = $flight['basic_fare'] ?? $flight['basicFare'] ?? null;
-            $feeTicket = $flight['fee_ticket'] ?? $flight['feeTicket'] ?? null;
+            $routeFares = [
+                'MNA-IAX' => ['basic_fare' => 380000, 'fee_ticket' => 19000],
+                'MNA-MDC' => ['basic_fare' => 483000, 'fee_ticket' => 24150],
+            ];
+            $routeFare = is_string($route) ? ($routeFares[$route] ?? null) : null;
+            $basicFare = $routeFare['basic_fare'] ?? $flight['basic_fare'] ?? $flight['basicFare'] ?? null;
+            $feeTicket = $routeFare['fee_ticket'] ?? $flight['fee_ticket'] ?? $flight['feeTicket'] ?? null;
             $passengerWeight = readWeight($flight['passenger_weight'] ?? 0);
             $baggagePieces = readInteger($flight['baggage_pieces'] ?? 0);
             $baggageWeight = readWeight($flight['baggage_weight'] ?? 0);

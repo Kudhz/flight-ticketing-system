@@ -81,9 +81,18 @@ const formatPax = (adult, child, infant) => {
   const adultValue = Number(adult) || 0;
   const childValue = Number(child) || 0;
   const infantValue = Number(infant) || 0;
-  const seatedPax = adultValue + childValue + infantValue;
+  const totalPax = adultValue + childValue + infantValue;
 
-  return `${String(adultValue).padStart(2, "0")}/${String(childValue).padStart(2, "0")}/${String(infantValue).padStart(2, "0")} (${seatedPax} PAX)`;
+  return `${String(adultValue).padStart(2, "0")}/${String(childValue).padStart(2, "0")}/${String(infantValue).padStart(2, "0")} (${totalPax} PAX)`;
+};
+
+const formatIncomePax = (adult, child, infant) => {
+  const adultValue = Number(adult) || 0;
+  const childValue = Number(child) || 0;
+  const infantValue = Number(infant) || 0;
+  const chargedPax = adultValue + childValue;
+
+  return `${String(adultValue).padStart(2, "0")}/${String(childValue).padStart(2, "0")}/${String(infantValue).padStart(2, "0")} (${chargedPax} PAX)`;
 };
 
 const formatFlightDate = (day, month, year) =>
@@ -204,7 +213,9 @@ function FlightDataPages({ page }) {
     const income = periodFlights.reduce(
       (total, flight) =>
         total +
-        (INCOME_ROUTES.has(flight.route) ? flight.pax * flight.feeTicket : 0),
+        (INCOME_ROUTES.has(flight.route)
+          ? (flight.adultPax + flight.childPax) * flight.feeTicket
+          : 0),
       0,
     );
 
@@ -267,12 +278,13 @@ function FlightDataPages({ page }) {
 
           if (INCOME_ROUTES.has(flight.route)) {
             result.incomeFlights += 1;
-            result.incomePax += flight.pax;
+            result.incomePax += flight.adultPax + flight.childPax;
             result.incomeAdultPax += flight.adultPax;
             result.incomeChildPax += flight.childPax;
-            result.incomeInfantPax += flight.infantPax;
-            result.income += flight.pax * flight.feeTicket;
-            result.routes[flight.route].income += flight.pax * flight.feeTicket;
+            result.incomeInfantPax += 0;
+            result.income += (flight.adultPax + flight.childPax) * flight.feeTicket;
+            result.routes[flight.route].income +=
+              (flight.adultPax + flight.childPax) * flight.feeTicket;
           }
           return result;
         },
@@ -533,7 +545,7 @@ function FlightDataPages({ page }) {
         doc.text("Ringkasan:", margin, summaryY);
         doc.setFont("helvetica", "normal");
         doc.text(
-          `PAX MNA-MDC: ${formatPax(
+          `PAX MNA-MDC: ${formatIncomePax(
             totals.routes["MNA-MDC"].adultPax,
             totals.routes["MNA-MDC"].childPax,
             totals.routes["MNA-MDC"].infantPax,
@@ -543,7 +555,7 @@ function FlightDataPages({ page }) {
         );
         doc.text(`Total Flight MNA-MDC: ${totals.routes["MNA-MDC"].flights}`, margin, summaryY + 10);
         doc.text(
-          `PAX MNA-IAX: ${formatPax(
+          `PAX MNA-IAX: ${formatIncomePax(
             totals.routes["MNA-IAX"].adultPax,
             totals.routes["MNA-IAX"].childPax,
             totals.routes["MNA-IAX"].infantPax,
@@ -556,7 +568,7 @@ function FlightDataPages({ page }) {
         doc.text("Total Keseluruhan:", margin, summaryY + 17);
         doc.setFont("helvetica", "normal");
         doc.text(
-          `Total PAX: ${formatPax(totals.incomeAdultPax, totals.incomeChildPax, totals.incomeInfantPax)}`,
+          `Total PAX: ${formatIncomePax(totals.incomeAdultPax, totals.incomeChildPax, totals.incomeInfantPax)}`,
           margin,
           summaryY + 22,
         );
@@ -934,7 +946,7 @@ function FlightDataPages({ page }) {
             />
             <Metric
               label="Total PAX"
-              value={dashboardValue(formatPax(
+              value={dashboardValue(formatIncomePax(
                 totals.incomeAdultPax,
                 totals.incomeChildPax,
                 totals.incomeInfantPax,
@@ -961,7 +973,7 @@ function FlightDataPages({ page }) {
                   <strong>{route}</strong>
                   <span>{totals.routes[route].flights} penerbangan</span>
                   <span>
-                    {formatPax(
+                    {formatIncomePax(
                       totals.routes[route].adultPax,
                       totals.routes[route].childPax,
                       totals.routes[route].infantPax,
@@ -992,10 +1004,10 @@ function FlightDataPages({ page }) {
                         {formatFlightDate(flight.date, Number(month), year)}
                       </td>
                       <td>{flight.route}</td>
-                      <td>{formatPax(flight.adultPax, flight.childPax, flight.infantPax)}</td>
+                      <td>{formatIncomePax(flight.adultPax, flight.childPax, flight.infantPax)}</td>
                       <td>{formatCurrency(flight.feeTicket)}</td>
                       <td className="emphasized">
-                        {formatCurrency(flight.pax * flight.feeTicket)}
+                        {formatCurrency((flight.adultPax + flight.childPax) * flight.feeTicket)}
                       </td>
                     </tr>
                   ))}

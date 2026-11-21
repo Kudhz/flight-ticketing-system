@@ -362,6 +362,18 @@ test("POST /api/flights dapat dipanggil tanpa login dan memvalidasi data", async
   assert.equal(lastParams.adult_pax, 10);
   assert.equal(lastParams.child_pax, 1);
   assert.equal(lastParams.infant_pax, 1);
+  assert.equal(lastParams.basic_fare, 483000);
+  assert.equal(lastParams.fee_ticket, 24150);
+
+  const iaxPayload = {
+    ...mismatchPayload,
+    flights: [{ ...mismatchPayload.flights[0], route: "MNA-IAX", basic_fare: 1, fee_ticket: 1 }],
+  };
+  response = await fetch(`${url}/api/flights`, json(iaxPayload));
+  assert.equal(response.status, 201);
+  const iaxParams = flightsPool.statements.at(-1).params;
+  assert.equal(iaxParams.basic_fare, 380000);
+  assert.equal(iaxParams.fee_ticket, 19000);
 
   const bad = { ...payload, flights: [{ ...payload.flights[0], route: "XXX-YYY" }] };
   response = await fetch(`${url}/api/flights`, json(bad));
