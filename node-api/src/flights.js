@@ -70,13 +70,8 @@ function readPassengerTypes(source) {
     return null;
   }
 
-  const seatedPax = adult + child;
-  if (source.pax !== undefined && source.pax !== null && source.pax !== "") {
-    const suppliedPax = readInteger(source.pax);
-    if (suppliedPax === null || suppliedPax !== seatedPax) return null;
-  }
-
-  return { pax: seatedPax, adult_pax: adult, child_pax: child, infant_pax: infant };
+  const totalPax = adult + child + infant;
+  return { pax: totalPax, adult_pax: adult, child_pax: child, infant_pax: infant };
 }
 
 function readLoadFields(source) {

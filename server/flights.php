@@ -82,13 +82,8 @@ function readPassengerTypes(array $source): ?array
         return null;
     }
 
-    $seatedPax = $adult + $child;
-    if (array_key_exists('pax', $source) && $source['pax'] !== null && $source['pax'] !== '') {
-        $suppliedPax = readInteger($source['pax']);
-        if ($suppliedPax === null || $suppliedPax !== $seatedPax) return null;
-    }
-
-    return ['pax' => $seatedPax, 'adult_pax' => $adult, 'child_pax' => $child, 'infant_pax' => $infant];
+    $totalPax = $adult + $child + $infant;
+    return ['pax' => $totalPax, 'adult_pax' => $adult, 'child_pax' => $child, 'infant_pax' => $infant];
 }
 
 try {

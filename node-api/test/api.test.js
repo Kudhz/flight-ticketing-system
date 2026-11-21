@@ -335,10 +335,33 @@ test("POST /api/flights dapat dipanggil tanpa login dan memvalidasi data", async
   assert.equal(response.status, 201);
   assert.deepEqual(await response.json(), { success: true, message: "Data penerbangan berhasil disimpan.", inserted: 1 });
   assert.equal(flightsPool.statements.length, 2);
+  assert.equal(flightsPool.statements[1].params.pax, 9);
   assert.equal(flightsPool.statements[1].params.adult_pax, 6);
   assert.equal(flightsPool.statements[1].params.child_pax, 2);
   assert.equal(flightsPool.statements[1].params.infant_pax, 1);
   assert.equal(flightsPool.statements[1].params.total_weight, 10.5);
+
+  const mismatchPayload = {
+    ...payload,
+    replace_period: false,
+    flights: [{
+      flight_day: 28,
+      route: "MNA-MDC",
+      adult_pax: 10,
+      child_pax: 1,
+      infant_pax: 1,
+      pax: 12,
+      basic_fare: 483000,
+      fee_ticket: 24150,
+    }],
+  };
+  response = await fetch(`${url}/api/flights`, json(mismatchPayload));
+  assert.equal(response.status, 201);
+  const lastParams = flightsPool.statements.at(-1).params;
+  assert.equal(lastParams.pax, 12);
+  assert.equal(lastParams.adult_pax, 10);
+  assert.equal(lastParams.child_pax, 1);
+  assert.equal(lastParams.infant_pax, 1);
 
   const bad = { ...payload, flights: [{ ...payload.flights[0], route: "XXX-YYY" }] };
   response = await fetch(`${url}/api/flights`, json(bad));

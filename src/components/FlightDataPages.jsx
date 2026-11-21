@@ -39,13 +39,20 @@ const mapApiFlight = (flight) => ({
   id: Number(flight.id),
   date: Number(flight.flight_day),
   route: String(flight.route || ""),
-  pax: Number(flight.pax) || 0,
   adultPax:
     flight.adult_pax !== undefined
       ? Number(flight.adult_pax) || 0
       : Number(flight.pax) || 0,
   childPax: Number(flight.child_pax) || 0,
   infantPax: Number(flight.infant_pax) || 0,
+  pax:
+    flight.adult_pax !== undefined ||
+    flight.child_pax !== undefined ||
+    flight.infant_pax !== undefined
+      ? (Number(flight.adult_pax) || 0) +
+        (Number(flight.child_pax) || 0) +
+        (Number(flight.infant_pax) || 0)
+      : Number(flight.pax) || 0,
   basicFare: Number(flight.basic_fare) || 0,
   feeTicket: Number(flight.fee_ticket) || 0,
   note: String(flight.note || ""),
@@ -74,7 +81,7 @@ const formatPax = (adult, child, infant) => {
   const adultValue = Number(adult) || 0;
   const childValue = Number(child) || 0;
   const infantValue = Number(infant) || 0;
-  const seatedPax = adultValue + childValue;
+  const seatedPax = adultValue + childValue + infantValue;
 
   return `${String(adultValue).padStart(2, "0")}/${String(childValue).padStart(2, "0")}/${String(infantValue).padStart(2, "0")} (${seatedPax} PAX)`;
 };
