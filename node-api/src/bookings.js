@@ -9,7 +9,14 @@ import {
   parseCalendarDate,
   todayInMakassar,
 } from "./dates.js";
-import { HttpError, InvalidInput, readInteger, requireJsonObject, toText, wrap } from "./http.js";
+import {
+  HttpError,
+  InvalidInput,
+  readInteger,
+  requireJsonObject,
+  toText,
+  wrap,
+} from "./http.js";
 
 export const BOOKING_LIMIT = 12;
 export const FLIGHT_DAYS = [1, 3, 6];
@@ -19,7 +26,9 @@ export const STATUSES = ["Menunggu verifikasi", "Booked", "Dibayar"];
 const ALTERNATIVE_CAPACITY = 10;
 
 const BOOKING_COLUMNS =
-  "id, passenger_name, phone, booking_no, route_code, travel_date, status, booking_at";
+  "id, passenger_name, phone, passenger_type, booking_no, route_code, travel_date, status, booking_at";
+
+const VALID_PASSENGER_TYPES = ["adult", "child", "infant"];
 
 export function bookingForApi(row) {
   const bookingAt = String(row.booking_at).replaceAll(" ", "T");
@@ -28,6 +37,7 @@ export function bookingForApi(row) {
     id: Number(row.id),
     name: row.passenger_name,
     phone: row.phone,
+    type: row.passenger_type || "adult",
     bookingNo: Number(row.booking_no),
     route: row.route_code,
     date: String(row.travel_date),
@@ -39,25 +49,31 @@ export function bookingForApi(row) {
 }
 
 export function validateRouteAndDate(route, date, today = todayInMakassar()) {
-  if (!ROUTES.includes(route)) throw new InvalidInput("Rute penerbangan tidak valid.");
+  if (!ROUTES.includes(route))
+    throw new InvalidInput("Rute penerbangan tidak valid.");
 
   const parsed = parseCalendarDate(date);
   if (!parsed) throw new InvalidInput("Tanggal tidak valid.");
 
   const todayText = formatDate(today);
-  if (date < todayText) throw new InvalidInput("Tanggal penerbangan sudah lewat.");
+  if (date < todayText)
+    throw new InvalidInput("Tanggal penerbangan sudah lewat.");
   if (date.slice(0, 7) !== todayText.slice(0, 7)) {
     throw new InvalidInput("Pemesanan bulan berikutnya belum dibuka.");
   }
   if (!FLIGHT_DAYS.includes(isoWeekday(parsed))) {
-    throw new InvalidInput("Penerbangan hanya tersedia Senin, Rabu, dan Sabtu.");
+    throw new InvalidInput(
+      "Penerbangan hanya tersedia Senin, Rabu, dan Sabtu.",
+    );
   }
 }
 
 export function extractPassengers(body) {
   let source = body.passengers ?? null;
   if (source === null && body.name !== undefined && body.name !== null) {
-    source = [{ name: body.name, phone: body.phone ?? "" }];
+    source = [
+      { name: body.name, phone: body.phone ?? "", type: body.type ?? "adult" },
+    ];
   }
 
   if (!Array.isArray(source) || source.length === 0) {
@@ -67,52 +83,83 @@ export function extractPassengers(body) {
   const passengers = source.map((passenger) => {
     let name;
     let phone;
+    let type;
     if (typeof passenger === "string") {
       name = passenger.trim();
       phone = toText(body.phone).trim();
-    } else if (passenger !== null && typeof passenger === "object" && !Array.isArray(passenger)) {
+      type = body.type ?? "adult";
+    } else if (
+      passenger !== null &&
+      typeof passenger === "object" &&
+      !Array.isArray(passenger)
+    ) {
       name = toText(passenger.name ?? passenger.passenger_name ?? "").trim();
       phone = toText(passenger.phone ?? body.phone ?? "").trim();
+      type = toText(passenger.type ?? "adult")
+        .trim()
+        .toLowerCase();
     } else {
       throw new InvalidInput("Data penumpang tidak valid.");
     }
 
     if (name === "" || phone === "") {
-      throw new InvalidInput("Nama dan nomor WhatsApp setiap penumpang wajib diisi.");
+      throw new InvalidInput(
+        "Nama dan nomor WhatsApp setiap penumpang wajib diisi.",
+      );
     }
-    return { name, phone };
+
+    if (!VALID_PASSENGER_TYPES.includes(type)) {
+      throw new InvalidInput(
+        `Tipe penumpang hanya boleh: ${VALID_PASSENGER_TYPES.join(", ")}.`,
+      );
+    }
+
+    return { name, phone, type };
   });
 
   if (passengers.length > BOOKING_LIMIT) {
-    throw new InvalidInput(`Jumlah penumpang melebihi kapasitas maksimum ${BOOKING_LIMIT}.`);
+    throw new InvalidInput(
+      `Jumlah penumpang melebihi kapasitas maksimum ${BOOKING_LIMIT}.`,
+    );
   }
   return passengers;
 }
 
 function passengerNamesToCheck(body) {
   let source = body.passengers ?? null;
-  if (source === null && body.name !== undefined && body.name !== null) source = [body.name];
+  if (source === null && body.name !== undefined && body.name !== null)
+    source = [body.name];
 
   if (!Array.isArray(source) || source.length === 0) {
-    throw new InvalidInput("Nama penumpang wajib diisi untuk pemeriksaan booking.");
+    throw new InvalidInput(
+      "Nama penumpang wajib diisi untuk pemeriksaan booking.",
+    );
   }
 
   return source.map((passenger) => {
     let name;
     if (typeof passenger === "string") {
       name = passenger.trim();
-    } else if (passenger !== null && typeof passenger === "object" && !Array.isArray(passenger)) {
+    } else if (
+      passenger !== null &&
+      typeof passenger === "object" &&
+      !Array.isArray(passenger)
+    ) {
       name = toText(passenger.name ?? passenger.passenger_name ?? "").trim();
     } else {
       throw new InvalidInput("Format data penumpang tidak valid.");
     }
-    if (name === "") throw new InvalidInput("Nama penumpang tidak boleh kosong.");
+    if (name === "")
+      throw new InvalidInput("Nama penumpang tidak boleh kosong.");
     return name;
   });
 }
 
 async function fetchBooking(db, id) {
-  const [rows] = await db.execute(`SELECT ${BOOKING_COLUMNS} FROM bookings WHERE id = :id`, { id });
+  const [rows] = await db.execute(
+    `SELECT ${BOOKING_COLUMNS} FROM bookings WHERE id = :id`,
+    { id },
+  );
   return rows.length === 0 ? null : bookingForApi(rows[0]);
 }
 
@@ -121,7 +168,12 @@ const freeNumbers = (usedNumbers) =>
     (number) => !usedNumbers.includes(number),
   );
 
-export async function findAlternativeFlights(db, route, requestedDate, today = todayInMakassar()) {
+export async function findAlternativeFlights(
+  db,
+  route,
+  requestedDate,
+  today = todayInMakassar(),
+) {
   const requested = parseCalendarDate(requestedDate);
   const endDate = lastDayOfMonth(today);
   const baseDate = requested < today ? today : requested;
@@ -134,10 +186,16 @@ export async function findAlternativeFlights(db, route, requestedDate, today = t
      GROUP BY travel_date`,
     { route, start: formatDate(baseDate), end: formatDate(endDate) },
   );
-  const bookedByDate = new Map(rows.map((row) => [String(row.travel_date), Number(row.booked)]));
+  const bookedByDate = new Map(
+    rows.map((row) => [String(row.travel_date), Number(row.booked)]),
+  );
 
   const alternatives = [];
-  for (let cursor = addDays(baseDate, 1); cursor <= endDate; cursor = addDays(cursor, 1)) {
+  for (
+    let cursor = addDays(baseDate, 1);
+    cursor <= endDate;
+    cursor = addDays(cursor, 1)
+  ) {
     if (!FLIGHT_DAYS.includes(isoWeekday(cursor))) continue;
 
     const date = formatDate(cursor);
@@ -297,7 +355,12 @@ async function checkBooking(db, body, route, date) {
 }
 
 const duplicateResponse = (message) =>
-  new HttpError(409, { success: false, status: "duplicate_booking", duplicate: true, message });
+  new HttpError(409, {
+    success: false,
+    status: "duplicate_booking",
+    duplicate: true,
+    message,
+  });
 
 async function createBookings(pool, passengers, route, date) {
   const created = await withTransaction(pool, async (connection) => {
@@ -320,7 +383,9 @@ async function createBookings(pool, passengers, route, date) {
         { route, date, name },
       );
       if (existing.length > 0) {
-        throw duplicateResponse(`Penumpang ${name} sudah terdaftar pada rute dan tanggal tersebut.`);
+        throw duplicateResponse(
+          `Penumpang ${name} sudah terdaftar pada rute dan tanggal tersebut.`,
+        );
       }
     }
 
@@ -340,11 +405,12 @@ async function createBookings(pool, passengers, route, date) {
     for (const [index, passenger] of passengers.entries()) {
       const [result] = await connection.execute(
         `INSERT INTO bookings
-           (passenger_name, phone, booking_no, route_code, travel_date, status, booking_at)
-         VALUES (:name, :phone, :bookingNo, :route, :date, :status, CURRENT_TIMESTAMP)`,
+           (passenger_name, phone, passenger_type, booking_no, route_code, travel_date, status, booking_at)
+         VALUES (:name, :phone, :type, :bookingNo, :route, :date, :status, CURRENT_TIMESTAMP)`,
         {
           name: passenger.name,
           phone: passenger.phone,
+          type: passenger.type,
           bookingNo: available[index],
           route,
           date,
@@ -365,7 +431,8 @@ async function updateBooking(pool, id, body, webhookUrl) {
       `SELECT ${BOOKING_COLUMNS} FROM bookings WHERE id = :id FOR UPDATE`,
       { id },
     );
-    if (rows.length === 0) throw new HttpError(404, { error: "Pemesanan tidak ditemukan." });
+    if (rows.length === 0)
+      throw new HttpError(404, { error: "Pemesanan tidak ditemukan." });
 
     const current = bookingForApi(rows[0]);
     const has = (key) => Object.hasOwn(body, key);
@@ -381,11 +448,13 @@ async function updateBooking(pool, id, body, webhookUrl) {
     }
     if (has("route")) {
       route = toText(body.route);
-      if (!ROUTES.includes(route)) throw new InvalidInput("Rute penerbangan tidak valid.");
+      if (!ROUTES.includes(route))
+        throw new InvalidInput("Rute penerbangan tidak valid.");
     }
     if (has("status")) {
       status = toText(body.status);
-      if (!STATUSES.includes(status)) throw new InvalidInput("Status pemesanan tidak valid.");
+      if (!STATUSES.includes(status))
+        throw new InvalidInput("Status pemesanan tidak valid.");
     }
     if (!["name", "phone", "route", "status"].some(has)) {
       throw new InvalidInput("Tidak ada perubahan data pemesanan.");
@@ -399,7 +468,9 @@ async function updateBooking(pool, id, body, webhookUrl) {
       );
       const available = freeNumbers(used.map((row) => Number(row.booking_no)));
       if (available.length === 0) {
-        throw new HttpError(409, { error: "Kapasitas pada rute tujuan sudah penuh." });
+        throw new HttpError(409, {
+          error: "Kapasitas pada rute tujuan sudah penuh.",
+        });
       }
       if (!available.includes(bookingNo)) bookingNo = available[0];
     }
@@ -424,21 +495,29 @@ async function updateBooking(pool, id, body, webhookUrl) {
   return { status: 200, body: after };
 }
 
-export function bookingsRouter({ pool, bookingWebhookUrl, now = () => new Date() }) {
+export function bookingsRouter({
+  pool,
+  bookingWebhookUrl,
+  now = () => new Date(),
+}) {
   const router = Router();
   router.use(express.json({ limit: "1mb", type: () => true }));
 
   const send = (res, { status, body }) => res.status(status).json(body);
   const requireId = (req) => {
     const id = readInteger(req.query.id);
-    if (id === null || id < 1) throw new InvalidInput("ID pemesanan tidak valid.");
+    if (id === null || id < 1)
+      throw new InvalidInput("ID pemesanan tidak valid.");
     return id;
   };
 
   router.get(
     "/",
     wrap(async (req, res) =>
-      send(res, await listOrCheckAvailability(pool, req.query, todayInMakassar(now()))),
+      send(
+        res,
+        await listOrCheckAvailability(pool, req.query, todayInMakassar(now())),
+      ),
     ),
   );
 
@@ -446,17 +525,23 @@ export function bookingsRouter({ pool, bookingWebhookUrl, now = () => new Date()
     "/",
     wrap(async (req, res) => {
       const body = requireJsonObject(req);
-      const action = toText(body.action ?? "create_booking").trim().toLowerCase();
+      const action = toText(body.action ?? "create_booking")
+        .trim()
+        .toLowerCase();
       const route = toText(body.route);
       const date = toText(body.date);
 
       validateRouteAndDate(route, date, todayInMakassar(now()));
 
-      if (action === "check_booking") return send(res, await checkBooking(pool, body, route, date));
+      if (action === "check_booking")
+        return send(res, await checkBooking(pool, body, route, date));
       if (!["create_booking", "booking"].includes(action)) {
         throw new InvalidInput("Action tidak dikenal.");
       }
-      send(res, await createBookings(pool, extractPassengers(body), route, date));
+      send(
+        res,
+        await createBookings(pool, extractPassengers(body), route, date),
+      );
     }),
   );
 
@@ -464,7 +549,15 @@ export function bookingsRouter({ pool, bookingWebhookUrl, now = () => new Date()
     "/",
     wrap(async (req, res) => {
       const id = requireId(req);
-      send(res, await updateBooking(pool, id, requireJsonObject(req), bookingWebhookUrl));
+      send(
+        res,
+        await updateBooking(
+          pool,
+          id,
+          requireJsonObject(req),
+          bookingWebhookUrl,
+        ),
+      );
     }),
   );
 
@@ -472,7 +565,10 @@ export function bookingsRouter({ pool, bookingWebhookUrl, now = () => new Date()
     "/",
     wrap(async (req, res) => {
       const id = requireId(req);
-      const [result] = await pool.execute("DELETE FROM bookings WHERE id = :id", { id });
+      const [result] = await pool.execute(
+        "DELETE FROM bookings WHERE id = :id",
+        { id },
+      );
       if (result.affectedRows === 0) {
         throw new HttpError(404, { error: "Pemesanan tidak ditemukan." });
       }

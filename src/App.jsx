@@ -180,7 +180,7 @@ function App() {
   });
   const [toast, setToast] = useState("");
   const [form, setForm] = useState({
-    passengers: [{ name: "", phone: "" }],
+    passengers: [{ name: "", phone: "", type: "adult" }],
     route: DEFAULT_ROUTE,
     date: DEFAULT_DATE,
   });
@@ -249,6 +249,10 @@ function App() {
     (booking) =>
       booking.route === selectedRoute && booking.date === selectedDate,
   );
+  // Hitung occupied seats: hanya adult yang ambil kursi, infant tidak
+  const occupiedSeats = currentBookings.filter(
+    (booking) => booking.type !== "infant",
+  ).length;
   const bookingCountsByDate = bookings.reduce((counts, booking) => {
     if (
       booking.route === selectedRoute &&
@@ -334,9 +338,7 @@ function App() {
         }
         if (FINANCE_PAGES.has(activePage)) setActivePage("overview");
         if (result.configured !== true) {
-          setFinanceLoginError(
-            "Akun Keuangan belum dikonfigurasi di server.",
-          );
+          setFinanceLoginError("Akun Keuangan belum dikonfigurasi di server.");
         }
       } catch (error) {
         setFinanceLoginError(error.message);
@@ -705,11 +707,11 @@ function App() {
               <div className="capacity-summary">
                 <span className="capacity-label">KAPASITAS TERISI</span>
                 <div className="capacity-totals">
-                  <strong>{currentBookings.length}</strong>
+                  <strong>{occupiedSeats}</strong>
                   <span>
                     <b>terisi</b>
                     <small>
-                      {Math.max(BOOKING_LIMIT - currentBookings.length, 0)} dari{" "}
+                      {Math.max(BOOKING_LIMIT - occupiedSeats, 0)} dari{" "}
                       {BOOKING_LIMIT} tersedia
                     </small>
                   </span>
@@ -718,12 +720,12 @@ function App() {
               <div
                 className="capacity-seats"
                 role="img"
-                aria-label={`${currentBookings.length} kursi terisi, ${Math.max(BOOKING_LIMIT - currentBookings.length, 0)} kursi tersedia dari ${BOOKING_LIMIT}`}
+                aria-label={`${occupiedSeats} kursi terisi, ${Math.max(BOOKING_LIMIT - occupiedSeats, 0)} kursi tersedia dari ${BOOKING_LIMIT}`}
               >
                 {BOOKING_NUMBERS.map((number) => (
                   <span
                     key={number}
-                    className={`capacity-seat ${number <= currentBookings.length ? "occupied" : ""}`}
+                    className={`capacity-seat ${number <= occupiedSeats ? "occupied" : ""}`}
                     aria-hidden="true"
                   />
                 ))}
@@ -747,9 +749,13 @@ function App() {
                 >
                   <div className="metric-top">
                     <span>TANGGAL PENERBANGAN</span>
-                    <span className="metric-symbol teal" aria-hidden="true">▦</span>
+                    <span className="metric-symbol teal" aria-hidden="true">
+                      ▦
+                    </span>
                   </div>
-                  <strong className="date-metric-value">{dateLabel(date)}</strong>
+                  <strong className="date-metric-value">
+                    {dateLabel(date)}
+                  </strong>
                   <div className="metric-foot">
                     <span className="status-dot green-dot"></span>
                     <span>{count} pemesanan terisi</span>
@@ -862,6 +868,30 @@ function App() {
                             <div>
                               <strong>{booking.name}</strong>
                               <span>{booking.route}</span>
+                              {booking.type === "child" && (
+                                <small
+                                  style={{
+                                    display: "block",
+                                    marginTop: "2px",
+                                    fontSize: "0.75em",
+                                    opacity: 0.7,
+                                  }}
+                                >
+                                  Anak-anak
+                                </small>
+                              )}
+                              {booking.type === "infant" && (
+                                <small
+                                  style={{
+                                    display: "block",
+                                    marginTop: "2px",
+                                    fontSize: "0.75em",
+                                    opacity: 0.7,
+                                  }}
+                                >
+                                  Bayi (tanpa kursi)
+                                </small>
+                              )}
                             </div>
                           </div>
                         </td>
@@ -976,7 +1006,6 @@ function App() {
               </footer>
             </section>
           )}
-
         </div>
       </main>
 
@@ -1065,6 +1094,30 @@ function App() {
                         }
                       />
                     </label>
+                    <label>
+                      Tipe Penumpang
+                      <select
+                        value={passenger.type || "adult"}
+                        onChange={(event) =>
+                          setForm((current) => ({
+                            ...current,
+                            passengers: current.passengers.map(
+                              (currentPassenger, passengerIndex) =>
+                                passengerIndex === index
+                                  ? {
+                                      ...currentPassenger,
+                                      type: event.target.value,
+                                    }
+                                  : currentPassenger,
+                            ),
+                          }))
+                        }
+                      >
+                        <option value="adult">Adult</option>
+                        <option value="child">Child</option>
+                        <option value="infant">Infant</option>
+                      </select>
+                    </label>
                     {form.passengers.length > 1 && (
                       <button
                         type="button"
@@ -1095,7 +1148,7 @@ function App() {
                       ...current,
                       passengers: [
                         ...current.passengers,
-                        { name: "", phone: "" },
+                        { name: "", phone: "", type: "adult" },
                       ],
                     }))
                   }
@@ -1316,8 +1369,8 @@ function App() {
             </p>
             {financeAuthConfigured === false && (
               <div className="finance-auth-notice" role="status">
-                Login Keuangan belum dikonfigurasi. Isi
-                FINANCE_USERNAME dan FINANCE_PASSWORD pada file .env server.
+                Login Keuangan belum dikonfigurasi. Isi FINANCE_USERNAME dan
+                FINANCE_PASSWORD pada file .env server.
               </div>
             )}
             {financeLoginError && (
