@@ -93,12 +93,6 @@ function readPassengerTypes(array $source): ?array
 
 try {
     $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
-    if ($method === 'POST' && !$isFinanceUser) {
-        sendJson([
-            'success' => false,
-            'message' => 'Login Keuangan diperlukan.',
-        ], 401);
-    }
 
     $pdo = database();
 

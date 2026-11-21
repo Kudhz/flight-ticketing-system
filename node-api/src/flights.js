@@ -364,7 +364,6 @@ export function flightsRouter({ pool, auth, corsOrigins }) {
   router.post(
     "/",
     wrap(async (req, res) => {
-      if (!auth.isAuthenticated(req)) throw fail(401, "Login Keuangan diperlukan.");
       if (!isPlainObject(req.body)) throw fail(400, "Body harus berupa JSON yang valid.");
 
       const period = readPeriod(req.body);

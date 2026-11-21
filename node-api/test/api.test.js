@@ -309,7 +309,7 @@ test("API flights menyembunyikan data keuangan untuk pengguna belum login", asyn
   assert.equal(invalid.status, 400);
 });
 
-test("POST /api/flights memerlukan login dan memvalidasi data", async (t) => {
+test("POST /api/flights dapat dipanggil tanpa login dan memvalidasi data", async (t) => {
   const flightsPool = fakeFlightsPool();
   const { url, close } = await startServer({ flightsPool });
   t.after(close);
@@ -332,11 +332,6 @@ test("POST /api/flights memerlukan login dan memvalidasi data", async (t) => {
   };
 
   let response = await fetch(`${url}/api/flights`, json(payload));
-  assert.equal(response.status, 401);
-  assert.equal((await response.json()).message, "Login Keuangan diperlukan.");
-
-  const cookie = await login(url);
-  response = await fetch(`${url}/api/flights`, json(payload, { Cookie: cookie }));
   assert.equal(response.status, 201);
   assert.deepEqual(await response.json(), { success: true, message: "Data penerbangan berhasil disimpan.", inserted: 1 });
   assert.equal(flightsPool.statements.length, 2);
@@ -346,11 +341,11 @@ test("POST /api/flights memerlukan login dan memvalidasi data", async (t) => {
   assert.equal(flightsPool.statements[1].params.total_weight, 10.5);
 
   const bad = { ...payload, flights: [{ ...payload.flights[0], route: "XXX-YYY" }] };
-  response = await fetch(`${url}/api/flights`, json(bad, { Cookie: cookie }));
+  response = await fetch(`${url}/api/flights`, json(bad));
   assert.equal(response.status, 400);
   assert.equal((await response.json()).message, "Route tidak valid pada urutan 1.");
 
-  response = await fetch(`${url}/api/flights`, json({ ...payload, flights: [{ ...payload.flights[0], flight_day: 31 }] }, { Cookie: cookie }));
+  response = await fetch(`${url}/api/flights`, json({ ...payload, flights: [{ ...payload.flights[0], flight_day: 31 }] }));
   assert.equal(response.status, 400);
 
   response = await fetch(`${url}/api/flights`, { method: "OPTIONS", headers: { Origin: "http://localhost:5173" } });

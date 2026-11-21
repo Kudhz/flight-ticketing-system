@@ -70,8 +70,14 @@ const formatWeight = (weight) =>
     maximumFractionDigits: 2,
   })} KG`;
 
-const formatPax = (adult, child, infant) =>
-  `${Number(adult) || 0}/${Number(child) || 0}/${Number(infant) || 0}`;
+const formatPax = (adult, child, infant) => {
+  const adultValue = Number(adult) || 0;
+  const childValue = Number(child) || 0;
+  const infantValue = Number(infant) || 0;
+  const seatedPax = adultValue + childValue;
+
+  return `${String(adultValue).padStart(2, "0")}/${String(childValue).padStart(2, "0")}/${String(infantValue).padStart(2, "0")} (${seatedPax} PAX)`;
+};
 
 const formatFlightDate = (day, month, year) =>
   new Date(Number(year), month - 1, day).toLocaleDateString("id-ID", {
@@ -809,7 +815,7 @@ function FlightDataPages({ page }) {
                       totals.routes[route].adultPax,
                       totals.routes[route].childPax,
                       totals.routes[route].infantPax,
-                    )} PAX
+                    )}
                   </span>
                 </div>
               ))}
@@ -952,7 +958,7 @@ function FlightDataPages({ page }) {
                       totals.routes[route].adultPax,
                       totals.routes[route].childPax,
                       totals.routes[route].infantPax,
-                    )} PAX
+                    )}
                   </span>
                   <b>{formatCurrency(totals.routes[route].income)}</b>
                 </div>
