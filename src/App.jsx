@@ -432,6 +432,7 @@ function App() {
     const passengers = form.passengers.map((passenger) => ({
       name: normalizePassengerName(passenger.name),
       phone: passenger.phone.trim(),
+      type: passenger.type || "adult",
     }));
 
     if (!isFlightDate(form.date)) {
@@ -471,7 +472,7 @@ function App() {
       setShowForm(false);
       setForm((current) => ({
         ...current,
-        passengers: [{ name: "", phone: "" }],
+        passengers: [{ name: "", phone: "", type: "adult" }],
       }));
       showMessage(
         `${createdBookings.length} data penumpang tersimpan ke MySQL.`,

@@ -4,8 +4,10 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "vite build",
+    "dev": "VITE_API_BACKEND=node vite",
+    "dev:php": "vite",
+    "build": "VITE_API_BACKEND=node vite build",
+    "build:php": "vite build",
     "lint": "oxlint",
     "preview": "vite preview",
     "deploy": "npm run build && git add . && git commit -m \"deploy build\" && git push origin main"
