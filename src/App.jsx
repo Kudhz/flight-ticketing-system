@@ -11,6 +11,7 @@ const BOOKING_NUMBERS = Array.from(
   { length: BOOKING_LIMIT },
   (_, index) => index + 1,
 );
+const isOccupiedSeat = (booking) => booking.type !== "infant";
 const STATUSES = ["Menunggu verifikasi", "Booked", "Dibayar"];
 const ROUTES = [
   {
@@ -249,14 +250,13 @@ function App() {
     (booking) =>
       booking.route === selectedRoute && booking.date === selectedDate,
   );
-  // Hitung occupied seats: hanya adult yang ambil kursi, infant tidak
-  const occupiedSeats = currentBookings.filter(
-    (booking) => booking.type !== "infant",
-  ).length;
+  // Infant tidak memakai kursi; anak dan dewasa dihitung terisi.
+  const occupiedSeats = currentBookings.filter(isOccupiedSeat).length;
   const bookingCountsByDate = bookings.reduce((counts, booking) => {
     if (
       booking.route === selectedRoute &&
-      booking.date?.startsWith(`${selectedMonth}-`)
+      booking.date?.startsWith(`${selectedMonth}-`) &&
+      isOccupiedSeat(booking)
     ) {
       counts[booking.date] = (counts[booking.date] || 0) + 1;
     }
