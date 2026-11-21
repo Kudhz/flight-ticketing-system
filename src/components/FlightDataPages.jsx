@@ -344,10 +344,11 @@ function FlightDataPages({ page }) {
       const pdfMonth = page === "dashboard" ? RECENT_PERIODS[0].month : month;
       const pdfYear = page === "dashboard" ? RECENT_PERIODS[0].year : year;
       const pdfMonthName = MONTHS[Number(pdfMonth) - 1];
-      const [{ jsPDF }] = await Promise.all([
+      const [{ jsPDF }, { applyPlugin }] = await Promise.all([
         import("jspdf"),
         import("jspdf-autotable"),
       ]);
+      applyPlugin(jsPDF);
       const doc = new jsPDF({
         orientation: page === "history" ? "landscape" : "portrait",
         unit: "mm",
@@ -432,7 +433,7 @@ function FlightDataPages({ page }) {
           body: flights.map((flight) => [
             formatPdfDate(flight.date, month, year),
             flight.route,
-            formatPax(flight.adultPax, flight.childPax, flight.infantPax),
+            formatIncomePax(flight.adultPax, flight.childPax, flight.infantPax),
             formatWeight(flight.passengerWeight),
             flight.baggagePieces,
             formatWeight(flight.baggageWeight),
