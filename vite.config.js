@@ -14,7 +14,7 @@ export default defineConfig({
         changeOrigin: true,
       },
       "/api": {
-        target: "http://127.0.0.1:3001",
+        target: "http://192.168.111.177:3001",
         changeOrigin: true,
       },
     },
