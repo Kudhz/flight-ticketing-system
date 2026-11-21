@@ -95,6 +95,9 @@ const formatIncomePax = (adult, child, infant) => {
   return `${String(adultValue).padStart(2, "0")}/${String(childValue).padStart(2, "0")}/${String(infantValue).padStart(2, "0")} (${chargedPax} PAX)`;
 };
 
+const formatIncomePaxCount = (adult, child) =>
+  String((Number(adult) || 0) + (Number(child) || 0));
+
 const formatFlightDate = (day, month, year) =>
   new Date(Number(year), month - 1, day).toLocaleDateString("id-ID", {
     day: "2-digit",
@@ -433,7 +436,7 @@ function FlightDataPages({ page }) {
           body: flights.map((flight) => [
             formatPdfDate(flight.date, month, year),
             flight.route,
-            formatIncomePax(flight.adultPax, flight.childPax, flight.infantPax),
+            formatPax(flight.adultPax, flight.childPax, flight.infantPax),
             formatWeight(flight.passengerWeight),
             flight.baggagePieces,
             formatWeight(flight.baggageWeight),
@@ -503,7 +506,7 @@ function FlightDataPages({ page }) {
             index + 1,
             `${flight.date} ${pdfMonthName} ${pdfYear}`,
             flight.route,
-            formatPax(flight.adultPax, flight.childPax, flight.infantPax),
+            formatIncomePaxCount(flight.adultPax, flight.childPax),
             flight.basicFare.toLocaleString("id-ID"),
             flight.feeTicket.toLocaleString("id-ID"),
             flight.note,
@@ -546,20 +549,18 @@ function FlightDataPages({ page }) {
         doc.text("Ringkasan:", margin, summaryY);
         doc.setFont("helvetica", "normal");
         doc.text(
-          `PAX MNA-MDC: ${formatIncomePax(
+          `PAX MNA-MDC: ${formatIncomePaxCount(
             totals.routes["MNA-MDC"].adultPax,
             totals.routes["MNA-MDC"].childPax,
-            totals.routes["MNA-MDC"].infantPax,
           )}`,
           margin,
           summaryY + 5,
         );
         doc.text(`Total Flight MNA-MDC: ${totals.routes["MNA-MDC"].flights}`, margin, summaryY + 10);
         doc.text(
-          `PAX MNA-IAX: ${formatIncomePax(
+          `PAX MNA-IAX: ${formatIncomePaxCount(
             totals.routes["MNA-IAX"].adultPax,
             totals.routes["MNA-IAX"].childPax,
-            totals.routes["MNA-IAX"].infantPax,
           )}`,
           rightX,
           summaryY + 5,
@@ -569,7 +570,7 @@ function FlightDataPages({ page }) {
         doc.text("Total Keseluruhan:", margin, summaryY + 17);
         doc.setFont("helvetica", "normal");
         doc.text(
-          `Total PAX: ${formatIncomePax(totals.incomeAdultPax, totals.incomeChildPax, totals.incomeInfantPax)}`,
+          `Total PAX: ${formatIncomePaxCount(totals.incomeAdultPax, totals.incomeChildPax)}`,
           margin,
           summaryY + 22,
         );
