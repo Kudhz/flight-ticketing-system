@@ -40,7 +40,10 @@ const mapApiFlight = (flight) => ({
   date: Number(flight.flight_day),
   route: String(flight.route || ""),
   pax: Number(flight.pax) || 0,
-  adultPax: Number(flight.adult_pax) || 0,
+  adultPax:
+    flight.adult_pax !== undefined
+      ? Number(flight.adult_pax) || 0
+      : Number(flight.pax) || 0,
   childPax: Number(flight.child_pax) || 0,
   infantPax: Number(flight.infant_pax) || 0,
   basicFare: Number(flight.basic_fare) || 0,
@@ -66,6 +69,9 @@ const formatWeight = (weight) =>
   `${Number(weight || 0).toLocaleString("id-ID", {
     maximumFractionDigits: 2,
   })} KG`;
+
+const formatPax = (adult, child, infant) =>
+  `${Number(adult) || 0}/${Number(child) || 0}/${Number(infant) || 0}`;
 
 const formatFlightDate = (day, month, year) =>
   new Date(Number(year), month - 1, day).toLocaleDateString("id-ID", {
@@ -223,20 +229,35 @@ function FlightDataPages({ page }) {
           if (flight.route === "MNA-MDC") {
             result.routes["MNA-MDC"].flights += 1;
             result.routes["MNA-MDC"].pax += flight.pax;
+            result.routes["MNA-MDC"].adultPax += flight.adultPax;
+            result.routes["MNA-MDC"].childPax += flight.childPax;
+            result.routes["MNA-MDC"].infantPax += flight.infantPax;
           } else if (flight.route === "MNA-IAX") {
             result.routes["MNA-IAX"].flights += 1;
             result.routes["MNA-IAX"].pax += flight.pax;
+            result.routes["MNA-IAX"].adultPax += flight.adultPax;
+            result.routes["MNA-IAX"].childPax += flight.childPax;
+            result.routes["MNA-IAX"].infantPax += flight.infantPax;
           } else if (flight.route === "MDC-MNA") {
             result.routes["MDC-MNA"].flights += 1;
             result.routes["MDC-MNA"].pax += flight.pax;
+            result.routes["MDC-MNA"].adultPax += flight.adultPax;
+            result.routes["MDC-MNA"].childPax += flight.childPax;
+            result.routes["MDC-MNA"].infantPax += flight.infantPax;
           } else if (flight.route === "IAX-MNA") {
             result.routes["IAX-MNA"].flights += 1;
             result.routes["IAX-MNA"].pax += flight.pax;
+            result.routes["IAX-MNA"].adultPax += flight.adultPax;
+            result.routes["IAX-MNA"].childPax += flight.childPax;
+            result.routes["IAX-MNA"].infantPax += flight.infantPax;
           }
 
           if (INCOME_ROUTES.has(flight.route)) {
             result.incomeFlights += 1;
             result.incomePax += flight.pax;
+            result.incomeAdultPax += flight.adultPax;
+            result.incomeChildPax += flight.childPax;
+            result.incomeInfantPax += flight.infantPax;
             result.income += flight.pax * flight.feeTicket;
             result.routes[flight.route].income += flight.pax * flight.feeTicket;
           }
@@ -257,9 +278,15 @@ function FlightDataPages({ page }) {
           totalWeight: 0,
           incomeFlights: 0,
           incomePax: 0,
+          incomeAdultPax: 0,
+          incomeChildPax: 0,
+          incomeInfantPax: 0,
           income: 0,
           routes: Object.fromEntries(
-            ROUTES.map((route) => [route, { flights: 0, pax: 0, income: 0 }]),
+            ROUTES.map((route) => [
+              route,
+              { flights: 0, pax: 0, adultPax: 0, childPax: 0, infantPax: 0, income: 0 },
+            ]),
           ),
         },
       ),
@@ -316,7 +343,7 @@ function FlightDataPages({ page }) {
           head: [["RINGKASAN BULANAN", "JUMLAH"]],
           body: [
             ["Total penerbangan", flights.length],
-            ["Total penumpang (PAX)", totals.pax],
+            ["Total penumpang (PAX ADULT/CHILD/INFANT)", formatPax(totals.adultPax, totals.childPax, totals.infantPax)],
             ["Total berat penumpang", formatWeight(totals.passengerWeight)],
             ["Jumlah koli bagasi", totals.baggagePieces],
             ["Total berat bagasi", formatWeight(totals.baggageWeight)],
@@ -341,7 +368,11 @@ function FlightDataPages({ page }) {
           body: ROUTES.map((route) => [
             route,
             totals.routes[route].flights,
-            totals.routes[route].pax,
+            formatPax(
+              totals.routes[route].adultPax,
+              totals.routes[route].childPax,
+              totals.routes[route].infantPax,
+            ),
           ]),
           theme: "grid",
           styles: { fontSize: 9, cellPadding: 2.5 },
@@ -376,7 +407,7 @@ function FlightDataPages({ page }) {
           body: flights.map((flight) => [
             formatPdfDate(flight.date, month, year),
             flight.route,
-            flight.pax,
+            formatPax(flight.adultPax, flight.childPax, flight.infantPax),
             formatWeight(flight.passengerWeight),
             flight.baggagePieces,
             formatWeight(flight.baggageWeight),
@@ -395,7 +426,7 @@ function FlightDataPages({ page }) {
             [
               "TOTAL",
               "",
-              totals.pax,
+              formatPax(totals.adultPax, totals.childPax, totals.infantPax),
               formatWeight(totals.passengerWeight),
               totals.baggagePieces,
               formatWeight(totals.baggageWeight),
@@ -446,7 +477,7 @@ function FlightDataPages({ page }) {
             index + 1,
             `${flight.date} ${pdfMonthName} ${pdfYear}`,
             flight.route,
-            flight.pax,
+            formatPax(flight.adultPax, flight.childPax, flight.infantPax),
             flight.basicFare.toLocaleString("id-ID"),
             flight.feeTicket.toLocaleString("id-ID"),
             flight.note,
@@ -488,14 +519,34 @@ function FlightDataPages({ page }) {
         doc.setFont("helvetica", "bold");
         doc.text("Ringkasan:", margin, summaryY);
         doc.setFont("helvetica", "normal");
-        doc.text(`Total PAX MNA-MDC: ${totals.routes["MNA-MDC"].pax}`, margin, summaryY + 5);
+        doc.text(
+          `PAX MNA-MDC: ${formatPax(
+            totals.routes["MNA-MDC"].adultPax,
+            totals.routes["MNA-MDC"].childPax,
+            totals.routes["MNA-MDC"].infantPax,
+          )}`,
+          margin,
+          summaryY + 5,
+        );
         doc.text(`Total Flight MNA-MDC: ${totals.routes["MNA-MDC"].flights}`, margin, summaryY + 10);
-        doc.text(`Total PAX MNA-IAX: ${totals.routes["MNA-IAX"].pax}`, rightX, summaryY + 5);
+        doc.text(
+          `PAX MNA-IAX: ${formatPax(
+            totals.routes["MNA-IAX"].adultPax,
+            totals.routes["MNA-IAX"].childPax,
+            totals.routes["MNA-IAX"].infantPax,
+          )}`,
+          rightX,
+          summaryY + 5,
+        );
         doc.text(`Total Flight MNA-IAX: ${totals.routes["MNA-IAX"].flights}`, rightX, summaryY + 10);
         doc.setFont("helvetica", "bold");
         doc.text("Total Keseluruhan:", margin, summaryY + 17);
         doc.setFont("helvetica", "normal");
-        doc.text(`Total PAX: ${totals.incomePax}`, margin, summaryY + 22);
+        doc.text(
+          `Total PAX: ${formatPax(totals.incomeAdultPax, totals.incomeChildPax, totals.incomeInfantPax)}`,
+          margin,
+          summaryY + 22,
+        );
         doc.text(`Total Fee MNA-MDC: ${formatAmount(totals.routes["MNA-MDC"].income)}`, margin, summaryY + 27);
         doc.text(`Total Fee MNA-IAX: ${formatAmount(totals.routes["MNA-IAX"].income)}`, margin, summaryY + 32);
         doc.text(`Total Fee Agent: ${formatAmount(totals.income)}`, margin, summaryY + 37);
@@ -623,17 +674,25 @@ function FlightDataPages({ page }) {
             />
             <Metric
               label="PAX MNA-MDC"
-              value={dashboardValue(totals.routes["MNA-MDC"].pax)}
+              value={dashboardValue(formatPax(
+                totals.routes["MNA-MDC"].adultPax,
+                totals.routes["MNA-MDC"].childPax,
+                totals.routes["MNA-MDC"].infantPax,
+              ))}
               tone="mdc"
             />
             <Metric
               label="PAX MNA-IAX"
-              value={dashboardValue(totals.routes["MNA-IAX"].pax)}
+              value={dashboardValue(formatPax(
+                totals.routes["MNA-IAX"].adultPax,
+                totals.routes["MNA-IAX"].childPax,
+                totals.routes["MNA-IAX"].infantPax,
+              ))}
               tone="iax"
             />
             <Metric
               label="Total PAX"
-              value={dashboardValue(totals.pax)}
+              value={dashboardValue(formatPax(totals.adultPax, totals.childPax, totals.infantPax))}
               tone="pax"
             />
           </section>
@@ -705,17 +764,25 @@ function FlightDataPages({ page }) {
             />
             <Metric
               label="Total Penumpang (PAX)"
-              value={totals.pax}
+              value={formatPax(totals.adultPax, totals.childPax, totals.infantPax)}
               tone="mdc"
             />
             <Metric
               label="Total PAX MNA-MDC"
-              value={totals.routes["MNA-MDC"].pax}
+              value={formatPax(
+                totals.routes["MNA-MDC"].adultPax,
+                totals.routes["MNA-MDC"].childPax,
+                totals.routes["MNA-MDC"].infantPax,
+              )}
               tone="mdc"
             />
             <Metric
               label="Total PAX MNA-IAX"
-              value={totals.routes["MNA-IAX"].pax}
+              value={formatPax(
+                totals.routes["MNA-IAX"].adultPax,
+                totals.routes["MNA-IAX"].childPax,
+                totals.routes["MNA-IAX"].infantPax,
+              )}
               tone="iax"
             />
           </section>
@@ -737,7 +804,13 @@ function FlightDataPages({ page }) {
                 >
                   <strong>{route}</strong>
                   <span>{totals.routes[route].flights} penerbangan</span>
-                  <span>{totals.routes[route].pax} PAX</span>
+                  <span>
+                    {formatPax(
+                      totals.routes[route].adultPax,
+                      totals.routes[route].childPax,
+                      totals.routes[route].infantPax,
+                    )} PAX
+                  </span>
                 </div>
               ))}
             </div>
@@ -768,7 +841,7 @@ function FlightDataPages({ page }) {
                         {formatFlightDate(flight.date, Number(month), year)}
                       </td>
                       <td>{flight.route}</td>
-                      <td>{flight.pax}</td>
+                      <td>{formatPax(flight.adultPax, flight.childPax, flight.infantPax)}</td>
                       <td>{formatWeight(flight.passengerWeight)}</td>
                       <td>{flight.baggagePieces}</td>
                       <td>{formatWeight(flight.baggageWeight)}</td>
@@ -848,7 +921,11 @@ function FlightDataPages({ page }) {
             />
             <Metric
               label="Total PAX"
-              value={dashboardValue(totals.incomePax)}
+              value={dashboardValue(formatPax(
+                totals.incomeAdultPax,
+                totals.incomeChildPax,
+                totals.incomeInfantPax,
+              ))}
               tone="total"
             />
           </section>
@@ -870,7 +947,13 @@ function FlightDataPages({ page }) {
                 >
                   <strong>{route}</strong>
                   <span>{totals.routes[route].flights} penerbangan</span>
-                  <span>{totals.routes[route].pax} PAX</span>
+                  <span>
+                    {formatPax(
+                      totals.routes[route].adultPax,
+                      totals.routes[route].childPax,
+                      totals.routes[route].infantPax,
+                    )} PAX
+                  </span>
                   <b>{formatCurrency(totals.routes[route].income)}</b>
                 </div>
               ))}
@@ -896,7 +979,7 @@ function FlightDataPages({ page }) {
                         {formatFlightDate(flight.date, Number(month), year)}
                       </td>
                       <td>{flight.route}</td>
-                      <td>{flight.pax}</td>
+                      <td>{formatPax(flight.adultPax, flight.childPax, flight.infantPax)}</td>
                       <td>{formatCurrency(flight.feeTicket)}</td>
                       <td className="emphasized">
                         {formatCurrency(flight.pax * flight.feeTicket)}
