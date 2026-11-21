@@ -60,6 +60,37 @@ function readWeight(mixed $value): ?float
     return round((float) $value, 2);
 }
 
+function readPassengerTypes(array $source): ?array
+{
+    $hasBreakdown = array_key_exists('adult_pax', $source) ||
+        array_key_exists('adultPax', $source) ||
+        array_key_exists('child_pax', $source) ||
+        array_key_exists('childPax', $source) ||
+        array_key_exists('infant_pax', $source) ||
+        array_key_exists('infantPax', $source);
+
+    if (!$hasBreakdown) {
+        $pax = readInteger($source['pax'] ?? null);
+        if ($pax === null || $pax < 0) return null;
+        return ['pax' => $pax, 'adult_pax' => $pax, 'child_pax' => 0, 'infant_pax' => 0];
+    }
+
+    $adult = readInteger($source['adult_pax'] ?? $source['adultPax'] ?? 0);
+    $child = readInteger($source['child_pax'] ?? $source['childPax'] ?? 0);
+    $infant = readInteger($source['infant_pax'] ?? $source['infantPax'] ?? 0);
+    if ($adult === null || $adult < 0 || $child === null || $child < 0 || $infant === null || $infant < 0) {
+        return null;
+    }
+
+    $seatedPax = $adult + $child;
+    if (array_key_exists('pax', $source) && $source['pax'] !== null && $source['pax'] !== '') {
+        $suppliedPax = readInteger($source['pax']);
+        if ($suppliedPax === null || $suppliedPax !== $seatedPax) return null;
+    }
+
+    return ['pax' => $seatedPax, 'adult_pax' => $adult, 'child_pax' => $child, 'infant_pax' => $infant];
+}
+
 try {
     $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
     if ($method === 'POST' && !$isFinanceUser) {
@@ -95,23 +126,26 @@ try {
 
         if (($_GET['dataset'] ?? '') === 'loads') {
             $where = $conditions ? ' WHERE ' . implode(' AND ', $conditions) : '';
-            $loadsQuery = $pdo->prepare("SELECT id, billing_year, billing_month, flight_day, pax, passenger_weight, baggage_pieces, baggage_weight, cabin_baggage_pieces, cabin_baggage_weight, cargo_pieces, cargo_weight, total_weight FROM flight_load_records{$where} ORDER BY billing_year DESC, billing_month DESC, flight_day ASC, id ASC");
+            $loadsQuery = $pdo->prepare("SELECT id, billing_year, billing_month, flight_day, pax, adult_pax, child_pax, infant_pax, passenger_weight, baggage_pieces, baggage_weight, cabin_baggage_pieces, cabin_baggage_weight, cargo_pieces, cargo_weight, total_weight FROM flight_load_records{$where} ORDER BY billing_year DESC, billing_month DESC, flight_day ASC, id ASC");
             $loadsQuery->execute($params);
             sendJson(['success' => true, 'data' => $loadsQuery->fetchAll()]);
         }
 
         $where = $conditions ? ' WHERE ' . implode(' AND ', $conditions) : '';
-        $recordsQuery = $pdo->prepare("SELECT id, billing_year, billing_month, flight_day, route, pax, basic_fare, fee_ticket, note, passenger_weight, baggage_pieces, baggage_weight, cabin_baggage_pieces, cabin_baggage_weight, cargo_pieces, cargo_weight, total_weight, created_at, updated_at FROM flight_records{$where} ORDER BY billing_year DESC, billing_month DESC, flight_day ASC, id ASC");
+        $recordsQuery = $pdo->prepare("SELECT id, billing_year, billing_month, flight_day, route, pax, adult_pax, child_pax, infant_pax, basic_fare, fee_ticket, note, passenger_weight, baggage_pieces, baggage_weight, cabin_baggage_pieces, cabin_baggage_weight, cargo_pieces, cargo_weight, total_weight, created_at, updated_at FROM flight_records{$where} ORDER BY billing_year DESC, billing_month DESC, flight_day ASC, id ASC");
         $recordsQuery->execute($params);
         $records = $recordsQuery->fetchAll();
 
-        $summaryQuery = $pdo->prepare("SELECT route, COUNT(*) AS total_flights, COALESCE(SUM(pax), 0) AS total_pax, COALESCE(SUM(pax * fee_ticket), 0) AS total_fee FROM flight_records{$where} GROUP BY route ORDER BY route");
+        $summaryQuery = $pdo->prepare("SELECT route, COUNT(*) AS total_flights, COALESCE(SUM(pax), 0) AS total_pax, COALESCE(SUM(adult_pax), 0) AS total_adult_pax, COALESCE(SUM(child_pax), 0) AS total_child_pax, COALESCE(SUM(infant_pax), 0) AS total_infant_pax, COALESCE(SUM(pax * fee_ticket), 0) AS total_fee FROM flight_records{$where} GROUP BY route ORDER BY route");
         $summaryQuery->execute($params);
         $byRoute = $summaryQuery->fetchAll();
 
         $summary = [
             'total_flights' => 0,
             'total_pax' => 0,
+            'total_adult_pax' => 0,
+            'total_child_pax' => 0,
+            'total_infant_pax' => 0,
             'total_fee' => 0,
             'by_route' => $byRoute,
         ];
@@ -119,6 +153,9 @@ try {
         foreach ($byRoute as $routeSummary) {
             $summary['total_flights'] += (int) $routeSummary['total_flights'];
             $summary['total_pax'] += (int) $routeSummary['total_pax'];
+            $summary['total_adult_pax'] += (int) ($routeSummary['total_adult_pax'] ?? 0);
+            $summary['total_child_pax'] += (int) ($routeSummary['total_child_pax'] ?? 0);
+            $summary['total_infant_pax'] += (int) ($routeSummary['total_infant_pax'] ?? 0);
             $summary['total_fee'] += (float) $routeSummary['total_fee'];
         }
 
@@ -167,7 +204,7 @@ try {
                 }
 
                 $day = readInteger($record['flight_day'] ?? null);
-                $pax = readInteger($record['pax'] ?? null);
+                $passengers = readPassengerTypes($record);
                 $passengerWeight = readWeight($record['passenger_weight'] ?? 0);
                 $baggagePieces = readInteger($record['baggage_pieces'] ?? 0);
                 $baggageWeight = readWeight($record['baggage_weight'] ?? 0);
@@ -176,7 +213,7 @@ try {
                 $cargoPieces = readInteger($record['cargo_pieces'] ?? 0);
                 $cargoWeight = readWeight($record['cargo_weight'] ?? 0);
 
-                if ($day === null || !checkdate($month, $day, $year) || $pax === null || $pax < 0) {
+                if ($day === null || !checkdate($month, $day, $year) || $passengers === null) {
                     sendJson(['success' => false, 'message' => 'Tanggal atau jumlah PAX tidak valid pada urutan ' . ($index + 1) . '.'], 400);
                 }
                 if (
@@ -192,7 +229,10 @@ try {
                     'year' => $year,
                     'month' => $month,
                     'day' => $day,
-                    'pax' => $pax,
+                    'pax' => $passengers['pax'],
+                    'adult_pax' => $passengers['adult_pax'],
+                    'child_pax' => $passengers['child_pax'],
+                    'infant_pax' => $passengers['infant_pax'],
                     'passenger_weight' => $passengerWeight,
                     'baggage_pieces' => $baggagePieces,
                     'baggage_weight' => $baggageWeight,
@@ -207,7 +247,7 @@ try {
             $pdo->beginTransaction();
             $deleteLoads = $pdo->prepare('DELETE FROM flight_load_records WHERE billing_year = :year AND billing_month = :month');
             $deleteLoads->execute(['year' => $year, 'month' => $month]);
-            $insertLoad = $pdo->prepare('INSERT INTO flight_load_records (billing_year, billing_month, flight_day, pax, passenger_weight, baggage_pieces, baggage_weight, cabin_baggage_pieces, cabin_baggage_weight, cargo_pieces, cargo_weight, total_weight) VALUES (:year, :month, :day, :pax, :passenger_weight, :baggage_pieces, :baggage_weight, :cabin_baggage_pieces, :cabin_baggage_weight, :cargo_pieces, :cargo_weight, :total_weight)');
+            $insertLoad = $pdo->prepare('INSERT INTO flight_load_records (billing_year, billing_month, flight_day, pax, adult_pax, child_pax, infant_pax, passenger_weight, baggage_pieces, baggage_weight, cabin_baggage_pieces, cabin_baggage_weight, cargo_pieces, cargo_weight, total_weight) VALUES (:year, :month, :day, :pax, :adult_pax, :child_pax, :infant_pax, :passenger_weight, :baggage_pieces, :baggage_weight, :cabin_baggage_pieces, :cabin_baggage_weight, :cargo_pieces, :cargo_weight, :total_weight)');
             foreach ($validatedLoads as $record) {
                 $insertLoad->execute($record);
             }
@@ -236,7 +276,7 @@ try {
 
             $day = readInteger($flight['flight_day'] ?? $flight['date'] ?? null);
             $route = $flight['route'] ?? null;
-            $pax = readInteger($flight['pax'] ?? null);
+            $passengers = readPassengerTypes($flight);
             $basicFare = $flight['basic_fare'] ?? $flight['basicFare'] ?? null;
             $feeTicket = $flight['fee_ticket'] ?? $flight['feeTicket'] ?? null;
             $passengerWeight = readWeight($flight['passenger_weight'] ?? 0);
@@ -253,7 +293,7 @@ try {
             if (!is_string($route) || !in_array($route, $allowedRoutes, true)) {
                 sendJson(['success' => false, 'message' => 'Route tidak valid pada urutan ' . ($index + 1) . '.'], 400);
             }
-            if ($pax === null || $pax < 0) {
+            if ($passengers === null) {
                 sendJson(['success' => false, 'message' => 'PAX harus bilangan bulat nol atau lebih pada urutan ' . ($index + 1) . '.'], 400);
             }
             if (!is_numeric($basicFare) || (float) $basicFare < 0 || !is_numeric($feeTicket) || (float) $feeTicket < 0) {
@@ -278,7 +318,10 @@ try {
                 'month' => $month,
                 'day' => $day,
                 'route' => $route,
-                'pax' => $pax,
+                'pax' => $passengers['pax'],
+                'adult_pax' => $passengers['adult_pax'],
+                'child_pax' => $passengers['child_pax'],
+                'infant_pax' => $passengers['infant_pax'],
                 'basic_fare' => (float) $basicFare,
                 'fee_ticket' => (float) $feeTicket,
                 'note' => $note,
@@ -296,7 +339,7 @@ try {
             ];
         }
 
-        $insert = $pdo->prepare('INSERT INTO flight_records (billing_year, billing_month, flight_day, route, pax, basic_fare, fee_ticket, note, passenger_weight, baggage_pieces, baggage_weight, cabin_baggage_pieces, cabin_baggage_weight, cargo_pieces, cargo_weight, total_weight) VALUES (:year, :month, :day, :route, :pax, :basic_fare, :fee_ticket, :note, :passenger_weight, :baggage_pieces, :baggage_weight, :cabin_baggage_pieces, :cabin_baggage_weight, :cargo_pieces, :cargo_weight, :total_weight)');
+        $insert = $pdo->prepare('INSERT INTO flight_records (billing_year, billing_month, flight_day, route, pax, adult_pax, child_pax, infant_pax, basic_fare, fee_ticket, note, passenger_weight, baggage_pieces, baggage_weight, cabin_baggage_pieces, cabin_baggage_weight, cargo_pieces, cargo_weight, total_weight) VALUES (:year, :month, :day, :route, :pax, :adult_pax, :child_pax, :infant_pax, :basic_fare, :fee_ticket, :note, :passenger_weight, :baggage_pieces, :baggage_weight, :cabin_baggage_pieces, :cabin_baggage_weight, :cargo_pieces, :cargo_weight, :total_weight)');
         $pdo->beginTransaction();
         if ($replacePeriod) {
             $deletePeriod = $pdo->prepare('DELETE FROM flight_records WHERE billing_year = :year AND billing_month = :month');

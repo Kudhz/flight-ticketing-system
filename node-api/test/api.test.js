@@ -144,10 +144,10 @@ test("validateRouteAndDate menerapkan aturan jadwal dan bulan berjalan", () => {
 });
 
 test("extractPassengers mendukung format tunggal dan daftar", () => {
-  assert.deepEqual(extractPassengers({ name: " Budi ", phone: "0812" }), [{ name: "Budi", phone: "0812" }]);
+  assert.deepEqual(extractPassengers({ name: " Budi ", phone: "0812" }), [{ name: "Budi", phone: "0812", type: "adult" }]);
   assert.deepEqual(extractPassengers({ passengers: ["Ani", { name: "Cici", phone: "0899" }], phone: "0811" }), [
-    { name: "Ani", phone: "0811" },
-    { name: "Cici", phone: "0899" },
+    { name: "Ani", phone: "0811", type: "adult" },
+    { name: "Cici", phone: "0899", type: "adult" },
   ]);
   assert.throws(() => extractPassengers({ passengers: [{ name: "Ani" }] }), InvalidInput);
   assert.throws(() => extractPassengers({}), /minimal satu/);
@@ -318,7 +318,17 @@ test("POST /api/flights memerlukan login dan memvalidasi data", async (t) => {
     year: 2026,
     month: "November",
     replace_period: true,
-    flights: [{ flight_day: 3, route: "MNA-IAX", pax: 8, basic_fare: 500000, fee_ticket: 15000, cargo_weight: "10.5" }],
+    flights: [{
+      flight_day: 3,
+      route: "MNA-IAX",
+      pax: 8,
+      adult_pax: 6,
+      child_pax: 2,
+      infant_pax: 1,
+      basic_fare: 500000,
+      fee_ticket: 15000,
+      cargo_weight: "10.5",
+    }],
   };
 
   let response = await fetch(`${url}/api/flights`, json(payload));
@@ -330,6 +340,9 @@ test("POST /api/flights memerlukan login dan memvalidasi data", async (t) => {
   assert.equal(response.status, 201);
   assert.deepEqual(await response.json(), { success: true, message: "Data penerbangan berhasil disimpan.", inserted: 1 });
   assert.equal(flightsPool.statements.length, 2);
+  assert.equal(flightsPool.statements[1].params.adult_pax, 6);
+  assert.equal(flightsPool.statements[1].params.child_pax, 2);
+  assert.equal(flightsPool.statements[1].params.infant_pax, 1);
   assert.equal(flightsPool.statements[1].params.total_weight, 10.5);
 
   const bad = { ...payload, flights: [{ ...payload.flights[0], route: "XXX-YYY" }] };

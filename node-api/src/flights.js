@@ -44,6 +44,41 @@ const readCount = (value) => {
   return count === null || count < 0 ? null : count;
 };
 
+function readPassengerTypes(source) {
+  const adult = readCount(source.adult_pax ?? source.adultPax ?? 0);
+  const child = readCount(source.child_pax ?? source.childPax ?? 0);
+  const infant = readCount(source.infant_pax ?? source.infantPax ?? 0);
+  const hasBreakdown =
+    source.adult_pax !== undefined ||
+    source.adultPax !== undefined ||
+    source.child_pax !== undefined ||
+    source.childPax !== undefined ||
+    source.infant_pax !== undefined ||
+    source.infantPax !== undefined;
+
+  if (!hasBreakdown) {
+    const pax = readInteger(source.pax ?? null);
+    if (pax === null || pax < 0) return null;
+    return { pax, adult_pax: pax, child_pax: 0, infant_pax: 0 };
+  }
+
+  if (
+    adult === null ||
+    child === null ||
+    infant === null
+  ) {
+    return null;
+  }
+
+  const seatedPax = adult + child;
+  if (source.pax !== undefined && source.pax !== null && source.pax !== "") {
+    const suppliedPax = readInteger(source.pax);
+    if (suppliedPax === null || suppliedPax !== seatedPax) return null;
+  }
+
+  return { pax: seatedPax, adult_pax: adult, child_pax: child, infant_pax: infant };
+}
+
 function readLoadFields(source) {
   const fields = {
     passenger_weight: readWeight(source.passenger_weight ?? 0),
@@ -117,8 +152,8 @@ function validateLoadRecords(records, { year, month }) {
     }
 
     const day = readInteger(record.flight_day ?? null);
-    const pax = readInteger(record.pax ?? null);
-    if (!isValidDay(year, month, day) || pax === null || pax < 0) {
+    const passengers = readPassengerTypes(record);
+    if (!isValidDay(year, month, day) || passengers === null) {
       throw fail(400, `Tanggal atau jumlah PAX tidak valid ${sequence(index)}`);
     }
 
@@ -129,7 +164,7 @@ function validateLoadRecords(records, { year, month }) {
         `Berat harus nol atau lebih dan jumlah koli harus bilangan bulat nol atau lebih ${sequence(index)}`,
       );
     }
-    return { year, month, day, pax, ...load };
+    return { year, month, day, ...passengers, ...load };
   });
 }
 
@@ -143,7 +178,7 @@ function validateFlights(flights, period) {
 
     const day = readInteger(flight.flight_day ?? flight.date ?? null);
     const route = flight.route ?? null;
-    const pax = readInteger(flight.pax ?? null);
+    const passengers = readPassengerTypes(flight);
     const basicFare = flight.basic_fare ?? flight.basicFare ?? null;
     const feeTicket = flight.fee_ticket ?? flight.feeTicket ?? null;
 
@@ -153,7 +188,7 @@ function validateFlights(flights, period) {
     if (typeof route !== "string" || !ALLOWED_ROUTES.includes(route)) {
       throw fail(400, `Route tidak valid ${sequence(index)}`);
     }
-    if (pax === null || pax < 0) {
+    if (passengers === null) {
       throw fail(400, `PAX harus bilangan bulat nol atau lebih ${sequence(index)}`);
     }
     if (!isNumeric(basicFare) || Number(basicFare) < 0 || !isNumeric(feeTicket) || Number(feeTicket) < 0) {
@@ -174,7 +209,7 @@ function validateFlights(flights, period) {
       month,
       day,
       route,
-      pax,
+      ...passengers,
       basic_fare: Number(basicFare),
       fee_ticket: Number(feeTicket),
       note,
@@ -184,9 +219,9 @@ function validateFlights(flights, period) {
 }
 
 const LOAD_COLUMNS =
-  "id, billing_year, billing_month, flight_day, pax, passenger_weight, baggage_pieces, baggage_weight, cabin_baggage_pieces, cabin_baggage_weight, cargo_pieces, cargo_weight, total_weight";
+  "id, billing_year, billing_month, flight_day, pax, adult_pax, child_pax, infant_pax, passenger_weight, baggage_pieces, baggage_weight, cabin_baggage_pieces, cabin_baggage_weight, cargo_pieces, cargo_weight, total_weight";
 const FLIGHT_COLUMNS =
-  "id, billing_year, billing_month, flight_day, route, pax, basic_fare, fee_ticket, note, passenger_weight, baggage_pieces, baggage_weight, cabin_baggage_pieces, cabin_baggage_weight, cargo_pieces, cargo_weight, total_weight, created_at, updated_at";
+  "id, billing_year, billing_month, flight_day, route, pax, adult_pax, child_pax, infant_pax, basic_fare, fee_ticket, note, passenger_weight, baggage_pieces, baggage_weight, cabin_baggage_pieces, cabin_baggage_weight, cargo_pieces, cargo_weight, total_weight, created_at, updated_at";
 
 const bind = (params) => (Object.keys(params).length > 0 ? params : undefined);
 
@@ -207,14 +242,25 @@ async function readFlights(pool, query, isFinanceUser) {
     values,
   );
   const [byRoute] = await pool.execute(
-    `SELECT route, COUNT(*) AS total_flights, COALESCE(SUM(pax), 0) AS total_pax, COALESCE(SUM(pax * fee_ticket), 0) AS total_fee FROM flight_records${where} GROUP BY route ORDER BY route`,
+    `SELECT route, COUNT(*) AS total_flights, COALESCE(SUM(pax), 0) AS total_pax, COALESCE(SUM(adult_pax), 0) AS total_adult_pax, COALESCE(SUM(child_pax), 0) AS total_child_pax, COALESCE(SUM(infant_pax), 0) AS total_infant_pax, COALESCE(SUM(pax * fee_ticket), 0) AS total_fee FROM flight_records${where} GROUP BY route ORDER BY route`,
     values,
   );
 
-  const summary = { total_flights: 0, total_pax: 0, total_fee: 0, by_route: byRoute };
+  const summary = {
+    total_flights: 0,
+    total_pax: 0,
+    total_adult_pax: 0,
+    total_child_pax: 0,
+    total_infant_pax: 0,
+    total_fee: 0,
+    by_route: byRoute,
+  };
   for (const routeSummary of byRoute) {
     summary.total_flights += Number(routeSummary.total_flights);
     summary.total_pax += Number(routeSummary.total_pax);
+    summary.total_adult_pax += Number(routeSummary.total_adult_pax ?? 0);
+    summary.total_child_pax += Number(routeSummary.total_child_pax ?? 0);
+    summary.total_infant_pax += Number(routeSummary.total_infant_pax ?? 0);
     summary.total_fee += Number(routeSummary.total_fee);
   }
 
@@ -242,8 +288,8 @@ async function saveLoads(pool, payload, period) {
     );
     for (const load of loads) {
       await connection.execute(
-        `INSERT INTO flight_load_records (billing_year, billing_month, flight_day, pax, passenger_weight, baggage_pieces, baggage_weight, cabin_baggage_pieces, cabin_baggage_weight, cargo_pieces, cargo_weight, total_weight)
-         VALUES (:year, :month, :day, :pax, :passenger_weight, :baggage_pieces, :baggage_weight, :cabin_baggage_pieces, :cabin_baggage_weight, :cargo_pieces, :cargo_weight, :total_weight)`,
+          `INSERT INTO flight_load_records (billing_year, billing_month, flight_day, pax, adult_pax, child_pax, infant_pax, passenger_weight, baggage_pieces, baggage_weight, cabin_baggage_pieces, cabin_baggage_weight, cargo_pieces, cargo_weight, total_weight)
+           VALUES (:year, :month, :day, :pax, :adult_pax, :child_pax, :infant_pax, :passenger_weight, :baggage_pieces, :baggage_weight, :cabin_baggage_pieces, :cabin_baggage_weight, :cargo_pieces, :cargo_weight, :total_weight)`,
         load,
       );
     }
@@ -278,8 +324,8 @@ async function saveFlights(pool, payload, period) {
     }
     for (const flight of validated) {
       await connection.execute(
-        `INSERT INTO flight_records (billing_year, billing_month, flight_day, route, pax, basic_fare, fee_ticket, note, passenger_weight, baggage_pieces, baggage_weight, cabin_baggage_pieces, cabin_baggage_weight, cargo_pieces, cargo_weight, total_weight)
-         VALUES (:year, :month, :day, :route, :pax, :basic_fare, :fee_ticket, :note, :passenger_weight, :baggage_pieces, :baggage_weight, :cabin_baggage_pieces, :cabin_baggage_weight, :cargo_pieces, :cargo_weight, :total_weight)`,
+        `INSERT INTO flight_records (billing_year, billing_month, flight_day, route, pax, adult_pax, child_pax, infant_pax, basic_fare, fee_ticket, note, passenger_weight, baggage_pieces, baggage_weight, cabin_baggage_pieces, cabin_baggage_weight, cargo_pieces, cargo_weight, total_weight)
+         VALUES (:year, :month, :day, :route, :pax, :adult_pax, :child_pax, :infant_pax, :basic_fare, :fee_ticket, :note, :passenger_weight, :baggage_pieces, :baggage_weight, :cabin_baggage_pieces, :cabin_baggage_weight, :cargo_pieces, :cargo_weight, :total_weight)`,
         flight,
       );
     }

@@ -40,6 +40,9 @@ const mapApiFlight = (flight) => ({
   date: Number(flight.flight_day),
   route: String(flight.route || ""),
   pax: Number(flight.pax) || 0,
+  adultPax: Number(flight.adult_pax) || 0,
+  childPax: Number(flight.child_pax) || 0,
+  infantPax: Number(flight.infant_pax) || 0,
   basicFare: Number(flight.basic_fare) || 0,
   feeTicket: Number(flight.fee_ticket) || 0,
   note: String(flight.note || ""),
@@ -201,6 +204,9 @@ function FlightDataPages({ page }) {
       flights.reduce(
         (result, flight) => {
           result.pax += flight.pax;
+          result.adultPax += flight.adultPax;
+          result.childPax += flight.childPax;
+          result.infantPax += flight.infantPax;
           result.passengerWeight += flight.passengerWeight;
           result.baggagePieces += flight.baggagePieces;
           result.baggageWeight += flight.baggageWeight;
@@ -238,6 +244,9 @@ function FlightDataPages({ page }) {
         },
         {
           pax: 0,
+          adultPax: 0,
+          childPax: 0,
+          infantPax: 0,
           passengerWeight: 0,
           baggagePieces: 0,
           baggageWeight: 0,
