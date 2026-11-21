@@ -183,6 +183,7 @@ export async function findAlternativeFlights(
     `SELECT travel_date, COUNT(DISTINCT booking_no) AS booked
      FROM bookings
      WHERE route_code = :route AND travel_date > :start AND travel_date <= :end
+       AND passenger_type != 'infant'
      GROUP BY travel_date`,
     { route, start: formatDate(baseDate), end: formatDate(endDate) },
   );
@@ -289,7 +290,9 @@ async function listOrCheckAvailability(db, query, today) {
 
   const [rows] = await db.execute(
     `SELECT COUNT(DISTINCT booking_no) AS booked
-     FROM bookings WHERE route_code = :route AND travel_date = :date`,
+     FROM bookings 
+     WHERE route_code = :route AND travel_date = :date
+       AND passenger_type != 'infant'`,
     { route, date },
   );
   const booked = Number(rows[0].booked);
@@ -337,6 +340,19 @@ async function checkBooking(db, body, route, date) {
     }
   }
 
+  // Get seat occupancy info (excluding infant)
+  const [seatRows] = await db.execute(
+    `SELECT COUNT(DISTINCT booking_no) AS occupiedSeats,
+            SUM(CASE WHEN passenger_type = 'infant' THEN 1 ELSE 0 END) AS infantCount
+     FROM bookings
+     WHERE route_code = :route AND travel_date = :date
+       AND passenger_type != 'infant'`,
+    { route, date },
+  );
+  const occupiedSeats = Number(seatRows[0]?.occupiedSeats ?? 0);
+  const infantCount = Number(seatRows[0]?.infantCount ?? 0);
+  const availableSeats = Math.max(BOOKING_LIMIT - occupiedSeats, 0);
+
   const isDuplicate = duplicates.length > 0;
   return {
     status: 200,
@@ -347,6 +363,10 @@ async function checkBooking(db, body, route, date) {
       route,
       date,
       duplicates,
+      capacity: BOOKING_LIMIT,
+      occupiedSeats,
+      availableSeats,
+      infantCount,
       message: isDuplicate
         ? "Penumpang sudah terdaftar pada rute dan tanggal tersebut."
         : "Penumpang belum terdaftar.",

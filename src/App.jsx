@@ -744,7 +744,10 @@ function App() {
                   type="button"
                   className={`metric-card date-metric-card ${date === selectedDate ? "selected" : ""}`}
                   key={date}
-                  onClick={() => setSelectedDate(date)}
+                  onClick={() => {
+                    setSelectedDate(date);
+                    setActivePage("bookings");
+                  }}
                   aria-pressed={date === selectedDate}
                   aria-label={`${dateLabel(date)}, ${count} pemesanan. Pilih tanggal`}
                 >
@@ -867,32 +870,34 @@ function App() {
                         <td className="passenger-column">
                           <div className="passenger-cell">
                             <div>
-                              <strong>{booking.name}</strong>
+                              <strong>
+                                {booking.name}
+                                {booking.type === "child" && (
+                                  <span
+                                    style={{
+                                      marginLeft: "8px",
+                                      fontSize: "0.75em",
+                                      opacity: 0.6,
+                                      fontWeight: "normal",
+                                    }}
+                                  >
+                                    (Anak-anak)
+                                  </span>
+                                )}
+                                {booking.type === "infant" && (
+                                  <span
+                                    style={{
+                                      marginLeft: "8px",
+                                      fontSize: "0.75em",
+                                      opacity: 0.6,
+                                      fontWeight: "normal",
+                                    }}
+                                  >
+                                    (Bayi)
+                                  </span>
+                                )}
+                              </strong>
                               <span>{booking.route}</span>
-                              {booking.type === "child" && (
-                                <small
-                                  style={{
-                                    display: "block",
-                                    marginTop: "2px",
-                                    fontSize: "0.75em",
-                                    opacity: 0.7,
-                                  }}
-                                >
-                                  Anak-anak
-                                </small>
-                              )}
-                              {booking.type === "infant" && (
-                                <small
-                                  style={{
-                                    display: "block",
-                                    marginTop: "2px",
-                                    fontSize: "0.75em",
-                                    opacity: 0.7,
-                                  }}
-                                >
-                                  Bayi (tanpa kursi)
-                                </small>
-                              )}
                             </div>
                           </div>
                         </td>
