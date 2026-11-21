@@ -456,7 +456,7 @@ async function updateBooking(pool, id, body, webhookUrl) {
 
     const current = bookingForApi(rows[0]);
     const has = (key) => Object.hasOwn(body, key);
-    let { name, phone, route, bookingNo, status } = current;
+    let { name, phone, type, route, bookingNo, status } = current;
 
     if (has("name")) {
       name = toText(body.name).trim();
@@ -465,6 +465,13 @@ async function updateBooking(pool, id, body, webhookUrl) {
     if (has("phone")) {
       phone = toText(body.phone).trim();
       if (phone === "") throw new InvalidInput("Nomor WhatsApp wajib diisi.");
+    }
+    if (has("type")) {
+      type = toText(body.type).trim().toLowerCase();
+      if (!VALID_PASSENGER_TYPES.includes(type))
+        throw new InvalidInput(
+          `Tipe penumpang hanya boleh: ${VALID_PASSENGER_TYPES.join(", ")}.`,
+        );
     }
     if (has("route")) {
       route = toText(body.route);
@@ -476,7 +483,7 @@ async function updateBooking(pool, id, body, webhookUrl) {
       if (!STATUSES.includes(status))
         throw new InvalidInput("Status pemesanan tidak valid.");
     }
-    if (!["name", "phone", "route", "status"].some(has)) {
+    if (!["name", "phone", "type", "route", "status"].some(has)) {
       throw new InvalidInput("Tidak ada perubahan data pemesanan.");
     }
 
@@ -497,10 +504,10 @@ async function updateBooking(pool, id, body, webhookUrl) {
 
     await connection.execute(
       `UPDATE bookings
-       SET passenger_name = :name, phone = :phone, route_code = :route,
-           booking_no = :bookingNo, status = :status
+       SET passenger_name = :name, phone = :phone, passenger_type = :type, 
+           route_code = :route, booking_no = :bookingNo, status = :status
        WHERE id = :id`,
-      { name, phone, route, bookingNo, status, id },
+      { name, phone, type, route, bookingNo, status, id },
     );
 
     return { before: current, after: await fetchBooking(connection, id) };

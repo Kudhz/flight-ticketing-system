@@ -506,6 +506,7 @@ function App() {
     setEditForm({
       name: booking.name,
       phone: booking.phone,
+      type: booking.type || "adult",
       route: booking.route,
     });
   }
@@ -531,6 +532,7 @@ function App() {
           body: JSON.stringify({
             name,
             phone,
+            type: editForm.type,
             route: editForm.route,
           }),
         },
@@ -893,7 +895,7 @@ function App() {
                                       fontWeight: "normal",
                                     }}
                                   >
-                                    (Bayi)
+                                    <b>(INF)</b>
                                   </span>
                                 )}
                               </strong>
@@ -1293,6 +1295,22 @@ function App() {
                     }))
                   }
                 />
+              </label>
+              <label>
+                Tipe Penumpang
+                <select
+                  value={editForm.type || "adult"}
+                  onChange={(event) =>
+                    setEditForm((current) => ({
+                      ...current,
+                      type: event.target.value,
+                    }))
+                  }
+                >
+                  <option value="adult">Adult</option>
+                  <option value="child">Child</option>
+                  <option value="infant">Infant</option>
+                </select>
               </label>
               <label>
                 Rute penerbangan
