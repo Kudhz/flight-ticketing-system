@@ -28,64 +28,75 @@
     U+2215, U+FEFF, U+FFFD;
 }
 
-/* ---------- Design tokens ---------- */
-:root {
+/* ---------- Design tokens (Bootstrap 5 Light & Sidebar-Matched Dark) ---------- */
+:root,
+:root[data-theme="light"] {
   --lf-navy-900: #0b1626;
   --lf-navy-800: #0f2036;
   --lf-navy-700: #14334d;
   --lf-navy-600: #174961;
   --lf-navy-500: #1d647d;
-  --lf-cream: #f7fcfb;
-  --lf-cream-soft: #e6f4f1;
-  --lf-terracotta: #0d9488;
-  --lf-terracotta-strong: #0f766e;
-  --lf-terracotta-soft: #ccfbf1;
-  --lf-amber: #d97706;
-  --lf-green: #059669;
+  --lf-cream: #f8f9fa;
+  --lf-cream-soft: #e9ecef;
+  --lf-terracotta: #0d6efd;
+  --lf-terracotta-strong: #0a58ca;
+  --lf-terracotta-soft: #e7f1ff;
+  --lf-amber: #fd7e14;
+  --lf-green: #198754;
 
-  --sf-ink: #0f1f2e;
-  --sf-muted: #5c7285;
-  --sf-bg: #eff4f7;
+  /* Bootstrap 5 Light Palette */
+  --sf-ink: #212529;
+  --sf-muted: #6c757d;
+  --sf-bg: #f8f9fa;
   --sf-surface: #ffffff;
-  --sf-surface-hover: #f4f9fb;
-  --sf-line: #d9e6ed;
-  --sf-border: #c2d5e0;
-  --sf-border-focus: #0d9488;
-  --sf-teal: #0d9488;
-  --sf-teal-dark: #0f766e;
-  --sf-teal-light: #e0f7f4;
-  --sf-amber-light: #fef3c7;
-  --sf-green: #059669;
-  --sf-green-light: #d1fae5;
-  --sf-red: #dc2626;
-  --sf-red-light: #fee2e2;
-  --sf-blue: #0284c7;
-  --sf-sidebar: #0b1626;
-  --sf-sidebar-hover: #132740;
-  --sf-sidebar-ink: #f1f7f9;
-  --sf-sidebar-muted: #93acc0;
-  --sf-radius: 16px;
-  --sf-radius-sm: 10px;
-  --sf-shadow:
-    0 1px 2px rgb(15 31 46 / 5%),
-    0 8px 22px -3px rgb(15 31 46 / 6%);
-  --sf-shadow-md:
-    0 4px 12px rgb(15 31 46 / 8%),
-    0 18px 36px -5px rgb(15 31 46 / 12%);
-  --sf-shadow-lg: 0 28px 66px -12px rgb(9 19 31 / 36%);
+  --sf-surface-hover: #f8f9fa;
+  --sf-line: #dee2e6;
+  --sf-border: #ced4da;
+  --sf-border-focus: #0d6efd;
+  --sf-teal: #0d6efd;
+  --sf-teal-dark: #0a58ca;
+  --sf-teal-light: #e7f1ff;
+  --sf-amber-light: #fff3cd;
+  --sf-green: #198754;
+  --sf-green-light: #d1e7dd;
+  --sf-red: #dc3545;
+  --sf-red-light: #f8d7da;
+  --sf-blue: #0d6efd;
+  --sf-sidebar: #ffffff;
+  --sf-sidebar-hover: #f8f9fa;
+  --sf-sidebar-ink: #212529;
+  --sf-sidebar-muted: #6c757d;
+  --sf-radius: 14px;
+  --sf-radius-sm: 8px;
+  --sf-shadow: 0 0.125rem 0.25rem rgb(0 0 0 / 7.5%);
+  --sf-shadow-md: 0 0.5rem 1rem rgb(0 0 0 / 12%);
+  --sf-shadow-lg: 0 1rem 3rem rgb(0 0 0 / 17.5%);
   --sf-transition: 0.18s cubic-bezier(0.2, 0.8, 0.2, 1);
   --lf-font-display: "Space Grotesk", "Noto Sans", "Segoe UI", system-ui, sans-serif;
   --lf-font-body: "Space Grotesk", "Noto Sans", "Segoe UI", system-ui, sans-serif;
 }
 
 :root[data-theme="dark"] {
+  --lf-navy-900: #08111e;
+  --lf-navy-800: #0b1626;
+  --lf-navy-700: #112238;
+  --lf-navy-600: #173350;
+  --lf-navy-500: #1e496e;
+  --lf-cream: #f7fcfb;
+  --lf-cream-soft: #e6f4f1;
+  --lf-terracotta: #14b8a6;
+  --lf-terracotta-strong: #0d9488;
+  --lf-terracotta-soft: #113940;
+  --lf-amber: #fbbf24;
+  --lf-green: #34d399;
+
   --sf-ink: #ecf4f8;
-  --sf-muted: #8fa9bc;
-  --sf-bg: #09131f;
-  --sf-surface: #102033;
-  --sf-surface-hover: #162c44;
-  --sf-line: #213b56;
-  --sf-border: #2d4e6f;
+  --sf-muted: #93acc0;
+  --sf-bg: #0b1626;
+  --sf-surface: #112136;
+  --sf-surface-hover: #172c46;
+  --sf-line: #213956;
+  --sf-border: #2c4a6d;
   --sf-border-focus: #2dd4bf;
   --sf-teal: #2dd4bf;
   --sf-teal-dark: #5eead4;
@@ -96,10 +107,17 @@
   --sf-red: #f87171;
   --sf-red-light: #3f191d;
   --sf-blue: #38bdf8;
-  --sf-sidebar: #070f19;
-  --sf-sidebar-hover: #112338;
-  --sf-sidebar-ink: #ecf4f8;
-  --sf-sidebar-muted: #8fa9bc;
+  --sf-sidebar: #08111e;
+  --sf-sidebar-hover: #132740;
+  --sf-sidebar-ink: #f1f7f9;
+  --sf-sidebar-muted: #93acc0;
+  --sf-shadow:
+    0 1px 3px rgb(4 10 18 / 32%),
+    0 8px 24px -4px rgb(4 10 18 / 36%);
+  --sf-shadow-md:
+    0 6px 16px rgb(4 10 18 / 38%),
+    0 18px 38px -6px rgb(4 10 18 / 45%);
+  --sf-shadow-lg: 0 28px 66px -12px rgb(3 8 15 / 62%);
 }
 
 /* ---------- App shell ---------- */
@@ -127,7 +145,7 @@ select {
   background:
     radial-gradient(
       ellipse 60rem 30rem at 88% -8%,
-      rgb(38 121 168 / 7%),
+      rgb(20 184 166 / 8%),
       transparent
     ),
     var(--sf-bg);
@@ -150,9 +168,10 @@ select {
   height: 100vh;
   padding: 1.35rem 1rem 1.1rem;
   overflow-y: auto;
+  border-right: 1px solid rgb(255 255 255 / 7%);
   background: var(--sf-sidebar);
   color: var(--sf-sidebar-ink);
-  box-shadow: 10px 0 34px rgb(10 20 30 / 16%);
+  box-shadow: 10px 0 34px rgb(4 10 18 / 28%);
   --sf-surface-hover: var(--sf-sidebar-hover);
 }
 
@@ -504,7 +523,7 @@ select {
 
 .ticketing-page-heading {
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   justify-content: space-between;
   gap: 1.5rem;
   margin-bottom: 1.5rem;
@@ -543,16 +562,16 @@ select {
 .btn-primary {
   background: linear-gradient(
     135deg,
-    #14b8a6,
-    #0f766e
+    var(--lf-terracotta),
+    var(--lf-terracotta-strong)
   );
-  border-color: #0f766e;
+  border-color: var(--lf-terracotta-strong);
   color: #fff;
-  box-shadow: 0 6px 16px rgb(13 148 136 / 24%);
+  box-shadow: 0 4px 12px rgb(13 110 253 / 22%);
 }
 
 .btn-primary:hover:not(:disabled) {
-  box-shadow: 0 9px 22px rgb(13 148 136 / 32%);
+  box-shadow: 0 6px 18px rgb(13 110 253 / 30%);
   transform: translateY(-1px);
 }
 
@@ -2760,8 +2779,10 @@ select {
 
 .heading-cta-group {
   display: flex;
+  flex: 0 0 auto;
   align-items: center;
-  gap: 0.65rem;
+  justify-content: flex-end;
+  gap: 0.75rem;
   flex-wrap: wrap;
 }
 
@@ -3158,8 +3179,17 @@ select {
 }
 
 .schedule-period-deck .schedule-period-controls {
+  display: grid;
+  grid-template-columns: minmax(8.5rem, 1fr) 6.5rem auto;
+  align-items: end;
+  gap: 0.65rem;
   margin-bottom: 0;
-  flex-wrap: nowrap;
+}
+
+.schedule-period-deck .schedule-period-field select,
+.schedule-period-deck .schedule-period-field.year-field input {
+  width: 100%;
+  max-width: none;
 }
 
 .period-step-group {
@@ -3212,9 +3242,10 @@ select {
 
 .overview-dates-header {
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   justify-content: space-between;
   gap: 1rem;
+  flex-wrap: wrap;
   margin-bottom: 1.1rem;
 }
 
@@ -3677,6 +3708,11 @@ select {
   flex: 0 0 auto;
 }
 
+.quick-manifest-actions .status-label {
+  min-width: 7.4rem;
+  justify-content: space-between;
+}
+
 /* ---------- Financial & Flight History Analytics ---------- */
 .income-delta-pill {
   padding: 0.14rem 0.48rem;
@@ -3809,6 +3845,241 @@ select {
   .report-search-input {
     width: 100%;
   }
+}
+
+/* ---------- Bootstrap Light Mode Card Sections & Sidebar Override ---------- */
+:root[data-theme="light"] .sidebar,
+.app-shell[data-theme="light"] .sidebar {
+  border-right-color: #dee2e6;
+  border-top-color: #dee2e6;
+  box-shadow: 0 0.125rem 0.25rem rgb(0 0 0 / 7.5%);
+}
+
+:root[data-theme="light"] .brand,
+.app-shell[data-theme="light"] .brand {
+  border-bottom-color: #dee2e6;
+}
+
+:root[data-theme="light"] .brand-mark,
+:root[data-theme="light"] .mobile-brand-mark,
+.app-shell[data-theme="light"] .brand-mark,
+.app-shell[data-theme="light"] .mobile-brand-mark {
+  box-shadow: 0 6px 14px rgb(13 110 253 / 24%);
+}
+
+:root[data-theme="light"] .brand-live-pill,
+.app-shell[data-theme="light"] .brand-live-pill {
+  background: #d1e7dd;
+  border-color: #a3cfbb;
+  color: #0f5132;
+}
+
+:root[data-theme="light"] .sidebar-station-card,
+:root[data-theme="light"] .help-box,
+:root[data-theme="light"] .sidebar-finance-action,
+.app-shell[data-theme="light"] .sidebar-station-card,
+.app-shell[data-theme="light"] .help-box,
+.app-shell[data-theme="light"] .sidebar-finance-action {
+  background: #f8f9fa;
+  border-color: #dee2e6;
+  color: #212529;
+}
+
+:root[data-theme="light"] .station-card-item strong,
+.app-shell[data-theme="light"] .station-card-item strong {
+  color: #212529;
+}
+
+:root[data-theme="light"] .station-card-divider,
+.app-shell[data-theme="light"] .station-card-divider {
+  background: #dee2e6;
+}
+
+:root[data-theme="light"] .side-label,
+.app-shell[data-theme="light"] .side-label {
+  color: #6c757d;
+}
+
+:root[data-theme="light"] .nav-item:hover,
+.app-shell[data-theme="light"] .nav-item:hover {
+  background: #f1f3f5;
+  color: #212529;
+}
+
+:root[data-theme="light"] .nav-item.active,
+.app-shell[data-theme="light"] .nav-item.active {
+  background: #e7f1ff;
+  border-color: #b6d4fe;
+  color: #0a58ca;
+  font-weight: 600;
+}
+
+:root[data-theme="light"] .nav-item.active .nav-glyph,
+.app-shell[data-theme="light"] .nav-item.active .nav-glyph {
+  color: #0d6efd;
+}
+
+:root[data-theme="light"] .nav-count,
+.app-shell[data-theme="light"] .nav-count {
+  background: #e9ecef;
+  color: #495057;
+}
+
+:root[data-theme="light"] .nav-item.active .nav-count,
+.app-shell[data-theme="light"] .nav-item.active .nav-count {
+  background: #0d6efd;
+  color: #ffffff;
+}
+
+:root[data-theme="light"] .help-icon,
+.app-shell[data-theme="light"] .help-icon {
+  background: #e7f1ff;
+  color: #0d6efd;
+}
+
+:root[data-theme="light"] .sidebar-finance-action:hover:not(:disabled),
+.app-shell[data-theme="light"] .sidebar-finance-action:hover:not(:disabled) {
+  background: #e7f1ff;
+  border-color: #86b7fe;
+  color: #0a58ca;
+}
+
+:root[data-theme="light"] .flight-banner,
+.app-shell[data-theme="light"] .flight-banner {
+  border-color: #dee2e6;
+  background: #ffffff;
+  color: #212529;
+  box-shadow: var(--sf-shadow);
+}
+
+:root[data-theme="light"] .boarding-pass-side,
+.app-shell[data-theme="light"] .boarding-pass-side {
+  border-color: #dee2e6;
+}
+
+:root[data-theme="light"] .boarding-airline-tag,
+.app-shell[data-theme="light"] .boarding-airline-tag {
+  color: #0d6efd;
+}
+
+:root[data-theme="light"] .boarding-status-pill.open,
+.app-shell[data-theme="light"] .boarding-status-pill.open {
+  background: #d1e7dd;
+  border-color: #a3cfbb;
+  color: #0f5132;
+}
+
+:root[data-theme="light"] .boarding-status-pill.full,
+.app-shell[data-theme="light"] .boarding-status-pill.full {
+  background: #f8d7da;
+  border-color: #f1aeb5;
+  color: #842029;
+}
+
+:root[data-theme="light"] .flight-legs,
+.app-shell[data-theme="light"] .flight-legs {
+  background: #f8f9fa;
+  border-color: #dee2e6;
+}
+
+:root[data-theme="light"] .flight-leg-caption,
+:root[data-theme="light"] .route-aircraft-type,
+:root[data-theme="light"] .bp-meta-item span,
+:root[data-theme="light"] .capacity-label,
+:root[data-theme="light"] .capacity-available span,
+:root[data-theme="light"] .cabin-cockpit-nose,
+:root[data-theme="light"] .cabin-seat-legend,
+.app-shell[data-theme="light"] .flight-leg-caption,
+.app-shell[data-theme="light"] .route-aircraft-type,
+.app-shell[data-theme="light"] .bp-meta-item span,
+.app-shell[data-theme="light"] .capacity-label,
+.app-shell[data-theme="light"] .capacity-available span,
+.app-shell[data-theme="light"] .cabin-cockpit-nose,
+.app-shell[data-theme="light"] .cabin-seat-legend {
+  color: #6c757d;
+}
+
+:root[data-theme="light"] .flight-code,
+:root[data-theme="light"] .flight-city,
+:root[data-theme="light"] .bp-meta-item strong,
+:root[data-theme="light"] .capacity-total-value strong,
+:root[data-theme="light"] .capacity-available strong,
+.app-shell[data-theme="light"] .flight-code,
+.app-shell[data-theme="light"] .flight-city,
+.app-shell[data-theme="light"] .bp-meta-item strong,
+.app-shell[data-theme="light"] .capacity-total-value strong,
+.app-shell[data-theme="light"] .capacity-available strong {
+  color: #212529;
+}
+
+:root[data-theme="light"] .capacity-total-value span,
+.app-shell[data-theme="light"] .capacity-total-value span {
+  color: #495057;
+}
+
+:root[data-theme="light"] .capacity-free-num,
+.app-shell[data-theme="light"] .capacity-free-num {
+  color: #0d6efd !important;
+}
+
+:root[data-theme="light"] .flight-plane,
+.app-shell[data-theme="light"] .flight-plane {
+  background: #e7f1ff;
+  border-color: #b6d4fe;
+  color: #0d6efd;
+}
+
+:root[data-theme="light"] .route-node,
+.app-shell[data-theme="light"] .route-node {
+  background: #0d6efd;
+  box-shadow: 0 0 0 3px rgb(13 110 253 / 18%);
+}
+
+:root[data-theme="light"] .route-dashed,
+.app-shell[data-theme="light"] .route-dashed {
+  border-top-color: #b6d4fe;
+}
+
+:root[data-theme="light"] .boarding-pass-meta-strip,
+:root[data-theme="light"] .cabin-deck-frame,
+.app-shell[data-theme="light"] .boarding-pass-meta-strip,
+.app-shell[data-theme="light"] .cabin-deck-frame {
+  background: #f8f9fa;
+  border-color: #dee2e6;
+}
+
+:root[data-theme="light"] .cabin-cockpit-nose,
+.app-shell[data-theme="light"] .cabin-cockpit-nose {
+  border-right-color: #ced4da;
+}
+
+:root[data-theme="light"] .capacity-progress-track,
+.app-shell[data-theme="light"] .capacity-progress-track {
+  background: #e9ecef;
+}
+
+:root[data-theme="light"] .capacity-progress-fill,
+.app-shell[data-theme="light"] .capacity-progress-fill {
+  background: linear-gradient(90deg, #0d6efd, #198754);
+}
+
+:root[data-theme="light"] .seat-free,
+:root[data-theme="light"] .seat-dot.free,
+.app-shell[data-theme="light"] .seat-free,
+.app-shell[data-theme="light"] .seat-dot.free {
+  background: #ffffff;
+  border-color: #ced4da;
+  color: #6c757d;
+}
+
+:root[data-theme="light"] .seat-occupied,
+:root[data-theme="light"] .seat-dot.occupied,
+.app-shell[data-theme="light"] .seat-occupied,
+.app-shell[data-theme="light"] .seat-dot.occupied {
+  background: linear-gradient(135deg, #0d6efd, #0a58ca);
+  border-color: #0a58ca;
+  color: #ffffff;
+  box-shadow: 0 2px 6px rgb(13 110 253 / 25%);
 }
 .route-switcher-pills {
   display: inline-flex;

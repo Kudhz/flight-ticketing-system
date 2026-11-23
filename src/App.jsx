@@ -172,7 +172,7 @@ function App() {
   const [isFinanceSubmitting, setIsFinanceSubmitting] = useState(false);
   const [flightCacheVersion, setFlightCacheVersion] = useState(0);
   const [theme, setTheme] = useState(
-    () => window.localStorage.getItem("seatflow-theme-v2") || "dark",
+    () => window.localStorage.getItem("seatflow-theme-v2") || "light",
   );
   const [selectedRoute, setSelectedRoute] = useState(DEFAULT_ROUTE);
   const [selectedDate, setSelectedDate] = useState(DEFAULT_DATE);
@@ -246,9 +246,13 @@ function App() {
   useEffect(() => {
     window.localStorage.setItem("seatflow-theme-v2", theme);
     document.documentElement.dataset.theme = theme;
-    document
-      .querySelector('meta[name="theme-color"]')
-      .setAttribute("content", theme === "dark" ? "#09131f" : "#eff4f7");
+    const metaTheme = document.querySelector('meta[name="theme-color"]');
+    if (metaTheme) {
+      metaTheme.setAttribute(
+        "content",
+        theme === "dark" ? "#0b1626" : "#f8f9fa",
+      );
+    }
   }, [theme]);
 
   useEffect(() => {
@@ -774,7 +778,7 @@ function App() {
                 {theme === "light" ? "☾" : "☼"}
               </span>
               <span className="theme-toggle-label">
-                {theme === "light" ? "Kokpit Gelap" : "Kokpit Terang"}
+                {theme === "light" ? "Mode Gelap" : "Mode Terang"}
               </span>
             </button>
           </div>
@@ -836,15 +840,6 @@ function App() {
               >
                 <span aria-hidden="true">📋</span> Salin Laporan WA
               </button>
-              {activePage === "overview" && (
-                <button
-                  type="button"
-                  className="btn btn-outline"
-                  onClick={() => setActivePage("bookings")}
-                >
-                  Buka Manifes ({currentBookings.length})
-                </button>
-              )}
               <button
                 type="button"
                 className="btn btn-primary"

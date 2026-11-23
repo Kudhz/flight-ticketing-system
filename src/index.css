@@ -1,10 +1,10 @@
 :root {
   --sans: "Space Grotesk", "Noto Sans", "Segoe UI", system-ui, sans-serif;
   font-family: var(--sans);
-  color: #0f1f2e;
-  background: #eff4f7;
+  color: #212529;
+  background: #f8f9fa;
   color-scheme: light;
-  scrollbar-color: #b4c6d1 #eff4f7;
+  scrollbar-color: #ced4da #f8f9fa;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
@@ -14,8 +14,9 @@
 
 :root[data-theme="dark"] {
   color-scheme: dark;
-  background: #09131f;
-  scrollbar-color: #2c4b5e #09131f;
+  color: #ecf4f8;
+  background: #0b1626;
+  scrollbar-color: #253f59 #0b1626;
 }
 
 ::-webkit-scrollbar {
@@ -24,24 +25,24 @@
 }
 
 ::-webkit-scrollbar-track {
-  background: #eff4f7;
+  background: #f8f9fa;
 }
 
 ::-webkit-scrollbar-thumb {
-  border: 2px solid #eff4f7;
+  border: 2px solid #f8f9fa;
   border-radius: 8px;
-  background: #b4c6d1;
+  background: #ced4da;
 }
 
 :root[data-theme="dark"]::-webkit-scrollbar-track,
 :root[data-theme="dark"] *::-webkit-scrollbar-track {
-  background: #09131f;
+  background: #0b1626;
 }
 
 :root[data-theme="dark"]::-webkit-scrollbar-thumb,
 :root[data-theme="dark"] *::-webkit-scrollbar-thumb {
-  border-color: #09131f;
-  background: #2c4b5e;
+  border-color: #0b1626;
+  background: #253f59;
 }
 
 * {
