@@ -250,7 +250,7 @@ function App() {
     if (metaTheme) {
       metaTheme.setAttribute(
         "content",
-        theme === "dark" ? "#0b1626" : "#f8f9fa",
+        theme === "dark" ? "#212529" : "#f8f9fa",
       );
     }
   }, [theme]);

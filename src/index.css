@@ -14,9 +14,9 @@
 
 :root[data-theme="dark"] {
   color-scheme: dark;
-  color: #ecf4f8;
-  background: #0b1626;
-  scrollbar-color: #253f59 #0b1626;
+  color: #dee2e6;
+  background: #1a1d20;
+  scrollbar-color: #495057 #1a1d20;
 }
 
 ::-webkit-scrollbar {
@@ -36,13 +36,13 @@
 
 :root[data-theme="dark"]::-webkit-scrollbar-track,
 :root[data-theme="dark"] *::-webkit-scrollbar-track {
-  background: #0b1626;
+  background: #1a1d20;
 }
 
 :root[data-theme="dark"]::-webkit-scrollbar-thumb,
 :root[data-theme="dark"] *::-webkit-scrollbar-thumb {
-  border-color: #0b1626;
-  background: #253f59;
+  border-color: #1a1d20;
+  background: #495057;
 }
 
 * {

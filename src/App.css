@@ -77,47 +77,48 @@
 }
 
 :root[data-theme="dark"] {
-  --lf-navy-900: #08111e;
-  --lf-navy-800: #0b1626;
-  --lf-navy-700: #112238;
-  --lf-navy-600: #173350;
-  --lf-navy-500: #1e496e;
-  --lf-cream: #f7fcfb;
-  --lf-cream-soft: #e6f4f1;
+  --lf-navy-900: #1a1d20;
+  --lf-navy-800: #212529;
+  --lf-navy-700: #2b3035;
+  --lf-navy-600: #343a40;
+  --lf-navy-500: #495057;
+  --lf-cream: #f8f9fa;
+  --lf-cream-soft: #dee2e6;
   --lf-terracotta: #14b8a6;
   --lf-terracotta-strong: #0d9488;
   --lf-terracotta-soft: #113940;
   --lf-amber: #fbbf24;
   --lf-green: #34d399;
 
-  --sf-ink: #ecf4f8;
-  --sf-muted: #93acc0;
-  --sf-bg: #0b1626;
-  --sf-surface: #112136;
-  --sf-surface-hover: #172c46;
-  --sf-line: #213956;
-  --sf-border: #2c4a6d;
+  /* Bootstrap Dark Mode Section Surfaces */
+  --sf-ink: #dee2e6;
+  --sf-muted: #adb5bd;
+  --sf-bg: #1a1d20;
+  --sf-surface: #212529;
+  --sf-surface-hover: #2b3035;
+  --sf-line: #373b3e;
+  --sf-border: #495057;
   --sf-border-focus: #2dd4bf;
   --sf-teal: #2dd4bf;
   --sf-teal-dark: #5eead4;
   --sf-teal-light: #113940;
-  --sf-amber-light: #3b2b12;
+  --sf-amber-light: #332701;
   --sf-green: #34d399;
-  --sf-green-light: #0f372b;
-  --sf-red: #f87171;
-  --sf-red-light: #3f191d;
-  --sf-blue: #38bdf8;
-  --sf-sidebar: #08111e;
-  --sf-sidebar-hover: #132740;
-  --sf-sidebar-ink: #f1f7f9;
-  --sf-sidebar-muted: #93acc0;
+  --sf-green-light: #051b11;
+  --sf-red: #ea868f;
+  --sf-red-light: #2c0b0e;
+  --sf-blue: #6ea8fe;
+  --sf-sidebar: #212529;
+  --sf-sidebar-hover: #2b3035;
+  --sf-sidebar-ink: #f8f9fa;
+  --sf-sidebar-muted: #adb5bd;
   --sf-shadow:
-    0 1px 3px rgb(4 10 18 / 32%),
-    0 8px 24px -4px rgb(4 10 18 / 36%);
+    0 1px 3px rgb(0 0 0 / 28%),
+    0 8px 24px -4px rgb(0 0 0 / 32%);
   --sf-shadow-md:
-    0 6px 16px rgb(4 10 18 / 38%),
-    0 18px 38px -6px rgb(4 10 18 / 45%);
-  --sf-shadow-lg: 0 28px 66px -12px rgb(3 8 15 / 62%);
+    0 6px 16px rgb(0 0 0 / 34%),
+    0 18px 38px -6px rgb(0 0 0 / 42%);
+  --sf-shadow-lg: 0 28px 66px -12px rgb(0 0 0 / 58%);
 }
 
 /* ---------- App shell ---------- */
@@ -2881,11 +2882,19 @@ select {
 .boarding-airline-tag {
   display: inline-flex;
   align-items: center;
-  gap: 0.4rem;
+  gap: 0.45rem;
+  padding: 0.24rem 0.7rem;
+  border: 1px solid rgb(94 234 212 / 35%);
+  border-radius: 999px;
+  background: rgb(20 184 166 / 14%);
   color: #5eead4;
   font-size: 0.68rem;
   font-weight: 800;
   letter-spacing: 0.14em;
+  text-shadow: 0 0 12px rgb(94 234 212 / 45%);
+  box-shadow:
+    0 0 16px rgb(20 184 166 / 22%),
+    inset 0 0 8px rgb(94 234 212 / 12%);
 }
 
 .boarding-status-pill {
@@ -3946,20 +3955,31 @@ select {
 
 :root[data-theme="light"] .flight-banner,
 .app-shell[data-theme="light"] .flight-banner {
-  border-color: #dee2e6;
-  background: #ffffff;
+  border-color: #b6d4fe;
+  background:
+    radial-gradient(circle 19rem at 92% -10%, rgb(13 110 253 / 15%), transparent 70%),
+    radial-gradient(circle 22rem at 12% 115%, rgb(25 135 84 / 11%), transparent 70%),
+    linear-gradient(125deg, #ffffff 0%, #f5f9ff 58%, #edf5ff 100%);
   color: #212529;
-  box-shadow: var(--sf-shadow);
+  box-shadow:
+    0 0.5rem 1.35rem rgb(13 110 253 / 11%),
+    0 0 0 1px rgb(13 110 253 / 6%);
 }
 
 :root[data-theme="light"] .boarding-pass-side,
 .app-shell[data-theme="light"] .boarding-pass-side {
-  border-color: #dee2e6;
+  border-color: #cfe2ff;
 }
 
 :root[data-theme="light"] .boarding-airline-tag,
 .app-shell[data-theme="light"] .boarding-airline-tag {
+  background: linear-gradient(135deg, rgb(13 110 253 / 12%), rgb(13 110 253 / 6%));
+  border-color: rgb(13 110 253 / 35%);
   color: #0d6efd;
+  text-shadow: 0 0 10px rgb(13 110 253 / 28%);
+  box-shadow:
+    0 0 16px rgb(13 110 253 / 18%),
+    inset 0 0 8px rgb(13 110 253 / 8%);
 }
 
 :root[data-theme="light"] .boarding-status-pill.open,
@@ -3967,6 +3987,7 @@ select {
   background: #d1e7dd;
   border-color: #a3cfbb;
   color: #0f5132;
+  box-shadow: 0 0 12px rgb(25 135 84 / 18%);
 }
 
 :root[data-theme="light"] .boarding-status-pill.full,
@@ -3974,12 +3995,14 @@ select {
   background: #f8d7da;
   border-color: #f1aeb5;
   color: #842029;
+  box-shadow: 0 0 12px rgb(220 53 69 / 18%);
 }
 
 :root[data-theme="light"] .flight-legs,
 .app-shell[data-theme="light"] .flight-legs {
-  background: #f8f9fa;
-  border-color: #dee2e6;
+  background: rgb(255 255 255 / 78%);
+  border-color: #cfe2ff;
+  box-shadow: 0 2px 10px rgb(13 110 253 / 6%);
 }
 
 :root[data-theme="light"] .flight-leg-caption,
@@ -4025,14 +4048,17 @@ select {
 :root[data-theme="light"] .flight-plane,
 .app-shell[data-theme="light"] .flight-plane {
   background: #e7f1ff;
-  border-color: #b6d4fe;
+  border-color: #86b7fe;
   color: #0d6efd;
+  box-shadow: 0 0 14px rgb(13 110 253 / 24%);
 }
 
 :root[data-theme="light"] .route-node,
 .app-shell[data-theme="light"] .route-node {
   background: #0d6efd;
-  box-shadow: 0 0 0 3px rgb(13 110 253 / 18%);
+  box-shadow:
+    0 0 8px rgb(13 110 253 / 50%),
+    0 0 0 3px rgb(13 110 253 / 20%);
 }
 
 :root[data-theme="light"] .route-dashed,
@@ -4080,6 +4106,52 @@ select {
   border-color: #0a58ca;
   color: #ffffff;
   box-shadow: 0 2px 6px rgb(13 110 253 / 25%);
+}
+
+/* ---------- Dark Mode Section Surfaces (Bootstrap Dark Charcoal + Glow) ---------- */
+:root[data-theme="dark"] .flight-banner,
+.app-shell[data-theme="dark"] .flight-banner {
+  border-color: rgb(45 212 191 / 32%);
+  background:
+    radial-gradient(circle 19rem at 90% -8%, rgb(45 212 191 / 22%), transparent 70%),
+    radial-gradient(circle 22rem at 15% 112%, rgb(14 165 233 / 15%), transparent 70%),
+    linear-gradient(125deg, #1d2125 0%, #212529 55%, #172b2f 100%);
+  color: var(--sf-ink);
+  box-shadow:
+    0 10px 28px -6px rgb(0 0 0 / 48%),
+    0 0 24px -4px rgb(20 184 166 / 18%);
+}
+
+:root[data-theme="dark"] .boarding-pass-side,
+.app-shell[data-theme="dark"] .boarding-pass-side {
+  border-color: rgb(255 255 255 / 14%);
+}
+
+:root[data-theme="dark"] .flight-legs,
+:root[data-theme="dark"] .boarding-pass-meta-strip,
+:root[data-theme="dark"] .cabin-deck-frame,
+.app-shell[data-theme="dark"] .flight-legs,
+.app-shell[data-theme="dark"] .boarding-pass-meta-strip,
+.app-shell[data-theme="dark"] .cabin-deck-frame {
+  background: rgb(26 29 32 / 72%);
+  border-color: rgb(255 255 255 / 12%);
+}
+
+:root[data-theme="dark"] .flight-plane,
+.app-shell[data-theme="dark"] .flight-plane {
+  background: rgb(20 184 166 / 16%);
+  border-color: rgb(94 234 212 / 42%);
+  color: #5eead4;
+  box-shadow: 0 0 16px rgb(45 212 191 / 28%);
+}
+
+:root[data-theme="dark"] .seat-free,
+:root[data-theme="dark"] .seat-dot.free,
+.app-shell[data-theme="dark"] .seat-free,
+.app-shell[data-theme="dark"] .seat-dot.free {
+  background: rgb(33 37 41 / 75%);
+  border-color: #495057;
+  color: #adb5bd;
 }
 .route-switcher-pills {
   display: inline-flex;
