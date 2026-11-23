@@ -13,12 +13,10 @@
     "deploy": "npm run build && git add . && git commit -m \"deploy build\" && git push origin main"
   },
   "dependencies": {
-    "bootstrap": "^5.3.9",
     "jspdf": "^4.2.1",
     "jspdf-autotable": "^5.0.9",
     "lucide-react": "^0.544.0",
     "react": "^19.3.1",
-    "react-bootstrap": "^2.10.10",
     "react-dom": "^19.3.1"
   },
   "devDependencies": {

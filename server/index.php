@@ -5,6 +5,7 @@ const BOOKING_LIMIT = 12;
 const FLIGHT_DAYS = [1, 3, 6];
 const ROUTES = ['MNA-IAX', 'MNA-MDC'];
 const STATUSES = ['Menunggu verifikasi', 'Booked', 'Dibayar'];
+const VALID_PASSENGER_TYPES = ['adult', 'child', 'infant'];
 
 require_once __DIR__ . '/finance-auth.php';
 
@@ -54,6 +55,7 @@ function bookingForApi(array $row): array
         'id' => (int) $row['id'],
         'name' => $row['passenger_name'],
         'phone' => $row['phone'],
+        'type' => $row['passenger_type'] ?? 'adult',
         'bookingNo' => (int) $row['booking_no'],
         'route' => $row['route_code'],
         'date' => (string) $row['travel_date'],
@@ -102,6 +104,7 @@ function extractPassengers(array $body): array
         $sourcePassengers = [[
             'name' => $body['name'],
             'phone' => $body['phone'] ?? '',
+            'type' => $body['type'] ?? 'adult',
         ]];
     }
 
@@ -114,9 +117,11 @@ function extractPassengers(array $body): array
         if (is_string($passenger)) {
             $name = trim($passenger);
             $phone = trim((string) ($body['phone'] ?? ''));
+            $type = strtolower(trim((string) ($body['type'] ?? 'adult')));
         } elseif (is_array($passenger)) {
             $name = trim((string) ($passenger['name'] ?? $passenger['passenger_name'] ?? ''));
             $phone = trim((string) ($passenger['phone'] ?? $body['phone'] ?? ''));
+            $type = strtolower(trim((string) ($passenger['type'] ?? 'adult')));
         } else {
             throw new InvalidArgumentException('Data penumpang tidak valid.');
         }
@@ -125,7 +130,13 @@ function extractPassengers(array $body): array
             throw new InvalidArgumentException('Nama dan nomor WhatsApp setiap penumpang wajib diisi.');
         }
 
-        $passengers[] = ['name' => $name, 'phone' => $phone];
+        if (!in_array($type, VALID_PASSENGER_TYPES, true)) {
+            throw new InvalidArgumentException(
+                'Tipe penumpang hanya boleh: ' . implode(', ', VALID_PASSENGER_TYPES) . '.'
+            );
+        }
+
+        $passengers[] = ['name' => $name, 'phone' => $phone, 'type' => $type];
     }
 
     if (count($passengers) > BOOKING_LIMIT) {
@@ -286,7 +297,7 @@ function validateRouteAndDate(string $route, string $date): void
 function fetchBooking(PDO $database, int $id): ?array
 {
     $statement = $database->prepare(
-        'SELECT id, passenger_name, phone, booking_no, route_code, travel_date, status, booking_at
+        'SELECT id, passenger_name, phone, passenger_type, booking_no, route_code, travel_date, status, booking_at
          FROM bookings WHERE id = :id'
     );
     $statement->execute(['id' => $id]);
@@ -470,7 +481,7 @@ try {
     if ($method === 'GET') {
         if (!isset($_GET['route']) && !isset($_GET['date'])) {
             $statement = $database->query(
-                'SELECT id, passenger_name, phone, booking_no, route_code, travel_date, status, booking_at
+                'SELECT id, passenger_name, phone, passenger_type, booking_no, route_code, travel_date, status, booking_at
                  FROM bookings ORDER BY booking_at DESC, id DESC'
             );
             sendJson(200, array_map('bookingForApi', $statement->fetchAll()));
@@ -741,9 +752,9 @@ if ($method === 'POST') {
 
     $insert = $database->prepare(
         'INSERT INTO bookings
-            (passenger_name, phone, booking_no, route_code, travel_date, status, booking_at)
+            (passenger_name, phone, passenger_type, booking_no, route_code, travel_date, status, booking_at)
          VALUES
-            (:name, :phone, :booking_no, :route, :date, :status, CURRENT_TIMESTAMP)'
+            (:name, :phone, :type, :booking_no, :route, :date, :status, CURRENT_TIMESTAMP)'
     );
 
     $createdBookings = [];
@@ -753,6 +764,7 @@ if ($method === 'POST') {
         $insert->execute([
             'name' => $passenger['name'],
             'phone' => $passenger['phone'],
+            'type' => $passenger['type'],
             'booking_no' => $availableNumbers[$index],
             'route' => $route,
             'date' => $date,
@@ -780,7 +792,7 @@ if ($method === 'POST') {
         $body = requestBody();
         $database->beginTransaction();
         $statement = $database->prepare(
-            'SELECT id, passenger_name, phone, booking_no, route_code, travel_date, status, booking_at
+            'SELECT id, passenger_name, phone, passenger_type, booking_no, route_code, travel_date, status, booking_at
              FROM bookings WHERE id = :id FOR UPDATE'
         );
         $statement->execute(['id' => $id]);
@@ -793,6 +805,7 @@ if ($method === 'POST') {
         $booking = bookingForApi($row);
         $name = $booking['name'];
         $phone = $booking['phone'];
+        $type = $booking['type'];
         $route = $booking['route'];
         $bookingNo = $booking['bookingNo'];
         $status = $booking['status'];
@@ -807,6 +820,14 @@ if ($method === 'POST') {
             $phone = trim((string) $body['phone']);
             if ($phone === '') {
                 throw new InvalidArgumentException('Nomor WhatsApp wajib diisi.');
+            }
+        }
+        if (array_key_exists('type', $body)) {
+            $type = strtolower(trim((string) $body['type']));
+            if (!in_array($type, VALID_PASSENGER_TYPES, true)) {
+                throw new InvalidArgumentException(
+                    'Tipe penumpang hanya boleh: ' . implode(', ', VALID_PASSENGER_TYPES) . '.'
+                );
             }
         }
         if (array_key_exists('route', $body)) {
@@ -824,6 +845,7 @@ if ($method === 'POST') {
         if (
             !array_key_exists('name', $body)
             && !array_key_exists('phone', $body)
+            && !array_key_exists('type', $body)
             && !array_key_exists('route', $body)
             && !array_key_exists('status', $body)
         ) {
@@ -855,13 +877,14 @@ if ($method === 'POST') {
 
         $statement = $database->prepare(
             'UPDATE bookings
-             SET passenger_name = :name, phone = :phone, route_code = :route,
-                 booking_no = :booking_no, status = :status
+             SET passenger_name = :name, phone = :phone, passenger_type = :type,
+                 route_code = :route, booking_no = :booking_no, status = :status
              WHERE id = :id'
         );
         $statement->execute([
             'name' => $name,
             'phone' => $phone,
+            'type' => $type,
             'route' => $route,
             'booking_no' => $bookingNo,
             'status' => $status,
