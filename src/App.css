@@ -819,10 +819,10 @@ select {
   justify-content: space-between;
   gap: 0.8rem;
   min-width: 0;
-  padding: 1rem 1.1rem;
-  border: 1px solid rgb(255 255 255 / 12%);
-  border-radius: 0.7rem;
-  background: rgb(255 255 255 / 4%);
+  padding: 0.35rem 0.25rem;
+  border: none;
+  border-radius: 0;
+  background: transparent;
 }
 
 .flight-legs::before {
@@ -4000,9 +4000,9 @@ select {
 
 :root[data-theme="light"] .flight-legs,
 .app-shell[data-theme="light"] .flight-legs {
-  background: rgb(255 255 255 / 78%);
-  border-color: #cfe2ff;
-  box-shadow: 0 2px 10px rgb(13 110 253 / 6%);
+  background: transparent;
+  border: none;
+  box-shadow: none;
 }
 
 :root[data-theme="light"] .flight-leg-caption,
@@ -4070,7 +4070,7 @@ select {
 :root[data-theme="light"] .cabin-deck-frame,
 .app-shell[data-theme="light"] .boarding-pass-meta-strip,
 .app-shell[data-theme="light"] .cabin-deck-frame {
-  background: #f8f9fa;
+  background: rgb(248 249 250 / 60%);
   border-color: #dee2e6;
 }
 
@@ -4093,7 +4093,7 @@ select {
 :root[data-theme="light"] .seat-dot.free,
 .app-shell[data-theme="light"] .seat-free,
 .app-shell[data-theme="light"] .seat-dot.free {
-  background: #ffffff;
+  background: rgb(255 255 255 / 60%);
   border-color: #ced4da;
   color: #6c757d;
 }
@@ -4128,12 +4128,17 @@ select {
 }
 
 :root[data-theme="dark"] .flight-legs,
+.app-shell[data-theme="dark"] .flight-legs {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+}
+
 :root[data-theme="dark"] .boarding-pass-meta-strip,
 :root[data-theme="dark"] .cabin-deck-frame,
-.app-shell[data-theme="dark"] .flight-legs,
 .app-shell[data-theme="dark"] .boarding-pass-meta-strip,
 .app-shell[data-theme="dark"] .cabin-deck-frame {
-  background: rgb(26 29 32 / 72%);
+  background: rgb(26 29 32 / 60%);
   border-color: rgb(255 255 255 / 12%);
 }
 
@@ -4149,7 +4154,7 @@ select {
 :root[data-theme="dark"] .seat-dot.free,
 .app-shell[data-theme="dark"] .seat-free,
 .app-shell[data-theme="dark"] .seat-dot.free {
-  background: rgb(33 37 41 / 75%);
+  background: rgb(33 37 41 / 60%);
   border-color: #495057;
   color: #adb5bd;
 }
