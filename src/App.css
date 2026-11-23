@@ -1273,6 +1273,18 @@ select {
   letter-spacing: -0.035em;
 }
 
+.manifest-heading-actions {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.manifest-add-button {
+  min-height: 2.45rem;
+  padding: 0.55rem 1.15rem;
+}
+
 .refresh-button {
   display: inline-flex;
   flex: 0 0 auto;
@@ -3314,8 +3326,17 @@ select {
     flex-direction: column;
   }
 
+  .manifest-heading-actions {
+    width: 100%;
+  }
+
+  .manifest-add-button,
   .refresh-button {
-    align-self: flex-start;
+    flex: 1 1 0;
+  }
+
+  .manifest-add-button {
+    justify-content: center;
   }
 
   .modal-actions {

@@ -179,9 +179,18 @@ export async function findAlternativeFlights(
   today = todayInMakassar(),
 ) {
   const requested = parseCalendarDate(requestedDate);
-  const endDate = lastDayOfMonth(today);
-  const baseDate = requested < today ? today : requested;
-  if (baseDate >= endDate) return [];
+  const firstDayOfNextMonth = new Date(
+    Date.UTC(today.getUTCFullYear(), today.getUTCMonth() + 1, 1),
+  );
+  const endDate = new Date(
+    Date.UTC(
+      firstDayOfNextMonth.getUTCFullYear(),
+      firstDayOfNextMonth.getUTCMonth(),
+      9,
+    ),
+  );
+  if (today > endDate) return [];
+  const startDate = addDays(today, -1);
 
   const [rows] = await db.execute(
     `SELECT travel_date, COUNT(DISTINCT booking_no) AS booked
@@ -189,7 +198,7 @@ export async function findAlternativeFlights(
      WHERE route_code = :route AND travel_date > :start AND travel_date <= :end
        AND passenger_type != 'infant'
      GROUP BY travel_date`,
-    { route, start: formatDate(baseDate), end: formatDate(endDate) },
+    { route, start: formatDate(startDate), end: formatDate(endDate) },
   );
   const bookedByDate = new Map(
     rows.map((row) => [String(row.travel_date), Number(row.booked)]),
@@ -197,13 +206,14 @@ export async function findAlternativeFlights(
 
   const alternatives = [];
   for (
-    let cursor = addDays(baseDate, 1);
+    let cursor = today;
     cursor <= endDate;
     cursor = addDays(cursor, 1)
   ) {
     if (!FLIGHT_DAYS.includes(isoWeekday(cursor))) continue;
 
     const date = formatDate(cursor);
+    if (requested && date === formatDate(requested)) continue;
     const booked = bookedByDate.get(date) ?? 0;
     const available = Math.max(0, ALTERNATIVE_CAPACITY - booked);
     if (available > 0) {

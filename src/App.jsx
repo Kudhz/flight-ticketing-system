@@ -846,21 +846,30 @@ function App() {
                     Daftar penumpang <span className="table-total text-sm font-semibold text-teal-dark">{currentBookings.length}</span>
                   </h2>
                 </section>
-                <button
-                  type="button"
-                  className="secondary-button refresh-button"
-                  onClick={refreshBookings}
-                  disabled={isLoadingBookings || isRefreshingBookings}
-                  aria-label="Refresh daftar penumpang"
-                  title="Refresh daftar penumpang"
-                >
-                  <RefreshCw
-                    className={isRefreshingBookings ? "spinning" : ""}
-                    aria-hidden="true"
-                    strokeWidth={1.9}
-                  />
-                  {isRefreshingBookings ? "Memuat..." : "Refresh"}
-                </button>
+                <div className="manifest-heading-actions">
+                  <button
+                    type="button"
+                    className="btn btn-primary manifest-add-button"
+                    onClick={openBookingForm}
+                  >
+                    <span aria-hidden="true">+</span> Tambah pemesanan
+                  </button>
+                  <button
+                    type="button"
+                    className="secondary-button refresh-button"
+                    onClick={refreshBookings}
+                    disabled={isLoadingBookings || isRefreshingBookings}
+                    aria-label="Refresh daftar penumpang"
+                    title="Refresh daftar penumpang"
+                  >
+                    <RefreshCw
+                      className={isRefreshingBookings ? "spinning" : ""}
+                      aria-hidden="true"
+                      strokeWidth={1.9}
+                    />
+                    {isRefreshingBookings ? "Memuat..." : "Refresh"}
+                  </button>
+                </div>
               </div>
               <div className="table-toolbar">
                 <div className="flex gap-2 flex-wrap">

@@ -305,8 +305,9 @@ Jika hasil API menunjukkan:
 - `full`, atau
 - `no_schedule`
 
-Workflow dapat menawarkan tanggal alternatif yang tersedia dari API sampai akhir bulan berjalan berdasarkan bulan dan tanggal yang dipesan
-misalnya penumpang ingin pesan 9 desember sedangkan sekarang november maka tampilkan jadwal alternatif pada bulan desember.
+Workflow dapat menawarkan tanggal alternatif yang tersedia dari API mulai dari hari ini sampai akhir bulan berjalan dan maksimum tanggal 9 pada bulan berikutnya.
+Jika tanggal yang dipesan berada di masa depan, API dapat menampilkan alternatif sebelum tanggal tersebut kembali ke hari ini, serta alternatif sesudahnya.
+Misalnya sekarang 23 November dan penumpang ingin pesan 9 Desember, tampilkan jadwal alternatif dari 23 November, termasuk bulan Desember, kecuali tanggal 9 Desember yang diminta.
 
 AI hanya boleh menyampaikan tanggal alternatif yang benar-benar diberikan oleh workflow/API. Jangan membuat tanggal alternatif sendiri.
 

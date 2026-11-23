@@ -60,7 +60,7 @@
   - Saat Intentnya `check_availability` `route` dan `date` lengkap, berikan balasan yang sangat singkat dan langsung (1 kalimat ringkas), contoh: `"Mengecek ketersediaan rute Melonguane – Manado untuk tanggal 16 November 2026..."` atau `"Sedang mengecek ketersediaan kursi..."`.
   - saat intentnya sudah`bookingroute`dan `date`nya sudah di dapatkan langsung rubah status ke`awaiting_confirmation`
 
-- **Jadwal Alternatif:** Jika status dari API adalah `full` atau `no_schedule`, tawarkan tanggal alternatif yang tersedia dari API sampai akhir bulan berjalan.
+- **Jadwal Alternatif:** Jika status dari API adalah `full` atau `no_schedule`, tawarkan tanggal alternatif yang tersedia dari API mulai dari hari ini sampai akhir bulan berjalan dan maksimum tanggal 9 pada bulan berikutnya, termasuk tanggal sebelum tanggal yang diminta kembali ke hari ini.
 
 ## 8. RINGKASAN, KONFIRMASI & BOOKING GANDA
 

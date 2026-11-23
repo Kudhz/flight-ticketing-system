@@ -188,13 +188,10 @@ function findAlternativeFlights(
 
     $requested = new DateTimeImmutable($requestedDate, $timezone);
     $today = new DateTimeImmutable('today', $timezone);
-    $endDate = $today->modify('last day of this month');
-
-    $baseDate = $requested < $today ? $today : $requested;
-
-    if ($baseDate >= $endDate) {
-        return [];
-    }
+    $endDate = $today
+        ->modify('first day of next month')
+        ->modify('+8 days');
+    $startDate = $today->modify('-1 day');
 
     $query = $pdo->prepare(
         'SELECT travel_date, COUNT(DISTINCT booking_no) AS booked
@@ -207,7 +204,7 @@ function findAlternativeFlights(
 
     $query->execute([
         'route' => $route,
-        'start_date' => $baseDate->format('Y-m-d'),
+        'start_date' => $startDate->format('Y-m-d'),
         'end_date' => $endDate->format('Y-m-d'),
     ]);
 
@@ -218,10 +215,14 @@ function findAlternativeFlights(
     }
 
     $alternatives = [];
-    $cursor = $baseDate->modify('+1 day');
+    $cursor = $today;
 
     while ($cursor <= $endDate) {
         $date = $cursor->format('Y-m-d');
+        if ($requested && $date === $requested->format('Y-m-d')) {
+            $cursor = $cursor->modify('+1 day');
+            continue;
+        }
         $weekday = (int) $cursor->format('N');
 
         if (in_array($weekday, FLIGHT_DAYS, true)) {

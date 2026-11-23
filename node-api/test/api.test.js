@@ -172,11 +172,26 @@ test("findAlternativeFlights melewatkan jadwal penuh dan hari tanpa penerbangan"
   assert.deepEqual(
     alternatives.map((item) => [item.date, item.day, item.available]),
     [
+      ["2026-11-18", "Rabu", 10],
       ["2026-11-23", "Senin", 10],
       ["2026-11-28", "Sabtu", 10],
       ["2026-11-30", "Senin", 10],
+      ["2026-12-02", "Rabu", 10],
+      ["2026-12-05", "Sabtu", 10],
+      ["2026-12-07", "Senin", 10],
+      ["2026-12-09", "Rabu", 10],
     ],
   );
+
+  const decemberAlternatives = await findAlternativeFlights(
+    db,
+    "MNA-IAX",
+    "2026-12-09",
+    TODAY,
+  );
+  assert.equal(decemberAlternatives.some((item) => item.date === "2026-11-18"), true);
+  assert.equal(decemberAlternatives.some((item) => item.date === "2026-12-07"), true);
+  assert.equal(decemberAlternatives.some((item) => item.date === "2026-12-09"), false);
 });
 
 test("parseMonth dan readWeight setara perilaku PHP", () => {
