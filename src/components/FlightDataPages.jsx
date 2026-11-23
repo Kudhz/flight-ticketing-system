@@ -140,6 +140,8 @@ async function saveHistoryPdf(pdfBlob, year, month) {
 function FlightDataPages({ page }) {
   const [month, setMonth] = useState(String(CURRENT_DATE.getMonth() + 1));
   const [year, setYear] = useState(String(CURRENT_YEAR));
+  const [routeFilter, setRouteFilter] = useState("ALL");
+  const [tableSearch, setTableSearch] = useState("");
   const [periodResult, setPeriodResult] = useState(null);
   const [refreshKey, setRefreshKey] = useState(0);
   const [isPdfLoading, setIsPdfLoading] = useState(false);
@@ -327,6 +329,16 @@ function FlightDataPages({ page }) {
     INCOME_ROUTES.has(flight.route),
   );
   const visibleFlights = page === "history" ? flights : incomeFlights;
+  const filteredVisibleFlights = visibleFlights.filter((flight) => {
+    const matchesRoute = routeFilter === "ALL" || flight.route === routeFilter;
+    const formattedDate = formatFlightDate(flight.date, Number(month), year);
+    const matchesSearch =
+      !tableSearch.trim() ||
+      `${formattedDate} ${flight.route} ${flight.note || ""}`
+        .toLowerCase()
+        .includes(tableSearch.toLowerCase());
+    return matchesRoute && matchesSearch;
+  });
   const isLoading = status.type === "loading";
   const dashboardValue = (value) =>
     isLoading ? "..." : status.type === "error" ? "—" : value;
@@ -728,7 +740,7 @@ function FlightDataPages({ page }) {
             <header className="flight-report-panel-heading">
               <div>
                 <span className="section-kicker">RINGKASAN PENGHASILAN</span>
-                <h2>Empat Bulan Terakhir</h2>
+                <h2>Komparasi & Tren Empat Bulan Terakhir</h2>
               </div>
             </header>
             <div className="flight-dashboard-income-grid">
@@ -737,16 +749,38 @@ function FlightDataPages({ page }) {
                   ...monthlyIncome.map((item) => item.totalIncome || 0),
                   1,
                 );
-                return monthlyIncome.map((period) => {
+                return monthlyIncome.map((period, idx) => {
                   const pct = Math.round(
                     ((period.totalIncome || 0) / maxIncome) * 100,
                   );
+                  const feeShare = period.totalIncome
+                    ? Math.round((period.income / period.totalIncome) * 100)
+                    : 0;
+                  const ghShare = period.totalIncome ? 100 - feeShare : 0;
+                  const prevPeriod = monthlyIncome[idx + 1];
+                  const deltaPct =
+                    prevPeriod && prevPeriod.totalIncome > 0
+                      ? Math.round(
+                          ((period.totalIncome - prevPeriod.totalIncome) /
+                            prevPeriod.totalIncome) *
+                            100,
+                        )
+                      : null;
                   return (
                     <article
                       className="flight-dashboard-income-card"
                       key={period.label}
                     >
-                      <span>{period.label}</span>
+                      <div className="flex justify-between items-center gap-2">
+                        <span>{period.label}</span>
+                        {!isLoading && deltaPct !== null && (
+                          <span
+                            className={`income-delta-pill ${deltaPct >= 0 ? "up" : "down"}`}
+                          >
+                            {deltaPct >= 0 ? `↑ +${deltaPct}%` : `↓ ${deltaPct}%`}
+                          </span>
+                        )}
+                      </div>
                       <small className="income-total-label">
                         Total Penghasilan
                       </small>
@@ -761,13 +795,13 @@ function FlightDataPages({ page }) {
                       </div>
                       <div className="income-card-breakdown">
                         <div>
-                          <small>Fee Tiket</small>
+                          <small>Fee Tiket ({feeShare}%)</small>
                           <strong>
                             {dashboardValue(formatCurrency(period.income))}
                           </strong>
                         </div>
                         <div>
-                          <small>Penghasilan GH</small>
+                          <small>Penghasilan GH ({ghShare}%)</small>
                           <strong>
                             {dashboardValue(
                               formatCurrency(period.groundHandlingIncome),
@@ -834,6 +868,63 @@ function FlightDataPages({ page }) {
           </section>
 
           <section className="flight-report-panel">
+            <header className="flight-report-panel-heading">
+              <div>
+                <span className="section-kicker">DISTRIBUSI BEBAN ANGKUT (PAYLOAD)</span>
+                <h2>Komposisi Berat Penumpang, Bagasi & Kargo — {formatWeight(totals.totalWeight)}</h2>
+              </div>
+            </header>
+            <div className="payload-breakdown-grid">
+              {[
+                {
+                  label: "Berat Penumpang",
+                  weight: totals.passengerWeight,
+                  sub: `${totals.pax} PAX Terangkut`,
+                  tone: "pax",
+                },
+                {
+                  label: "Bagasi Tercatat",
+                  weight: totals.baggageWeight,
+                  sub: `${totals.baggagePieces} Koli Bagasi`,
+                  tone: "baggage",
+                },
+                {
+                  label: "Bagasi Kabin",
+                  weight: totals.cabinBaggageWeight,
+                  sub: `${totals.cabinBaggagePieces} Koli Kabin`,
+                  tone: "cabin",
+                },
+                {
+                  label: "Muatan Kargo",
+                  weight: totals.cargoWeight,
+                  sub: `${totals.cargoPieces} Koli Kargo`,
+                  tone: "cargo",
+                },
+              ].map((item) => {
+                const share = totals.totalWeight
+                  ? Math.round((item.weight / totals.totalWeight) * 100)
+                  : 0;
+                return (
+                  <div className="payload-card" key={item.label}>
+                    <div className="payload-card-top">
+                      <span>{item.label}</span>
+                      <span className="payload-share-badge">{share}%</span>
+                    </div>
+                    <strong>{formatWeight(item.weight)}</strong>
+                    <div className="payload-bar" aria-hidden="true">
+                      <div
+                        className={`payload-bar-fill ${item.tone}`}
+                        style={{ width: `${share}%` }}
+                      />
+                    </div>
+                    <small>{item.sub}</small>
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+
+          <section className="flight-report-panel">
             <header className="flight-report-panel-heading tone-mdc">
               <div>
                 <span className="section-kicker">RINGKASAN RUTE</span>
@@ -863,6 +954,28 @@ function FlightDataPages({ page }) {
           </section>
 
           <section className="flight-report-panel">
+            <div className="report-table-toolbar">
+              <div className="flex gap-2 flex-wrap">
+                {["ALL", ...ROUTES].map((r) => (
+                  <button
+                    key={r}
+                    type="button"
+                    className={`filter-btn ${routeFilter === r ? "active" : ""}`}
+                    onClick={() => setRouteFilter(r)}
+                  >
+                    {r === "ALL" ? "Semua Rute" : r}
+                  </button>
+                ))}
+              </div>
+              <input
+                type="search"
+                className="search-input report-search-input"
+                placeholder="Filter tanggal atau rute..."
+                value={tableSearch}
+                onChange={(e) => setTableSearch(e.target.value)}
+                aria-label="Filter tabel riwayat penerbangan"
+              />
+            </div>
             <div className="flight-report-table-wrap">
               <table className="flight-report-table">
                 <thead>
@@ -881,7 +994,7 @@ function FlightDataPages({ page }) {
                   </tr>
                 </thead>
                 <tbody>
-                  {visibleFlights.map((flight) => (
+                  {filteredVisibleFlights.map((flight) => (
                     <tr key={flight.id}>
                       <td>
                         {formatFlightDate(flight.date, Number(month), year)}
@@ -905,10 +1018,10 @@ function FlightDataPages({ page }) {
                       </td>
                     </tr>
                   ))}
-                  {!isLoading && visibleFlights.length === 0 && (
+                  {!isLoading && filteredVisibleFlights.length === 0 && (
                     <tr>
                       <td colSpan={11} className="flight-report-empty">
-                        Belum ada data penerbangan pada periode ini.
+                        Belum ada data penerbangan yang cocok pada periode ini.
                       </td>
                     </tr>
                   )}
@@ -1007,6 +1120,28 @@ function FlightDataPages({ page }) {
           </section>
 
           <section className="flight-report-panel">
+            <div className="report-table-toolbar">
+              <div className="flex gap-2 flex-wrap">
+                {["ALL", "MNA-MDC", "MNA-IAX"].map((r) => (
+                  <button
+                    key={r}
+                    type="button"
+                    className={`filter-btn ${routeFilter === r ? "active" : ""}`}
+                    onClick={() => setRouteFilter(r)}
+                  >
+                    {r === "ALL" ? "Semua Rute" : r}
+                  </button>
+                ))}
+              </div>
+              <input
+                type="search"
+                className="search-input report-search-input"
+                placeholder="Filter tanggal atau keterangan..."
+                value={tableSearch}
+                onChange={(e) => setTableSearch(e.target.value)}
+                aria-label="Filter tabel rincian penghasilan"
+              />
+            </div>
             <div className="flight-report-table-wrap">
               <table className="flight-report-table income">
                 <thead>
@@ -1019,7 +1154,7 @@ function FlightDataPages({ page }) {
                   </tr>
                 </thead>
                 <tbody>
-                  {visibleFlights.map((flight) => (
+                  {filteredVisibleFlights.map((flight) => (
                     <tr key={flight.id}>
                       <td>
                         {formatFlightDate(flight.date, Number(month), year)}
@@ -1032,10 +1167,10 @@ function FlightDataPages({ page }) {
                       </td>
                     </tr>
                   ))}
-                  {!isLoading && visibleFlights.length === 0 && (
+                  {!isLoading && filteredVisibleFlights.length === 0 && (
                     <tr>
                       <td colSpan={5} className="flight-report-empty">
-                        Belum ada data penghasilan pada periode ini.
+                        Belum ada data penghasilan yang cocok pada periode ini.
                       </td>
                     </tr>
                   )}
