@@ -58,8 +58,12 @@ export function validateRouteAndDate(route, date, today = todayInMakassar()) {
   const todayText = formatDate(today);
   if (date < todayText)
     throw new InvalidInput("Tanggal penerbangan sudah lewat.");
-  if (date.slice(0, 7) !== todayText.slice(0, 7)) {
-    throw new InvalidInput("Pemesanan bulan berikutnya belum dibuka.");
+  const currentMonth = todayText.slice(0, 7);
+  const nextMonth = formatDate(addDays(lastDayOfMonth(today), 1)).slice(0, 7);
+  if (![currentMonth, nextMonth].includes(date.slice(0, 7))) {
+    throw new InvalidInput(
+      "Pemesanan hanya tersedia untuk bulan ini dan bulan berikutnya.",
+    );
   }
   if (!FLIGHT_DAYS.includes(isoWeekday(parsed))) {
     throw new InvalidInput(

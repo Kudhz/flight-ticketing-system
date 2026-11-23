@@ -266,8 +266,13 @@ function validateRouteAndDate(string $route, string $date): void
         throw new InvalidArgumentException('Tanggal penerbangan sudah lewat.');
     }
 
-    if (substr($date, 0, 7) !== $today->format('Y-m')) {
-        throw new InvalidArgumentException('Pemesanan bulan berikutnya belum dibuka.');
+    $currentMonth = $today->format('Y-m');
+    $nextMonth = $today->modify('first day of next month')->format('Y-m');
+
+    if (!in_array(substr($date, 0, 7), [$currentMonth, $nextMonth], true)) {
+        throw new InvalidArgumentException(
+            'Pemesanan hanya tersedia untuk bulan ini dan bulan berikutnya.'
+        );
     }
 
     if (!validFlightDate($date)) {

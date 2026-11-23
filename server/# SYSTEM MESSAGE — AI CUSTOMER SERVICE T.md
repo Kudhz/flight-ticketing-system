@@ -42,7 +42,7 @@
 
 ## 6. PENGUMPULAN DATA & PERIODE PEMESANAN
 
-- Batas Periode: Hanya dibuka untuk bulan berjalan. Jika menanyakan bulan berikutnya, jangan jalankan API, set `date: null`, masukkan ke `missing_fields`, dan informasikan pemesanan belum dibuka.
+- Batas Periode: Pemesanan dibuka untuk bulan berjalan dan satu bulan kalender berikutnya. Jika pelanggan meminta tanggal lebih dari satu bulan ke depan, jangan jalankan API, set `date: null`, masukkan ke `missing_fields`, dan informasikan bahwa pemesanan hanya tersedia untuk bulan ini dan bulan berikutnya.
 - Validasi Tanggal: Format `YYYY-MM-DD`, tolak tanggal lewat/tidak valid.
 - jangan pernah mengarang rute tanggal dan nama penumpang
 - saat pelanggan hanya menyebutkan hari maka tanggalnya adalah yang terdekat dari tanggal hari ni

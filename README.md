@@ -14,7 +14,7 @@ React/Vite frontend with a PHP/PDO API served by the local PHP server.
 
 Check the PHP API directly at `http://127.0.0.1:9495/server/index.php?path=/api/health`. The React app calls `server/index.php` through the Vite proxy: GET returns the booking list, POST creates one or more bookings, PATCH updates a booking's status or passenger name, phone, and route, and DELETE removes a booking. PATCH and DELETE include `?id=<booking-id>`.
 
-The API assigns numbers 01-12 per route and travel date, validates the Monday/Wednesday/Saturday flight schedule, and records the booking timestamp in MySQL. To create multiple passengers at once, send `passengers` as an array of `{ "name": "...", "phone": "..." }` objects along with `route` and `date`. The legacy single-passenger `name` and `phone` fields are also accepted.
+The API assigns numbers 01-12 per route and travel date, validates the Monday/Wednesday/Saturday flight schedule, and records the booking timestamp in MySQL. Bookings are accepted for dates in the current calendar month and the following calendar month only. To create multiple passengers at once, send `passengers` as an array of `{ "name": "...", "phone": "..." }` objects along with `route` and `date`. The legacy single-passenger `name` and `phone` fields are also accepted.
 
 Check seat availability with `GET http://127.0.0.1:9495/server/index.php?route=MNA-IAX&date=2026-11-09`. The response includes the capacity, number booked, available seats, and a `status` of `available` or `full`.
 

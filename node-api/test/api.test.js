@@ -134,13 +134,21 @@ function fakeFlightsPool() {
   return { execute: handle, getConnection: async () => connection, statements };
 }
 
-test("validateRouteAndDate menerapkan aturan jadwal dan bulan berjalan", () => {
+test("validateRouteAndDate mengizinkan bulan ini dan bulan berikutnya saja", () => {
   assert.doesNotThrow(() => validateRouteAndDate("MNA-IAX", "2026-11-21", TODAY));
+  assert.doesNotThrow(() => validateRouteAndDate("MNA-IAX", "2026-12-02", TODAY));
   assert.throws(() => validateRouteAndDate("XXX", "2026-11-21", TODAY), /Rute penerbangan tidak valid/);
   assert.throws(() => validateRouteAndDate("MNA-IAX", "2026-02-30", TODAY), /Tanggal tidak valid/);
   assert.throws(() => validateRouteAndDate("MNA-IAX", "2026-11-17", TODAY), /sudah lewat/);
-  assert.throws(() => validateRouteAndDate("MNA-IAX", "2026-12-02", TODAY), /bulan berikutnya/);
+  assert.throws(() => validateRouteAndDate("MNA-IAX", "2027-01-02", TODAY), /bulan ini dan bulan berikutnya/);
   assert.throws(() => validateRouteAndDate("MNA-IAX", "2026-11-19", TODAY), /Senin, Rabu, dan Sabtu/);
+  assert.doesNotThrow(() =>
+    validateRouteAndDate("MNA-IAX", "2027-01-02", parseCalendarDate("2026-12-30")),
+  );
+  assert.throws(
+    () => validateRouteAndDate("MNA-IAX", "2027-02-01", parseCalendarDate("2026-12-30")),
+    /bulan ini dan bulan berikutnya/,
+  );
 });
 
 test("extractPassengers mendukung format tunggal dan daftar", () => {
@@ -251,6 +259,27 @@ test("POST /api/bookings memberi nomor booking kosong terkecil", async (t) => {
       ["Budi", "0899", 4, "Menunggu verifikasi", "2026-11-18T13:00:00"],
     ],
   );
+});
+
+test("POST /api/bookings menerima tanggal bulan depan dan menolak dua bulan ke depan", async (t) => {
+  const bookingsPool = fakeBookingsPool();
+  const { url, close } = await startServer({ bookingsPool });
+  t.after(close);
+
+  const payload = { route: "MNA-IAX", name: "Ani", phone: "0811" };
+  let response = await fetch(
+    `${url}/api/bookings`,
+    json({ ...payload, date: "2026-12-02" }),
+  );
+  assert.equal(response.status, 201);
+
+  response = await fetch(
+    `${url}/api/bookings`,
+    json({ ...payload, date: "2027-01-02" }),
+  );
+  assert.equal(response.status, 400);
+  assert.match((await response.json()).error, /bulan ini dan bulan berikutnya/);
+  assert.equal(bookingsPool.inserted.length, 1);
 });
 
 test("POST /api/bookings menolak penumpang duplikat dan membatalkan transaksi", async (t) => {
