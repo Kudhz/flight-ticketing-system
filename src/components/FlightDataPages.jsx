@@ -412,7 +412,7 @@ function FlightDataPages({
             result.incomePax += flight.adultPax + flight.childPax;
             result.incomeAdultPax += flight.adultPax;
             result.incomeChildPax += flight.childPax;
-            result.incomeInfantPax += 0;
+            result.incomeInfantPax += flight.infantPax;
             result.income += (flight.adultPax + flight.childPax) * flight.feeTicket;
             result.routes[flight.route].income +=
               (flight.adultPax + flight.childPax) * flight.feeTicket;
@@ -830,11 +830,11 @@ function FlightDataPages({
         <>
           <section
             className="flight-report-metrics"
-            aria-label="Ringkasan penerbangan"
+            aria-label="Ringkasan penerbangan keuangan"
           >
             <Metric
               label="Total Penerbangan"
-              value={dashboardValue(flights.length)}
+              value={dashboardValue(totals.incomeFlights)}
               tone="flight"
             />
             <Metric
@@ -856,8 +856,12 @@ function FlightDataPages({
               tone="iax"
             />
             <Metric
-              label="Total PAX"
-              value={dashboardValue(formatPax(totals.adultPax, totals.childPax, totals.infantPax))}
+              label="Total PAX (MNA-MDC & MNA-IAX)"
+              value={dashboardValue(formatPax(
+                totals.incomeAdultPax,
+                totals.incomeChildPax,
+                totals.incomeInfantPax,
+              ))}
               tone="pax"
             />
           </section>
@@ -962,16 +966,16 @@ function FlightDataPages({
         </>
       ) : page === "history" ? (
         <>
-          <section className="flight-report-metrics" aria-label="Ringkasan">
+          <section className="flight-report-metrics history-metrics" aria-label="Ringkasan">
             <Metric
               label="Total Penerbangan"
               value={flights.length}
               tone="flight"
             />
             <Metric
-              label="Total Penumpang (PAX)"
+              label="Total Penumpang (4 Rute)"
               value={formatPax(totals.adultPax, totals.childPax, totals.infantPax)}
-              tone="mdc"
+              tone="pax"
             />
             <Metric
               label="Total PAX MNA-MDC"
@@ -988,6 +992,24 @@ function FlightDataPages({
                 totals.routes["MNA-IAX"].adultPax,
                 totals.routes["MNA-IAX"].childPax,
                 totals.routes["MNA-IAX"].infantPax,
+              )}
+              tone="iax"
+            />
+            <Metric
+              label="Total PAX MDC-MNA"
+              value={formatPax(
+                totals.routes["MDC-MNA"].adultPax,
+                totals.routes["MDC-MNA"].childPax,
+                totals.routes["MDC-MNA"].infantPax,
+              )}
+              tone="mdc"
+            />
+            <Metric
+              label="Total PAX IAX-MNA"
+              value={formatPax(
+                totals.routes["IAX-MNA"].adultPax,
+                totals.routes["IAX-MNA"].childPax,
+                totals.routes["IAX-MNA"].infantPax,
               )}
               tone="iax"
             />

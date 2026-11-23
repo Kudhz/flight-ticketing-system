@@ -2169,6 +2169,10 @@ select {
   grid-template-columns: repeat(5, minmax(0, 1fr));
 }
 
+.flight-report-metrics.history-metrics {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
 .flight-report-metric {
   position: relative;
   display: flex;
@@ -4130,7 +4134,8 @@ select {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .flight-report-metrics.income-metrics {
+  .flight-report-metrics.income-metrics,
+  .flight-report-metrics.history-metrics {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
@@ -4347,6 +4352,7 @@ select {
   .date-grid,
   .flight-report-metrics,
   .flight-report-metrics.income-metrics,
+  .flight-report-metrics.history-metrics,
   .flight-report-route-grid,
   .flight-dashboard-income-grid {
     grid-template-columns: 1fr;
