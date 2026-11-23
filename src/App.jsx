@@ -850,7 +850,7 @@ function App() {
                 className="btn btn-primary"
                 onClick={openBookingForm}
               >
-                <span aria-hidden="true">+</span> Reservasi Baru
+                <span aria-hidden="true">+</span> Tambah Penumpang
               </button>
             </div>
           </div>
@@ -1391,6 +1391,13 @@ function App() {
                   </h2>
                 </section>
                 <div className="manifest-heading-actions">
+                  <button
+                    type="button"
+                    className="btn btn-primary manifest-add-button"
+                    onClick={openBookingForm}
+                  >
+                    <span aria-hidden="true">+</span> Tambah Penumpang
+                  </button>
                   <button
                     type="button"
                     className="secondary-button refresh-button"
