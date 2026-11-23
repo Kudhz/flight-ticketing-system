@@ -8,6 +8,9 @@ require_once __DIR__ . '/finance-auth.php';
 cors();
 startFinanceSession();
 $isFinanceUser = financeSessionIsAuthenticated();
+if (session_status() === PHP_SESSION_ACTIVE) {
+    session_write_close();
+}
 
 function parseMonth(mixed $value): ?int
 {

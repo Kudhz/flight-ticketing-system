@@ -108,6 +108,21 @@ const formatFlightDate = (day, month, year) =>
 const formatPdfDate = (day, month, year) =>
   `${String(day).padStart(2, "0")}-${String(month).padStart(2, "0")}-${year}`;
 
+const periodFlightsCache = new Map();
+const inFlightPeriodRequests = new Map();
+let activeCacheVersion = 0;
+
+const syncCacheVersion = (version) => {
+  if (version !== activeCacheVersion) {
+    periodFlightsCache.clear();
+    inFlightPeriodRequests.clear();
+    activeCacheVersion = version;
+  }
+};
+
+const periodCacheKey = (authScope, year, month) =>
+  `${authScope}:${year}-${Number(month)}`;
+
 async function getPeriodFlights(year, month, signal) {
   const params = new URLSearchParams({ year, month: String(month) });
   const response = await fetch(`${FLIGHTS_ENDPOINT}?${params}`, { signal });
@@ -120,6 +135,81 @@ async function getPeriodFlights(year, month, signal) {
   }
 
   return result.data.map(mapApiFlight);
+}
+
+async function getPeriodFlightsCached(year, month, authScope, signal) {
+  const key = periodCacheKey(authScope, year, month);
+  if (periodFlightsCache.has(key)) {
+    return periodFlightsCache.get(key);
+  }
+
+  let promise = inFlightPeriodRequests.get(key);
+  if (!promise) {
+    promise = getPeriodFlights(year, month)
+      .then((records) => {
+        periodFlightsCache.set(key, records);
+        return records;
+      })
+      .finally(() => {
+        inFlightPeriodRequests.delete(key);
+      });
+    inFlightPeriodRequests.set(key, promise);
+  }
+
+  if (!signal) return promise;
+
+  return new Promise((resolve, reject) => {
+    if (signal.aborted) {
+      reject(new DOMException("Aborted", "AbortError"));
+      return;
+    }
+    const onAbort = () => reject(new DOMException("Aborted", "AbortError"));
+    signal.addEventListener("abort", onAbort, { once: true });
+    promise.then(
+      (value) => {
+        signal.removeEventListener("abort", onAbort);
+        resolve(value);
+      },
+      (error) => {
+        signal.removeEventListener("abort", onAbort);
+        reject(error);
+      },
+    );
+  });
+}
+
+function getCachedViewResult(page, year, month, monthName, authScope, requestKey) {
+  if (page === "dashboard") {
+    const allCached = RECENT_PERIODS.every((period) =>
+      periodFlightsCache.has(periodCacheKey(authScope, period.year, period.month)),
+    );
+    if (!allCached) return null;
+
+    const periods = RECENT_PERIODS.map((period) => ({
+      ...period,
+      flights: periodFlightsCache.get(
+        periodCacheKey(authScope, period.year, period.month),
+      ),
+    }));
+    return {
+      key: requestKey,
+      flights: periods[0].flights,
+      periods,
+      type: "success",
+      message: "Ringkasan Penghasilan berhasil dimuat.",
+    };
+  }
+
+  const key = periodCacheKey(authScope, year, month);
+  if (!periodFlightsCache.has(key)) return null;
+
+  const records = periodFlightsCache.get(key);
+  return {
+    key: requestKey,
+    flights: records,
+    type: "success",
+    message: `${records.length} data penerbangan ditemukan untuk ${monthName} ${year}.`,
+  };
 }
 
 async function saveHistoryPdf(pdfBlob, year, month) {
@@ -137,7 +227,12 @@ async function saveHistoryPdf(pdfBlob, year, month) {
   return result.filename;
 }
 
-function FlightDataPages({ page }) {
+function FlightDataPages({
+  page,
+  isFinanceAuthenticated = false,
+  cacheVersion = 0,
+}) {
+  syncCacheVersion(cacheVersion);
   const [month, setMonth] = useState(String(CURRENT_DATE.getMonth() + 1));
   const [year, setYear] = useState(String(CURRENT_YEAR));
   const [routeFilter, setRouteFilter] = useState("ALL");
@@ -147,9 +242,20 @@ function FlightDataPages({ page }) {
   const [isPdfLoading, setIsPdfLoading] = useState(false);
   const [pdfError, setPdfError] = useState("");
   const monthName = MONTHS[Number(month) - 1];
-  const requestKey = `${page}-${year}-${month}-${refreshKey}`;
+  const authScope = isFinanceAuthenticated ? "finance" : "public";
+  const requestKey = `${authScope}-${page}-${year}-${month}-${refreshKey}`;
+  const cachedResult = getCachedViewResult(
+    page,
+    year,
+    month,
+    monthName,
+    authScope,
+    requestKey,
+  );
 
   useEffect(() => {
+    if (cachedResult) return undefined;
+
     const controller = new AbortController();
 
     const loadFlights = async () => {
@@ -158,9 +264,10 @@ function FlightDataPages({ page }) {
           const periods = await Promise.all(
             RECENT_PERIODS.map(async (period) => ({
               ...period,
-              flights: await getPeriodFlights(
+              flights: await getPeriodFlightsCached(
                 period.year,
                 period.month,
+                authScope,
                 controller.signal,
               ),
             })),
@@ -175,7 +282,12 @@ function FlightDataPages({ page }) {
           return;
         }
 
-        const records = await getPeriodFlights(year, month, controller.signal);
+        const records = await getPeriodFlightsCached(
+          year,
+          month,
+          authScope,
+          controller.signal,
+        );
         setPeriodResult({
           key: requestKey,
           flights: records,
@@ -197,10 +309,24 @@ function FlightDataPages({ page }) {
     loadFlights();
 
     return () => controller.abort();
-  }, [month, monthName, page, refreshKey, requestKey, year]);
+  }, [authScope, cachedResult, month, monthName, page, refreshKey, requestKey, year]);
+
+  const handleManualRefresh = () => {
+    if (page === "dashboard") {
+      RECENT_PERIODS.forEach((period) => {
+        periodFlightsCache.delete(
+          periodCacheKey(authScope, period.year, period.month),
+        );
+      });
+    } else {
+      periodFlightsCache.delete(periodCacheKey(authScope, year, month));
+    }
+    setPeriodResult(null);
+    setRefreshKey((key) => key + 1);
+  };
 
   const currentPeriodResult =
-    periodResult?.key === requestKey ? periodResult : null;
+    cachedResult || (periodResult?.key === requestKey ? periodResult : null);
   const flights = currentPeriodResult?.flights || EMPTY_FLIGHTS;
   const status = currentPeriodResult || {
     type: "loading",
@@ -678,7 +804,7 @@ function FlightDataPages({ page }) {
         <button
           type="button"
           className="secondary-button"
-          onClick={() => setRefreshKey((key) => key + 1)}
+          onClick={handleManualRefresh}
           disabled={isLoading}
         >
           {isLoading ? "Memuat..." : "Muat ulang"}

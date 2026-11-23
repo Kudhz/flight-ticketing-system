@@ -170,6 +170,7 @@ function App() {
   const [financePassword, setFinancePassword] = useState("");
   const [financeLoginError, setFinanceLoginError] = useState("");
   const [isFinanceSubmitting, setIsFinanceSubmitting] = useState(false);
+  const [flightCacheVersion, setFlightCacheVersion] = useState(0);
   const [theme, setTheme] = useState(
     () => window.localStorage.getItem("seatflow-theme-v2") || "dark",
   );
@@ -464,6 +465,23 @@ function App() {
 
   async function navigateToPage(page) {
     if (FINANCE_PAGES.has(page)) {
+      if (isFinanceAuthenticated) {
+        setActivePage(page);
+        apiRequest(financeAuthUrl("session"))
+          .then((result) => {
+            setFinanceAuthConfigured(result.configured === true);
+            if (result.authenticated !== true) {
+              setFlightCacheVersion((version) => version + 1);
+              setIsFinanceAuthenticated(false);
+              setPendingFinancePage(page);
+              setActivePage("overview");
+              setIsFinanceLoginOpen(true);
+            }
+          })
+          .catch(() => {});
+        return;
+      }
+
       setPendingFinancePage(page);
       setFinanceLoginError("");
       try {
@@ -500,6 +518,7 @@ function App() {
           password: financePassword,
         }),
       });
+      setFlightCacheVersion((version) => version + 1);
       setIsFinanceAuthenticated(result.authenticated === true);
       setFinanceAuthConfigured(true);
       setFinancePassword("");
@@ -521,6 +540,7 @@ function App() {
         method: "POST",
         body: JSON.stringify({}),
       });
+      setFlightCacheVersion((version) => version + 1);
       setIsFinanceAuthenticated(false);
       setPendingFinancePage(null);
       setIsFinanceLoginOpen(false);
@@ -779,6 +799,8 @@ function App() {
               </div>
             </section>
             <FlightDataPages
+              cacheVersion={flightCacheVersion}
+              isFinanceAuthenticated={isFinanceAuthenticated}
               page={
                 activePage === "flightDashboard"
                   ? "dashboard"
