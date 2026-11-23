@@ -332,8 +332,12 @@ function App() {
           (b) => b.route === route.value && b.date === selectedDate,
         );
         const seatsUsed = sectorBookings.filter(isOccupiedSeat).length;
-        const infants = sectorBookings.filter((b) => b.type === "infant").length;
-        const paid = sectorBookings.filter((b) => b.status === STATUSES[2]).length;
+        const infants = sectorBookings.filter(
+          (b) => b.type === "infant",
+        ).length;
+        const paid = sectorBookings.filter(
+          (b) => b.status === STATUSES[2],
+        ).length;
         const waiting = sectorBookings.filter(
           (b) => b.status === STATUSES[0],
         ).length;
@@ -441,11 +445,7 @@ function App() {
     } else {
       sorted.forEach((b) => {
         const tag =
-          b.type === "infant"
-            ? " [INF]"
-            : b.type === "child"
-              ? " [ANAK]"
-              : "";
+          b.type === "infant" ? " [INF]" : b.type === "child" ? " [ANAK]" : "";
         const statusShort =
           b.status === STATUSES[2]
             ? "✓ Lunas"
@@ -821,7 +821,10 @@ function App() {
             <section className="section-header">
               <div className="section-eyebrow">
                 <span className="eyebrow-badge">{routeInfo.value}</span>
-                <span>{weekdayName(selectedDate).toUpperCase()}, {dateLabel(selectedDate).toUpperCase()}</span>
+                <span>
+                  {weekdayName(selectedDate).toUpperCase()},{" "}
+                  {dateLabel(selectedDate).toUpperCase()}
+                </span>
               </div>
               <h1 className="section-title">{pageTitles[activePage]}</h1>
               <p className="section-subtitle">
@@ -845,7 +848,7 @@ function App() {
                 className="btn btn-primary"
                 onClick={openBookingForm}
               >
-                <span aria-hidden="true">+</span> Tambah Penumpang
+                <span aria-hidden="true">+</span> Tambah PAX
               </button>
             </div>
           </div>
@@ -858,21 +861,30 @@ function App() {
           )}
 
           {/* BOARDING PASS & CABIN SEATMAP HERO */}
-          <section className="flight-banner" aria-label="Informasi penerbangan dan peta kursi">
+          <section
+            className="flight-banner"
+            aria-label="Informasi penerbangan dan peta kursi"
+          >
             <div className="boarding-pass-side">
               <div className="boarding-pass-top">
                 <span className="boarding-airline-tag">
                   SUSI AIR • PERINTIS DISPATCH
                 </span>
-                <span className={`boarding-status-pill ${remainingSeats === 0 ? "full" : "open"}`}>
-                  {remainingSeats === 0 ? "FULL BOOKED" : `${remainingSeats} SEAT AVAILABLE`}
+                <span
+                  className={`boarding-status-pill ${remainingSeats === 0 ? "full" : "open"}`}
+                >
+                  {remainingSeats === 0
+                    ? "FULL BOOKED"
+                    : `${remainingSeats} SEAT AVAILABLE`}
                 </span>
               </div>
 
               <div className="flight-legs">
                 <div className="flight-leg">
                   <span className="flight-leg-caption">ORIGIN</span>
-                  <strong className="flight-code">{routeInfo.originCode}</strong>
+                  <strong className="flight-code">
+                    {routeInfo.originCode}
+                  </strong>
                   <span className="flight-city">{routeInfo.origin}</span>
                 </div>
 
@@ -886,12 +898,16 @@ function App() {
                     <span className="route-dashed" />
                     <span className="route-node" />
                   </div>
-                  <span className="route-aircraft-type">CESSNA 208B GRAND CARAVAN</span>
+                  <span className="route-aircraft-type">
+                    CESSNA 208B GRAND CARAVAN
+                  </span>
                 </div>
 
                 <div className="flight-leg flight-leg-dest">
                   <span className="flight-leg-caption">DESTINATION</span>
-                  <strong className="flight-code">{routeInfo.destinationCode}</strong>
+                  <strong className="flight-code">
+                    {routeInfo.destinationCode}
+                  </strong>
                   <span className="flight-city">{routeInfo.destination}</span>
                 </div>
               </div>
@@ -907,7 +923,9 @@ function App() {
                 </div>
                 <div className="bp-meta-item">
                   <span>LOAD FACTOR</span>
-                  <strong>{loadFactorPct}% ({occupiedSeats}/{BOOKING_LIMIT} Kursi)</strong>
+                  <strong>
+                    {loadFactorPct}% ({occupiedSeats}/{BOOKING_LIMIT} Kursi)
+                  </strong>
                 </div>
                 <div className="bp-meta-item">
                   <span>INFANT (NON-SEAT)</span>
@@ -919,12 +937,16 @@ function App() {
             <div className="flight-capacity">
               <div className="capacity-summary">
                 <div className="capacity-total">
-                  <span className="capacity-label">KABIN PESAWAT (12 SEAT)</span>
+                  <span className="capacity-label">
+                    KABIN PESAWAT (12 SEAT)
+                  </span>
                   <div className="capacity-total-value">
                     <strong>{occupiedSeats}</strong>
                     <span>terisi</span>
                     <span className="capacity-sep">/</span>
-                    <strong className="capacity-free-num">{remainingSeats}</strong>
+                    <strong className="capacity-free-num">
+                      {remainingSeats}
+                    </strong>
                     <span>kosong</span>
                   </div>
                 </div>
@@ -971,10 +993,12 @@ function App() {
 
               <div className="cabin-seat-legend">
                 <span>
-                  <i className="seat-dot free" /> Kursi Kosong ({remainingSeats})
+                  <i className="seat-dot free" /> Kursi Kosong ({remainingSeats}
+                  )
                 </span>
                 <span>
-                  <i className="seat-dot occupied" /> Kursi Terisi ({occupiedSeats})
+                  <i className="seat-dot occupied" /> Kursi Terisi (
+                  {occupiedSeats})
                 </span>
               </div>
             </div>
@@ -990,13 +1014,23 @@ function App() {
                       <span className="metric-label-compact">Total</span>
                     </span>
                     <span className="metric-icon bg-teal-light text-teal-dark">
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <svg
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="1.8"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        aria-hidden="true"
+                      >
                         <path d="M3 9.5V7a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v2.5a2.5 2.5 0 0 0 0 5V17a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-2.5a2.5 2.5 0 0 0 0-5Z" />
                         <path d="M12 6.5v11" strokeDasharray="2 3" />
                       </svg>
                     </span>
                   </div>
-                  <strong className="metric-value">{currentBookings.length}</strong>
+                  <strong className="metric-value">
+                    {currentBookings.length}
+                  </strong>
                   <div className="metric-footer">
                     <span className="metric-dot bg-blue-500"></span>
                     <span>
@@ -1008,11 +1042,21 @@ function App() {
                 <div className="metric-card card-hover">
                   <div className="metric-card-header">
                     <span className="metric-label">
-                      <span className="metric-label-full">Sisa Kuota Kursi</span>
+                      <span className="metric-label-full">
+                        Sisa Kuota Kursi
+                      </span>
                       <span className="metric-label-compact">Kursi</span>
                     </span>
                     <span className="metric-icon bg-teal-light text-teal-dark">
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <svg
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="1.8"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        aria-hidden="true"
+                      >
                         <path d="M6 5a2 2 0 0 1 2 2v6h7.5a2.5 2.5 0 0 1 2.5 2.5V19" />
                         <path d="M5 19h13" />
                         <path d="M17 8.5h1.5a1.5 1.5 0 0 1 1.5 1.5v2" />
@@ -1029,11 +1073,21 @@ function App() {
                 <div className="metric-card card-hover">
                   <div className="metric-card-header">
                     <span className="metric-label">
-                      <span className="metric-label-full">Menunggu Verifikasi</span>
+                      <span className="metric-label-full">
+                        Menunggu Verifikasi
+                      </span>
                       <span className="metric-label-compact">Menunggu</span>
                     </span>
                     <span className="metric-icon bg-amber-light text-amber-700">
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <svg
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="1.8"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        aria-hidden="true"
+                      >
                         <circle cx="12" cy="12" r="8.5" />
                         <path d="M12 7.5V12l3 2" />
                       </svg>
@@ -1053,7 +1107,15 @@ function App() {
                       <span className="metric-label-compact">Dibayar</span>
                     </span>
                     <span className="metric-icon bg-green-light text-green-700">
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <svg
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="1.8"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        aria-hidden="true"
+                      >
                         <circle cx="12" cy="12" r="8.5" />
                         <path d="m8.5 12.2 2.4 2.4 4.6-4.9" />
                       </svg>
@@ -1068,7 +1130,10 @@ function App() {
               </section>
 
               {/* DUAL-SECTOR RADAR & DEMOGRAPHIC DISTRIBUTION */}
-              <section className="dashboard-telemetry-grid" aria-label="Radar dua rute dan distribusi manifes">
+              <section
+                className="dashboard-telemetry-grid"
+                aria-label="Radar dua rute dan distribusi manifes"
+              >
                 <div className="telemetry-card">
                   <div className="telemetry-card-head">
                     <div>
@@ -1173,10 +1238,12 @@ function App() {
                         <i className="dist-dot paid" /> Dibayar ({paidCount})
                       </span>
                       <span>
-                        <i className="dist-dot booked" /> Dipesan ({bookedCount})
+                        <i className="dist-dot booked" /> Dipesan ({bookedCount}
+                        )
                       </span>
                       <span>
-                        <i className="dist-dot waiting" /> Menunggu ({waitingCount})
+                        <i className="dist-dot waiting" /> Menunggu (
+                        {waitingCount})
                       </span>
                     </div>
                   </div>
@@ -1184,7 +1251,9 @@ function App() {
                   <div className="distribution-block">
                     <div className="distribution-header">
                       <strong>Komposisi Kategori Penumpang</strong>
-                      <span>{occupiedSeats} Kursi + {infantCount} Non-Seat</span>
+                      <span>
+                        {occupiedSeats} Kursi + {infantCount} Non-Seat
+                      </span>
                     </div>
                     <div className="pax-demographic-chips">
                       <div className="pax-demo-chip">
@@ -1230,11 +1299,18 @@ function App() {
 
           {activePage === "overview" && (
             <div className="overview-bottom-split">
-              <section className="overview-dates-panel" aria-label="Tanggal dengan pemesanan">
+              <section
+                className="overview-dates-panel"
+                aria-label="Tanggal dengan pemesanan"
+              >
                 <div className="overview-dates-header">
                   <div>
-                    <span className="section-kicker">JADWAL TERISI BULAN INI</span>
-                    <h2 className="overview-dates-title">Kartu Keberangkatan Aktif</h2>
+                    <span className="section-kicker">
+                      JADWAL TERISI BULAN INI
+                    </span>
+                    <h2 className="overview-dates-title">
+                      Kartu Keberangkatan Aktif
+                    </h2>
                   </div>
                   <span className="overview-dates-count">
                     {dashboardBookingEntries.length} jadwal tercatat
@@ -1242,7 +1318,10 @@ function App() {
                 </div>
                 <div className="date-grid">
                   {dashboardBookingEntries.map(([date, count]) => {
-                    const pct = Math.min(Math.round((count / BOOKING_LIMIT) * 100), 100);
+                    const pct = Math.min(
+                      Math.round((count / BOOKING_LIMIT) * 100),
+                      100,
+                    );
                     return (
                       <button
                         type="button"
@@ -1262,7 +1341,9 @@ function App() {
                             {count}/{BOOKING_LIMIT} SEAT
                           </span>
                         </div>
-                        <strong className="date-card-value">{dateLabel(date)}</strong>
+                        <strong className="date-card-value">
+                          {dateLabel(date)}
+                        </strong>
                         <div className="date-card-progress" aria-hidden="true">
                           <div
                             className="date-card-progress-fill"
@@ -1270,7 +1351,10 @@ function App() {
                           />
                         </div>
                         <div className="date-card-footer">
-                          <span className="date-card-dot" aria-hidden="true"></span>
+                          <span
+                            className="date-card-dot"
+                            aria-hidden="true"
+                          ></span>
                           <span>{BOOKING_LIMIT - count} kursi tersisa</span>
                           <span className="date-card-arrow">
                             Pilih <span aria-hidden="true">→</span>
@@ -1281,20 +1365,30 @@ function App() {
                   })}
                   {dashboardBookingEntries.length === 0 && (
                     <div className="date-empty">
-                      <span className="date-empty-dot" aria-hidden="true"></span>
-                      Belum ada tanggal dengan pemesanan untuk rute {routeInfo.value} pada bulan ini.
+                      <span
+                        className="date-empty-dot"
+                        aria-hidden="true"
+                      ></span>
+                      Belum ada tanggal dengan pemesanan untuk rute{" "}
+                      {routeInfo.value} pada bulan ini.
                     </div>
                   )}
                 </div>
               </section>
 
-              <section className="overview-live-manifest" aria-label="Preview manifes dan verifikasi cepat">
+              <section
+                className="overview-live-manifest"
+                aria-label="Preview manifes dan verifikasi cepat"
+              >
                 <div className="overview-dates-header">
                   <div>
                     <span className="section-kicker">
-                      LIVE MANIFEST • {routeInfo.value} • {dateLabel(selectedDate).toUpperCase()}
+                      LIVE MANIFEST • {routeInfo.value} •{" "}
+                      {dateLabel(selectedDate).toUpperCase()}
                     </span>
-                    <h2 className="overview-dates-title">Preview & Verifikasi Cepat</h2>
+                    <h2 className="overview-dates-title">
+                      Preview & Verifikasi Cepat
+                    </h2>
                   </div>
                   <button
                     type="button"
@@ -1376,7 +1470,8 @@ function App() {
               <div className="manifest-heading-row">
                 <section className="section-header">
                   <div className="section-eyebrow">
-                    PASSENGER MANIFEST • {routeInfo.value} • {dateLabel(selectedDate).toUpperCase()}
+                    PASSENGER MANIFEST • {routeInfo.value} •{" "}
+                    {dateLabel(selectedDate).toUpperCase()}
                   </div>
                   <h2 className="section-title">
                     Daftar Penumpang{" "}
@@ -1391,7 +1486,7 @@ function App() {
                     className="btn btn-primary manifest-add-button"
                     onClick={openBookingForm}
                   >
-                    <span aria-hidden="true">+</span> Tambah Penumpang
+                    <span aria-hidden="true">+</span> Tambah PAX
                   </button>
                   <button
                     type="button"
@@ -1492,7 +1587,10 @@ function App() {
                           </td>
                           <td data-label="Penumpang">
                             <div className="passenger-cell">
-                              <span className="passenger-avatar" aria-hidden="true">
+                              <span
+                                className="passenger-avatar"
+                                aria-hidden="true"
+                              >
                                 {initial}
                               </span>
                               <div className="passenger-info">
@@ -1508,21 +1606,25 @@ function App() {
                                       INFANT
                                     </span>
                                   )}
-                                  {(!booking.type || booking.type === "adult") && (
+                                  {(!booking.type ||
+                                    booking.type === "adult") && (
                                     <span className="passenger-badge passenger-badge-adult">
                                       DEWASA
                                     </span>
                                   )}
                                 </strong>
                                 <span className="text-xs text-muted">
-                                  Sektor {booking.route} • {dateLabel(booking.date)}
+                                  Sektor {booking.route} •{" "}
+                                  {dateLabel(booking.date)}
                                 </span>
                               </div>
                             </div>
                           </td>
                           <td data-label="Kontak">
                             <a
-                              href={`https://wa.me/${String(booking.phone || "").replace(/\D/g, "").replace(/^0/, "62")}`}
+                              href={`https://wa.me/${String(booking.phone || "")
+                                .replace(/\D/g, "")
+                                .replace(/^0/, "62")}`}
                               target="_blank"
                               rel="noreferrer"
                               className="contact-link"
@@ -1619,7 +1721,10 @@ function App() {
                       <tr className="empty-row">
                         <td className="empty-state" colSpan="6">
                           <div className="empty-state-content">
-                            <span className="empty-state-icon" aria-hidden="true">
+                            <span
+                              className="empty-state-icon"
+                              aria-hidden="true"
+                            >
                               <svg
                                 viewBox="0 0 24 24"
                                 fill="none"
@@ -1651,8 +1756,13 @@ function App() {
               </div>
               <footer className="manifest-footer">
                 <span>
-                  Menampilkan <strong className="text-ink">{filteredBookings.length}</strong> dari{" "}
-                  <strong className="text-ink">{currentBookings.length}</strong> penumpang terdaftar
+                  Menampilkan{" "}
+                  <strong className="text-ink">
+                    {filteredBookings.length}
+                  </strong>{" "}
+                  dari{" "}
+                  <strong className="text-ink">{currentBookings.length}</strong>{" "}
+                  penumpang terdaftar
                 </span>
                 <div className="capacity-legend">
                   <span className="flex items-center gap-2 text-xs">
@@ -1694,10 +1804,13 @@ function App() {
           >
             <div className="modal-heading">
               <div>
-                <span className="reservation-kicker">ISSUING DESK • RESERVASI BARU</span>
+                <span className="reservation-kicker">
+                  ISSUING DESK • RESERVASI BARU
+                </span>
                 <h2 id="form-title">Formulir Pemesanan Tiket</h2>
                 <p className="reservation-subtitle">
-                  Masukkan identitas penumpang sesuai KTP/KK dan pilih jadwal keberangkatan.
+                  Masukkan identitas penumpang sesuai KTP/KK dan pilih jadwal
+                  keberangkatan.
                 </p>
               </div>
               <button
@@ -1715,7 +1828,10 @@ function App() {
                   <span className="form-section-number">01</span>
                   <div>
                     <h3>Daftar Penumpang</h3>
-                    <p>Gunakan nama lengkap sesuai identitas resmi dan nomor WhatsApp aktif.</p>
+                    <p>
+                      Gunakan nama lengkap sesuai identitas resmi dan nomor
+                      WhatsApp aktif.
+                    </p>
                   </div>
                   <span className="form-section-count">
                     {form.passengers.length} PAX
@@ -1804,7 +1920,9 @@ function App() {
                         >
                           <option value="adult">Dewasa (Adult)</option>
                           <option value="child">Anak-anak (Child)</option>
-                          <option value="infant">Bayi (Infant - Non Seat)</option>
+                          <option value="infant">
+                            Bayi (Infant - Non Seat)
+                          </option>
                         </select>
                       </label>
                       {form.passengers.length > 1 && (
@@ -1844,10 +1962,11 @@ function App() {
                       }))
                     }
                   >
-                    <span aria-hidden="true">+</span> Tambah Penumpang Lain
+                    <span aria-hidden="true">+</span> Tambah PAX Lain
                   </button>
                   <span className="passenger-capacity-hint">
-                    Sisa kuota jadwal ini: <strong>{availableBookingNumbers.length} nomor</strong>
+                    Sisa kuota jadwal ini:{" "}
+                    <strong>{availableBookingNumbers.length} nomor</strong>
                   </span>
                 </div>
               </section>
@@ -1856,7 +1975,10 @@ function App() {
                   <span className="form-section-number">02</span>
                   <div>
                     <h3>Sektor & Tanggal Penerbangan</h3>
-                    <p>Pilih rute dan tanggal sesuai jadwal operasional Senin, Rabu, atau Sabtu.</p>
+                    <p>
+                      Pilih rute dan tanggal sesuai jadwal operasional Senin,
+                      Rabu, atau Sabtu.
+                    </p>
                   </div>
                 </div>
                 <div className="booking-details-grid">
@@ -1879,7 +2001,9 @@ function App() {
                   </label>
                   <label>
                     Tanggal terbang
-                    <span className="field-hint">Jadwal: Senin, Rabu, dan Sabtu</span>
+                    <span className="field-hint">
+                      Jadwal: Senin, Rabu, dan Sabtu
+                    </span>
                     <input
                       required
                       type="date"
@@ -1923,8 +2047,12 @@ function App() {
               </section>
               <div className="booking-number-preview">
                 <div>
-                  <span className="preview-label">ALOKASI NOMOR MANIFES / KURSI</span>
-                  <small>Dialokasikan otomatis saat reservasi disimpan ke database.</small>
+                  <span className="preview-label">
+                    ALOKASI NOMOR MANIFES / KURSI
+                  </span>
+                  <small>
+                    Dialokasikan otomatis saat reservasi disimpan ke database.
+                  </small>
                 </div>
                 <strong>
                   {formBookingNumbers.length === form.passengers.length
@@ -1975,7 +2103,8 @@ function App() {
             <div className="modal-heading">
               <div>
                 <span className="section-kicker">
-                  EDIT MANIFES • SEAT #{String(editingBooking.bookingNo).padStart(2, "0")}
+                  EDIT MANIFES • SEAT #
+                  {String(editingBooking.bookingNo).padStart(2, "0")}
                 </span>
                 <h2 id="edit-form-title">Perbarui Data Penumpang</h2>
               </div>
@@ -2116,7 +2245,8 @@ function App() {
             </div>
             <div className="confirm-modal-body">
               <p className="m-0 text-sm text-muted">
-                Data penumpang berikut akan dihapus permanen dari database MySQL:
+                Data penumpang berikut akan dihapus permanen dari database
+                MySQL:
               </p>
               <div className="confirm-summary-card">
                 <strong>
@@ -2124,7 +2254,8 @@ function App() {
                   {deletingBooking.name}
                 </strong>
                 <span>
-                  Sektor {deletingBooking.route} • {dateLabel(deletingBooking.date)}
+                  Sektor {deletingBooking.route} •{" "}
+                  {dateLabel(deletingBooking.date)}
                 </span>
                 <span>WhatsApp: {deletingBooking.phone}</span>
               </div>
@@ -2188,7 +2319,8 @@ function App() {
               </button>
             </div>
             <p className="modal-description">
-              Masukkan kredensial Keuangan untuk membuka laporan penghasilan dan rincian fee tiket.
+              Masukkan kredensial Keuangan untuk membuka laporan penghasilan dan
+              rincian fee tiket.
             </p>
             {financeAuthConfigured === false && (
               <div className="finance-auth-notice" role="status">
