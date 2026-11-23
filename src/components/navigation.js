@@ -1,15 +1,15 @@
 export const NAV_GROUPS = [
   {
-    label: "OPERASIONAL",
+    label: "RESERVASI",
     items: [
-      { id: "overview", label: "Ringkasan Tiket", icon: "dashboard" },
+      { id: "overview", label: "Overview", icon: "dashboard" },
       {
         id: "bookings",
         label: "Data Penumpang",
         icon: "passengers",
         countKey: "bookings",
       },
-      { id: "flightHistory", label: "Riwayat Flight", icon: "calendar" },
+      { id: "flightHistory", label: "Riwayat Penerbangan", icon: "calendar" },
     ],
   },
   {
@@ -23,7 +23,7 @@ export const NAV_GROUPS = [
       },
       {
         id: "flightIncome",
-        label: "Rincian Penghasilan",
+        label: "Rincian Fee Tiket",
         icon: "income",
         requiresFinanceAuth: true,
       },

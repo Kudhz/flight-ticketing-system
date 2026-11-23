@@ -64,6 +64,7 @@ function AppSidebar({
         </span>
         <span className="brand-copy">
           <strong>Lupin Portal</strong>
+          <span className="brand-caption">RESERVATION DESK</span>
         </span>
       </div>
       {visibleGroups.map((group) => (
@@ -101,8 +102,8 @@ function AppSidebar({
         <div className="help-box">
           <span className="help-icon">i</span>
           <div>
-            <strong>Operasional penerbangan</strong>
-            <p>Pantau manifest dan status tiket.</p>
+            <strong>Meja reservasi</strong>
+            <p>Kelola pemesanan dan manifest penerbangan.</p>
           </div>
         </div>
         <button
