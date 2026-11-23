@@ -732,34 +732,53 @@ function FlightDataPages({ page }) {
               </div>
             </header>
             <div className="flight-dashboard-income-grid">
-              {monthlyIncome.map((period) => (
-                <article
-                  className="flight-dashboard-income-card"
-                  key={period.label}
-                >
-                  <span>{period.label}</span>
-                  <small className="income-total-label">Total Penghasilan</small>
-                  <strong className="income-total-value">
-                    {dashboardValue(formatCurrency(period.totalIncome))}
-                  </strong>
-                  <div className="income-card-breakdown">
-                    <div>
-                      <small>Fee Tiket</small>
-                      <strong>
-                        {dashboardValue(formatCurrency(period.income))}
+              {(() => {
+                const maxIncome = Math.max(
+                  ...monthlyIncome.map((item) => item.totalIncome || 0),
+                  1,
+                );
+                return monthlyIncome.map((period) => {
+                  const pct = Math.round(
+                    ((period.totalIncome || 0) / maxIncome) * 100,
+                  );
+                  return (
+                    <article
+                      className="flight-dashboard-income-card"
+                      key={period.label}
+                    >
+                      <span>{period.label}</span>
+                      <small className="income-total-label">
+                        Total Penghasilan
+                      </small>
+                      <strong className="income-total-value">
+                        {dashboardValue(formatCurrency(period.totalIncome))}
                       </strong>
-                    </div>
-                    <div>
-                      <small>Penghasilan GH</small>
-                      <strong>
-                        {dashboardValue(
-                          formatCurrency(period.groundHandlingIncome),
-                        )}
-                      </strong>
-                    </div>
-                  </div>
-                </article>
-              ))}
+                      <div className="income-trend-bar" aria-hidden="true">
+                        <div
+                          className="income-trend-fill"
+                          style={{ width: `${isLoading ? 0 : pct}%` }}
+                        />
+                      </div>
+                      <div className="income-card-breakdown">
+                        <div>
+                          <small>Fee Tiket</small>
+                          <strong>
+                            {dashboardValue(formatCurrency(period.income))}
+                          </strong>
+                        </div>
+                        <div>
+                          <small>Penghasilan GH</small>
+                          <strong>
+                            {dashboardValue(
+                              formatCurrency(period.groundHandlingIncome),
+                            )}
+                          </strong>
+                        </div>
+                      </div>
+                    </article>
+                  );
+                });
+              })()}
             </div>
           </section>
           <div className="flight-report-actions">

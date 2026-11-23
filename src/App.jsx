@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { PlaneTakeoff, RefreshCw } from "lucide-react";
 import AppSidebar from "./components/AppSidebar";
 import FlightScheduleTabs from "./components/FlightScheduleTabs";
@@ -149,6 +149,12 @@ const dateLabel = (date) =>
     month: "long",
     year: "numeric",
   }).format(new Date(`${date}T00:00:00`));
+
+const weekdayName = (date) =>
+  new Intl.DateTimeFormat("id-ID", {
+    weekday: "long",
+  }).format(new Date(`${date}T00:00:00`));
+
 function App() {
   const [bookings, setBookings] = useState([]);
   const [isLoadingBookings, setIsLoadingBookings] = useState(true);
@@ -174,7 +180,10 @@ function App() {
   const [filter, setFilter] = useState("Semua");
   const [showForm, setShowForm] = useState(false);
   const [editingBooking, setEditingBooking] = useState(null);
+  const [deletingBooking, setDeletingBooking] = useState(null);
+  const [isDeletingBooking, setIsDeletingBooking] = useState(false);
   const [isUpdatingBooking, setIsUpdatingBooking] = useState(false);
+  const searchInputRef = useRef(null);
   const [editForm, setEditForm] = useState({
     name: "",
     phone: "",
@@ -238,8 +247,47 @@ function App() {
     document.documentElement.dataset.theme = theme;
     document
       .querySelector('meta[name="theme-color"]')
-      .setAttribute("content", theme === "dark" ? "#0c1925" : "#f1f5f8");
+      .setAttribute("content", theme === "dark" ? "#060d18" : "#eef2f6");
   }, [theme]);
+
+  useEffect(() => {
+    function handleKeyDown(event) {
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
+        event.preventDefault();
+        if (activePage !== "bookings") {
+          setActivePage("bookings");
+        }
+        window.setTimeout(() => {
+          searchInputRef.current?.focus();
+        }, 50);
+      } else if (event.key === "Escape") {
+        if (deletingBooking && !isDeletingBooking) {
+          setDeletingBooking(null);
+        } else if (editingBooking && !isUpdatingBooking) {
+          setEditingBooking(null);
+        } else if (showForm && !isSavingBooking) {
+          setShowForm(false);
+        } else if (isFinanceLoginOpen && !isFinanceSubmitting) {
+          setIsFinanceLoginOpen(false);
+          setPendingFinancePage(null);
+          setFinancePassword("");
+        }
+      }
+    }
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [
+    activePage,
+    deletingBooking,
+    editingBooking,
+    isDeletingBooking,
+    isFinanceLoginOpen,
+    isFinanceSubmitting,
+    isSavingBooking,
+    isUpdatingBooking,
+    showForm,
+  ]);
 
   const routeInfo = ROUTES.find((route) => route.value === selectedRoute);
   const flightDates = flightDatesInMonth(selectedMonth);
@@ -247,12 +295,27 @@ function App() {
     NAV_ITEMS.map((item) => [item.id, item.label]),
   );
   const isFlightDataPage = activePage.startsWith("flight");
-  const currentBookings = bookings.filter(
-    (booking) =>
-      booking.route === selectedRoute && booking.date === selectedDate,
+  const currentBookings = useMemo(
+    () =>
+      bookings.filter(
+        (booking) =>
+          booking.route === selectedRoute && booking.date === selectedDate,
+      ),
+    [bookings, selectedDate, selectedRoute],
   );
   // Infant tidak memakai kursi; anak dan dewasa dihitung terisi.
   const occupiedSeats = currentBookings.filter(isOccupiedSeat).length;
+  const infantCount = currentBookings.filter((b) => b.type === "infant").length;
+  const waitingCount = currentBookings.filter(
+    (b) => b.status === STATUSES[0],
+  ).length;
+  const bookedCount = currentBookings.filter(
+    (b) => b.status === STATUSES[1],
+  ).length;
+  const paidCount = currentBookings.filter(
+    (b) => b.status === STATUSES[2],
+  ).length;
+
   const bookingCountsByDate = bookings.reduce((counts, booking) => {
     if (
       booking.route === selectedRoute &&
@@ -319,6 +382,7 @@ function App() {
         Number(second.id) - Number(first.id)
       );
     });
+
   function showMessage(message) {
     setToast(message);
     window.setTimeout(() => setToast(""), 2800);
@@ -554,14 +618,24 @@ function App() {
 
   async function deleteBooking(id) {
     setDataError("");
+    setIsDeletingBooking(true);
     try {
       await apiRequest(`${BOOKINGS_ENDPOINT}?id=${id}`, { method: "DELETE" });
       setBookings((current) => current.filter((booking) => booking.id !== id));
+      setDeletingBooking(null);
       showMessage("Data pemesanan dihapus dari MySQL.");
     } catch (error) {
       setDataError(error.message);
+    } finally {
+      setIsDeletingBooking(false);
     }
   }
+
+  const remainingSeats = Math.max(BOOKING_LIMIT - occupiedSeats, 0);
+  const loadFactorPct = Math.min(
+    Math.round((occupiedSeats / BOOKING_LIMIT) * 100),
+    100,
+  );
 
   return (
     <div className="app-shell" data-theme={theme}>
@@ -577,20 +651,23 @@ function App() {
 
       <main className="app-main">
         <header className="app-topbar">
-          <span className="mobile-brand-mark" aria-label="Lupin Portal">
-            L
-          </span>
-          <div className="topbar-breadcrumb">
-            <span className="topbar-label">
-              {isFlightDataPage ? "Data Penerbangan" : "Data Reservasi"}
+          <div className="topbar-left">
+            <span className="mobile-brand-mark" aria-label="Lupin Portal">
+              ✈
             </span>
-            <span className="sep">/</span>
-            <strong className="topbar-title">{pageTitles[activePage]}</strong>
+            <div className="topbar-breadcrumb">
+              <span className="topbar-label">
+                {isFlightDataPage ? "LAPORAN & KEUANGAN" : "FLIGHT OPERATIONS"}
+              </span>
+              <span className="sep">/</span>
+              <strong className="topbar-title">{pageTitles[activePage]}</strong>
+            </div>
           </div>
           <div className="topbar-status">
-            <span className="topbar-dot"></span>
-            <span className="topbar-text">Semua perubahan tersimpan</span>
-            <span className="topbar-divider"></span>
+            <div className="topbar-sync-badge">
+              <span className="topbar-dot"></span>
+              <span className="topbar-text">Database Sinkron</span>
+            </div>
             <span className="topbar-date">{dateLabel(localDateISO())}</span>
             <button
               className="theme-toggle"
@@ -599,9 +676,11 @@ function App() {
               aria-label={`Aktifkan mode ${theme === "light" ? "gelap" : "terang"}`}
               title={`Aktifkan mode ${theme === "light" ? "gelap" : "terang"}`}
             >
-              <span aria-hidden="true" className="theme-toggle-icon">{theme === "light" ? "☾" : "☼"}</span>
+              <span aria-hidden="true" className="theme-toggle-icon">
+                {theme === "light" ? "☾" : "☼"}
+              </span>
               <span className="theme-toggle-label">
-                {theme === "light" ? "Gelap" : "Terang"}
+                {theme === "light" ? "Kokpit Gelap" : "Kokpit Terang"}
               </span>
             </button>
           </div>
@@ -609,17 +688,21 @@ function App() {
 
         {isFlightDataPage && (
           <div className="flex flex-col gap-24">
-            <section className="section-header">
-              <div className="section-eyebrow">DATA PENERBANGAN</div>
-              <h1 className="section-title">{pageTitles[activePage]}</h1>
-              <p className="section-subtitle">
-                {activePage === "flightDashboard" &&
-                  "Ringkasan penerbangan bulan ini serta fee tiket dan GH empat bulan terakhir."}
-                {activePage === "flightHistory" &&
-                  "Tinjau data dan ringkasan penerbangan dari layanan data penerbangan."}
-                {activePage === "flightIncome" &&
-                  "Rincian fee tiket, penghasilan GH, dan total penghasilan dari layanan data penerbangan."}
-              </p>
+            <section className="page-hero-header">
+              <div className="section-header">
+                <div className="section-eyebrow">
+                  TELEMETRI & AKUNTANSI PENERBANGAN
+                </div>
+                <h1 className="section-title">{pageTitles[activePage]}</h1>
+                <p className="section-subtitle">
+                  {activePage === "flightDashboard" &&
+                    "Analitik performa penerbangan bulan aktif beserta komparasi fee tiket & Ground Handling 4 bulan terakhir."}
+                  {activePage === "flightHistory" &&
+                    "Log manifes kargo, bagasi, dan riwayat beban angkut pesawat per periode."}
+                  {activePage === "flightIncome" &&
+                    "Rekapitulasi tagihan fee tiket Susi Air Melonguane dan pendapatan Ground Handling."}
+                </p>
+              </div>
             </section>
             <FlightDataPages
               page={
@@ -632,147 +715,271 @@ function App() {
             />
           </div>
         )}
+
         <div className={isFlightDataPage ? "hidden" : ""}>
           <div className="ticketing-page-heading">
             <section className="section-header">
               <div className="section-eyebrow">
-                OPERASIONAL PENERBANGAN <span className="section-divider">•</span>{" "}
-                {routeInfo.value}
+                <span className="eyebrow-badge">{routeInfo.value}</span>
+                <span>{weekdayName(selectedDate).toUpperCase()}, {dateLabel(selectedDate).toUpperCase()}</span>
               </div>
               <h1 className="section-title">{pageTitles[activePage]}</h1>
               <p className="section-subtitle">
                 {activePage === "overview" &&
-                  "Pantau kuota dan status pemesanan."}
+                  "Kendali kuota kabin 12 kursi, jadwal keberangkatan aktif, dan status verifikasi tiket penumpang."}
                 {activePage === "bookings" &&
-                  "Kelola data penumpang untuk manifest penerbangan."}
+                  "Manifes penumpang terdaftar, pembaruan status pembayaran cepat, dan kontak langsung WhatsApp."}
               </p>
             </section>
-            <button
-              type="button"
-              className="btn btn-primary"
-              onClick={openBookingForm}
-            >
-              <span>+</span> Tambah pemesanan
-            </button>
+            <div className="heading-cta-group">
+              {activePage === "overview" && (
+                <button
+                  type="button"
+                  className="btn btn-outline"
+                  onClick={() => setActivePage("bookings")}
+                >
+                  Buka Manifes ({currentBookings.length})
+                </button>
+              )}
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={openBookingForm}
+              >
+                <span aria-hidden="true">+</span> Reservasi Baru
+              </button>
+            </div>
           </div>
+
+          {dataError && (
+            <div className="alert alert-error" role="alert">
+              <strong>Koneksi Data Terputus</strong>
+              <span>{dataError}</span>
+            </div>
+          )}
+
+          {/* BOARDING PASS & CABIN SEATMAP HERO */}
+          <section className="flight-banner" aria-label="Informasi penerbangan dan peta kursi">
+            <div className="boarding-pass-side">
+              <div className="boarding-pass-top">
+                <span className="boarding-airline-tag">
+                  SUSI AIR • PERINTIS DISPATCH
+                </span>
+                <span className={`boarding-status-pill ${remainingSeats === 0 ? "full" : "open"}`}>
+                  {remainingSeats === 0 ? "FULL BOOKED" : `${remainingSeats} SEAT AVAILABLE`}
+                </span>
+              </div>
+
+              <div className="flight-legs">
+                <div className="flight-leg">
+                  <span className="flight-leg-caption">ORIGIN</span>
+                  <strong className="flight-code">{routeInfo.originCode}</strong>
+                  <span className="flight-city">{routeInfo.origin}</span>
+                </div>
+
+                <div className="flight-route-visual" aria-hidden="true">
+                  <div className="route-line-track">
+                    <span className="route-node" />
+                    <span className="route-dashed" />
+                    <div className="flight-plane">
+                      <PlaneTakeoff strokeWidth={2} />
+                    </div>
+                    <span className="route-dashed" />
+                    <span className="route-node" />
+                  </div>
+                  <span className="route-aircraft-type">CESSNA 208B GRAND CARAVAN</span>
+                </div>
+
+                <div className="flight-leg flight-leg-dest">
+                  <span className="flight-leg-caption">DESTINATION</span>
+                  <strong className="flight-code">{routeInfo.destinationCode}</strong>
+                  <span className="flight-city">{routeInfo.destination}</span>
+                </div>
+              </div>
+
+              <div className="boarding-pass-meta-strip">
+                <div className="bp-meta-item">
+                  <span>TANGGAL TERBANG</span>
+                  <strong>{dateLabel(selectedDate)}</strong>
+                </div>
+                <div className="bp-meta-item">
+                  <span>HARI OPERASIONAL</span>
+                  <strong>{weekdayName(selectedDate)}</strong>
+                </div>
+                <div className="bp-meta-item">
+                  <span>LOAD FACTOR</span>
+                  <strong>{loadFactorPct}% ({occupiedSeats}/{BOOKING_LIMIT} Kursi)</strong>
+                </div>
+                <div className="bp-meta-item">
+                  <span>INFANT (NON-SEAT)</span>
+                  <strong>{infantCount} Bayi</strong>
+                </div>
+              </div>
+            </div>
+
+            <div className="flight-capacity">
+              <div className="capacity-summary">
+                <div className="capacity-total">
+                  <span className="capacity-label">KABIN PESAWAT (12 SEAT)</span>
+                  <div className="capacity-total-value">
+                    <strong>{occupiedSeats}</strong>
+                    <span>terisi</span>
+                    <span className="capacity-sep">/</span>
+                    <strong className="capacity-free-num">{remainingSeats}</strong>
+                    <span>kosong</span>
+                  </div>
+                </div>
+                <span className="cabin-Hint">Klik kursi untuk detail</span>
+              </div>
+
+              <div className="capacity-progress-track" aria-hidden="true">
+                <div
+                  className="capacity-progress-fill"
+                  style={{ width: `${loadFactorPct}%` }}
+                />
+              </div>
+
+              <div
+                className="cabin-deck-frame"
+                role="group"
+                aria-label={`${occupiedSeats} kursi terisi, ${remainingSeats} kursi tersedia dari ${BOOKING_LIMIT}`}
+              >
+                <div className="cabin-cockpit-nose" aria-hidden="true">
+                  <span>COCKPIT</span>
+                </div>
+                <div className="capacity-seats">
+                  {BOOKING_NUMBERS.map((number) => {
+                    const occupant = currentBookings.find(
+                      (b) => b.bookingNo === number && isOccupiedSeat(b),
+                    );
+                    const isFilled = Boolean(occupant) || number <= occupiedSeats;
+                    const statusTone =
+                      occupant?.status === STATUSES[2]
+                        ? "seat-paid"
+                        : occupant?.status === STATUSES[1]
+                          ? "seat-booked"
+                          : "seat-waiting";
+                    return (
+                      <button
+                        type="button"
+                        key={number}
+                        onClick={() => {
+                          if (occupant) {
+                            openEditForm(occupant);
+                          } else {
+                            openBookingForm();
+                          }
+                        }}
+                        className={`seat ${isFilled ? `seat-occupied ${statusTone}` : "seat-free"}`}
+                        title={
+                          occupant
+                            ? `Kursi ${String(number).padStart(2, "0")}: ${occupant.name} (${occupant.status}) — Klik untuk edit`
+                            : `Kursi ${String(number).padStart(2, "0")} Tersedia — Klik untuk tambah reservasi`
+                        }
+                      >
+                        <span className="seat-num">{String(number).padStart(2, "0")}</span>
+                        <span className="seat- indicator-dot" />
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="cabin-seat-legend">
+                <span><i className="seat-dot free" /> Kosong</span>
+                <span><i className="seat-dot waiting" /> Menunggu</span>
+                <span><i className="seat-dot booked" /> Dipesan</span>
+                <span><i className="seat-dot paid" /> Dibayar</span>
+              </div>
+            </div>
+          </section>
 
           {activePage === "overview" && (
             <section className="metric-grid" aria-label="Ringkasan pemesanan">
               <div className="metric-card card-hover">
                 <div className="metric-card-header">
                   <span className="metric-label">
-                    <span className="metric-label-full">Total Pemesanan</span>
+                    <span className="metric-label-full">Total Manifes</span>
                     <span className="metric-label-compact">Total</span>
                   </span>
-                  <span className="metric-icon bg-teal-light text-teal-dark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M3 9.5V7a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v2.5a2.5 2.5 0 0 0 0 5V17a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-2.5a2.5 2.5 0 0 0 0-5Z" /><path d="M12 6.5v11" strokeDasharray="2 3" /></svg></span>
+                  <span className="metric-icon bg-teal-light text-teal-dark">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <path d="M3 9.5V7a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v2.5a2.5 2.5 0 0 0 0 5V17a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-2.5a2.5 2.5 0 0 0 0-5Z" />
+                      <path d="M12 6.5v11" strokeDasharray="2 3" />
+                    </svg>
+                  </span>
                 </div>
                 <strong className="metric-value">{currentBookings.length}</strong>
                 <div className="metric-footer">
                   <span className="metric-dot bg-blue-500"></span>
-                  <span>{BOOKING_LIMIT} kuota rute ini</span>
+                  <span>
+                    {occupiedSeats} kursi + {infantCount} bayi
+                  </span>
                 </div>
               </div>
+
               <div className="metric-card card-hover">
                 <div className="metric-card-header">
                   <span className="metric-label">
-                    <span className="metric-label-full">Kursi Terisi</span>
+                    <span className="metric-label-full">Sisa Kuota Kursi</span>
                     <span className="metric-label-compact">Kursi</span>
                   </span>
-                  <span className="metric-icon bg-teal-light text-teal-dark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M6 5a2 2 0 0 1 2 2v6h7.5a2.5 2.5 0 0 1 2.5 2.5V19" /><path d="M5 19h13" /><path d="M17 8.5h1.5a1.5 1.5 0 0 1 1.5 1.5v2" /></svg></span>
+                  <span className="metric-icon bg-teal-light text-teal-dark">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <path d="M6 5a2 2 0 0 1 2 2v6h7.5a2.5 2.5 0 0 1 2.5 2.5V19" />
+                      <path d="M5 19h13" />
+                      <path d="M17 8.5h1.5a1.5 1.5 0 0 1 1.5 1.5v2" />
+                    </svg>
+                  </span>
                 </div>
-                <strong className="metric-value">{occupiedSeats}</strong>
+                <strong className="metric-value">{remainingSeats}</strong>
                 <div className="metric-footer">
                   <span className="metric-dot bg-green-500"></span>
-                  <span>{Math.max(BOOKING_LIMIT - occupiedSeats, 0)} tersedia</span>
+                  <span>dari {BOOKING_LIMIT} kapasitas kursi</span>
                 </div>
               </div>
+
               <div className="metric-card card-hover">
                 <div className="metric-card-header">
                   <span className="metric-label">
                     <span className="metric-label-full">Menunggu Verifikasi</span>
                     <span className="metric-label-compact">Menunggu</span>
                   </span>
-                  <span className="metric-icon bg-amber-light text-amber-700"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8.5" /><path d="M12 7.5V12l3 2" /></svg></span>
+                  <span className="metric-icon bg-amber-light text-amber-700">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <circle cx="12" cy="12" r="8.5" />
+                      <path d="M12 7.5V12l3 2" />
+                    </svg>
+                  </span>
                 </div>
-                <strong className="metric-value">{currentBookings.filter(
-                  (b) => b.status === STATUSES[0],
-                ).length}</strong>
+                <strong className="metric-value">{waitingCount}</strong>
                 <div className="metric-footer">
                   <span className="metric-dot bg-amber-600"></span>
-                  <span>belum diverifikasi</span>
+                  <span>{bookedCount} sudah berstatus Dipesan</span>
                 </div>
               </div>
+
               <div className="metric-card card-hover">
                 <div className="metric-card-header">
                   <span className="metric-label">
-                    <span className="metric-label-full">Sudah Dibayar</span>
+                    <span className="metric-label-full">Tiket Lunas</span>
                     <span className="metric-label-compact">Dibayar</span>
                   </span>
-                  <span className="metric-icon bg-green-light text-green-700"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8.5" /><path d="m8.5 12.2 2.4 2.4 4.6-4.9" /></svg></span>
+                  <span className="metric-icon bg-green-light text-green-700">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <circle cx="12" cy="12" r="8.5" />
+                      <path d="m8.5 12.2 2.4 2.4 4.6-4.9" />
+                    </svg>
+                  </span>
                 </div>
-                <strong className="metric-value">{currentBookings.filter(
-                  (b) => b.status === STATUSES[2],
-                ).length}</strong>
+                <strong className="metric-value">{paidCount}</strong>
                 <div className="metric-footer">
                   <span className="metric-dot bg-green-500"></span>
-                  <span>status lunas</span>
+                  <span>siap cetak tiket penerbangan</span>
                 </div>
               </div>
             </section>
           )}
-
-          {dataError && (
-            <div className="alert alert-error" role="alert">
-              <strong>Data belum tersinkron</strong>
-              <span>{dataError}</span>
-            </div>
-          )}
-
-          <section className="flight-banner" aria-label="Informasi penerbangan">
-            <div className="flight-legs">
-              <div className="flight-leg">
-                <span className="flight-code">{routeInfo.originCode}</span>
-                <span className="flight-city">{routeInfo.origin}</span>
-              </div>
-              <div className="flight-plane">
-                <PlaneTakeoff aria-hidden="true" strokeWidth={1.8} />
-              </div>
-              <div className="flight-leg">
-                <span className="flight-code">{routeInfo.destinationCode}</span>
-                <span className="flight-city">{routeInfo.destination}</span>
-              </div>
-            </div>
-            <div className="flight-capacity">
-              <div className="capacity-summary">
-                <div className="capacity-total">
-                  <span className="capacity-label">KAPASITAS TERPAKAI</span>
-                  <div className="capacity-total-value">
-                    <strong>{occupiedSeats}</strong>
-                    <span>kursi terisi</span>
-                  </div>
-                </div>
-                <div className="capacity-available">
-                  <strong>
-                    {Math.max(BOOKING_LIMIT - occupiedSeats, 0)} / {BOOKING_LIMIT}
-                  </strong>
-                  <span>KURSI TERSEDIA</span>
-                </div>
-              </div>
-              <div
-                className="capacity-seats"
-                role="img"
-                aria-label={`${occupiedSeats} kursi terisi, ${Math.max(BOOKING_LIMIT - occupiedSeats, 0)} kursi tersedia dari ${BOOKING_LIMIT}`}
-              >
-                {BOOKING_NUMBERS.map((number) => (
-                  <span
-                    key={number}
-                    className={`seat ${number <= occupiedSeats ? "seat-occupied" : "seat-free"}`}
-                    aria-hidden="true"
-                  />
-                ))}
-              </div>
-            </div>
-          </section>
 
           <FlightScheduleTabs
             key={selectedMonth}
@@ -797,41 +1004,63 @@ function App() {
           />
 
           {activePage === "overview" && (
-            <section className="date-grid" aria-label="Tanggal dengan pemesanan">
-              {dashboardBookingEntries.map(([date, count]) => (
-                <button
-                  type="button"
-                  className={`date-card ${date === selectedDate ? "date-card-selected" : ""}`}
-                  key={date}
-                  onClick={() => {
-                    setSelectedDate(date);
-                    setActivePage("bookings");
-                  }}
-                  aria-pressed={date === selectedDate}
-                  aria-label={`${dateLabel(date)}, ${count} pemesanan. Pilih tanggal`}
-                >
-                  <div className="flex justify-between items-start gap-4">
-                    <span className="date-card-label">TANGGAL PENERBANGAN</span>
-                    <span className="date-card-icon" aria-hidden="true">
-                      ▦
-                    </span>
-                  </div>
-                  <strong className="date-card-value">{dateLabel(date)}</strong>
-                  <div className="date-card-footer">
-                    <span className="date-card-dot" aria-hidden="true"></span>
-                    <span>{count} pemesanan terisi</span>
-                  </div>
-                  <span className="date-card-arrow">
-                    Lihat jadwal <span aria-hidden="true">→</span>
-                  </span>
-                </button>
-              ))}
-              {dashboardBookingEntries.length === 0 && (
-                <div className="date-empty">
-                  <span className="date-empty-dot" aria-hidden="true"></span>
-                  Belum ada tanggal dengan pemesanan untuk rute dan bulan ini.
+            <section className="overview-dates-panel" aria-label="Tanggal dengan pemesanan">
+              <div className="overview-dates-header">
+                <div>
+                  <span className="section-kicker">JADWAL TERISI BULAN INI</span>
+                  <h2 className="overview-dates-title">Kartu Keberangkatan Aktif</h2>
                 </div>
-              )}
+                <span className="overview-dates-count">
+                  {dashboardBookingEntries.length} jadwal tercatat
+                </span>
+              </div>
+              <div className="date-grid">
+                {dashboardBookingEntries.map(([date, count]) => {
+                  const pct = Math.min(Math.round((count / BOOKING_LIMIT) * 100), 100);
+                  return (
+                    <button
+                      type="button"
+                      className={`date-card ${date === selectedDate ? "date-card-selected" : ""}`}
+                      key={date}
+                      onClick={() => {
+                        setSelectedDate(date);
+                        setActivePage("bookings");
+                      }}
+                      aria-pressed={date === selectedDate}
+                      aria-label={`${dateLabel(date)}, ${count} pemesanan. Pilih tanggal`}
+                    >
+                      <div className="flex justify-between items-start gap-4">
+                        <span className="date-card-label">
+                          {weekdayName(date).toUpperCase()}
+                        </span>
+                        <span className="date-card-badge">
+                          {count}/{BOOKING_LIMIT} SEAT
+                        </span>
+                      </div>
+                      <strong className="date-card-value">{dateLabel(date)}</strong>
+                      <div className="date-card-progress" aria-hidden="true">
+                        <div
+                          className="date-card-progress-fill"
+                          style={{ width: `${pct}%` }}
+                        />
+                      </div>
+                      <div className="date-card-footer">
+                        <span className="date-card-dot" aria-hidden="true"></span>
+                        <span>{BOOKING_LIMIT - count} kursi tersisa</span>
+                        <span className="date-card-arrow">
+                          Manifes <span aria-hidden="true">→</span>
+                        </span>
+                      </div>
+                    </button>
+                  );
+                })}
+                {dashboardBookingEntries.length === 0 && (
+                  <div className="date-empty">
+                    <span className="date-empty-dot" aria-hidden="true"></span>
+                    Belum ada tanggal dengan pemesanan untuk rute {routeInfo.value} pada bulan ini.
+                  </div>
+                )}
+              </div>
             </section>
           )}
 
@@ -840,20 +1069,16 @@ function App() {
               <div className="manifest-heading-row">
                 <section className="section-header">
                   <div className="section-eyebrow">
-                    MANIFEST {routeInfo.value} · {dateLabel(selectedDate).toUpperCase()}
+                    PASSENGER MANIFEST • {routeInfo.value} • {dateLabel(selectedDate).toUpperCase()}
                   </div>
                   <h2 className="section-title">
-                    Daftar penumpang <span className="table-total text-sm font-semibold text-teal-dark">{currentBookings.length}</span>
+                    Daftar Penumpang{" "}
+                    <span className="table-total text-sm font-semibold text-teal-dark">
+                      {currentBookings.length}
+                    </span>
                   </h2>
                 </section>
                 <div className="manifest-heading-actions">
-                  <button
-                    type="button"
-                    className="btn btn-primary manifest-add-button"
-                    onClick={openBookingForm}
-                  >
-                    <span aria-hidden="true">+</span> Tambah pemesanan
-                  </button>
                   <button
                     type="button"
                     className="secondary-button refresh-button"
@@ -867,163 +1092,216 @@ function App() {
                       aria-hidden="true"
                       strokeWidth={1.9}
                     />
-                    {isRefreshingBookings ? "Memuat..." : "Refresh"}
+                    {isRefreshingBookings ? "Memuat..." : "Sinkronisasi"}
                   </button>
                 </div>
               </div>
+
               <div className="table-toolbar">
                 <div className="flex gap-2 flex-wrap">
-                  {["Semua", ...STATUSES].map((status) => (
-                    <button
-                      type="button"
-                      key={status}
-                      className={`filter-btn ${filter === status ? "active" : ""}`}
-                      onClick={() => setFilter(status)}
-                    >
-                      {status === "Menunggu verifikasi"
-                        ? "Menunggu"
-                        : status === "Booked"
-                          ? "Dipesan"
-                          : status}
-                      {status === "Semua" && (
-                        <span>{currentBookings.length}</span>
-                      )}
-                    </button>
-                  ))}
+                  {["Semua", ...STATUSES].map((status) => {
+                    const statusCount =
+                      status === "Semua"
+                        ? currentBookings.length
+                        : currentBookings.filter((b) => b.status === status)
+                            .length;
+                    return (
+                      <button
+                        type="button"
+                        key={status}
+                        className={`filter-btn ${filter === status ? "active" : ""}`}
+                        onClick={() => setFilter(status)}
+                      >
+                        {status === "Menunggu verifikasi"
+                          ? "Menunggu"
+                          : status === "Booked"
+                            ? "Dipesan"
+                            : status}
+                        <span>{statusCount}</span>
+                      </button>
+                    );
+                  })}
                 </div>
                 <label className="search-box">
                   <span className="search-icon">⌕</span>
                   <input
+                    ref={searchInputRef}
                     aria-label="Cari penumpang"
-                    placeholder="Cari penumpang..."
+                    placeholder="Cari nama, WA, atau no. kursi..."
                     value={search}
                     onChange={(event) => setSearch(event.target.value)}
                     className="search-input"
                   />
+                  {search && (
+                    <button
+                      type="button"
+                      className="search-clear-btn"
+                      onClick={() => {
+                        setSearch("");
+                        searchInputRef.current?.focus();
+                      }}
+                      aria-label="Bersihkan pencarian"
+                      title="Bersihkan pencarian"
+                    >
+                      ×
+                    </button>
+                  )}
                   <span className="search-shortcut">⌘ K</span>
                 </label>
               </div>
+
               <div className="table-wrap">
                 <table className="table w-full border-collapse text-sm">
                   <thead>
                     <tr>
-                      <th>No.</th>
-                      <th>PENUMPANG</th>
-                      <th>KONTAK</th>
-                      <th>STATUS PEMESANAN</th>
-                      <th>TANGGAL PEMESANAN</th>
-                      <th></th>
+                      <th>SEAT / NO</th>
+                      <th>IDENTITAS PENUMPANG</th>
+                      <th>KONTAK WHATSAPP</th>
+                      <th>STATUS TIKET</th>
+                      <th>WAKTU RESERVASI</th>
+                      <th>AKSI</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {filteredBookings.map((booking) => (
-                      <tr key={booking.id}>
-                        <td data-label="No. pemesanan">
-                          <span className="booking-number-pill">
-                            {String(booking.bookingNo).padStart(2, "0")}
-                          </span>
-                        </td>
-                        <td data-label="Penumpang">
-                          <div className="flex flex-col gap-2">
-                            <div>
-                              <strong className="text-base font-semibold text-ink">
-                                {booking.name}
-                                {booking.type === "child" && (
-                                  <span className="passenger-badge passenger-badge-child">
-                                    (Anak-anak)
-                                  </span>
-                                )}
-                                {booking.type === "infant" && (
-                                  <span className="passenger-badge passenger-badge-infant">
-                                    (INF)
-                                  </span>
-                                )}
-                              </strong>
-                              <span className="text-xs text-muted">{booking.route}</span>
+                    {filteredBookings.map((booking) => {
+                      const initials = String(booking.name || "P")
+                        .trim()
+                        .split(/\s+/)
+                        .slice(0, 2)
+                        .map((part) => part[0])
+                        .join("");
+                      return (
+                        <tr key={booking.id}>
+                          <td data-label="No. Kursi">
+                            <span className="booking-number-pill">
+                              #{String(booking.bookingNo).padStart(2, "0")}
+                            </span>
+                          </td>
+                          <td data-label="Penumpang">
+                            <div className="passenger-cell">
+                              <span className="passenger-avatar" aria-hidden="true">
+                                {initials}
+                              </span>
+                              <div className="passenger-info">
+                                <strong className="text-base font-semibold text-ink">
+                                  {booking.name}
+                                  {booking.type === "child" && (
+                                    <span className="passenger-badge passenger-badge-child">
+                                      ANAK
+                                    </span>
+                                  )}
+                                  {booking.type === "infant" && (
+                                    <span className="passenger-badge passenger-badge-infant">
+                                      INFANT
+                                    </span>
+                                  )}
+                                  {(!booking.type || booking.type === "adult") && (
+                                    <span className="passenger-badge passenger-badge-adult">
+                                      DEWASA
+                                    </span>
+                                  )}
+                                </strong>
+                                <span className="text-xs text-muted">
+                                  Sektor {booking.route} • {dateLabel(booking.date)}
+                                </span>
+                              </div>
                             </div>
-                          </div>
-                        </td>
-                        <td data-label="Kontak">
-                          <span>{booking.phone}</span>
-                        </td>
-                        <td data-label="Status pemesanan">
-                          <label
-                            className={`status-label ${booking.status === STATUSES[0] ? "status-waiting" : booking.status === STATUSES[1] ? "status-verified" : "status-issued"} cursor-pointer`}
-                          >
-                            <span className="status-dot"></span>
-                            <select
-                              aria-label={`Status ${booking.name}`}
-                              value={booking.status}
-                              onChange={(event) =>
-                                updateStatus(booking.id, event.target.value)
-                              }
-                              className="bg-transparent border-none text-inherit font-inherit text-xs cursor-pointer appearance-none p-0 m-0 w-full"
+                          </td>
+                          <td data-label="Kontak">
+                            <a
+                              href={`https://wa.me/${String(booking.phone || "").replace(/\D/g, "").replace(/^0/, "62")}`}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="contact-link"
+                              title={`Hubungi ${booking.name} via WhatsApp`}
                             >
-                              {STATUSES.map((status) => (
-                                <option key={status} value={status}>
-                                  {status === "Booked" ? "Dipesan" : status}
-                                </option>
-                              ))}
-                            </select>
-                            <span className="select-chevron text-xs text-muted pointer-events-none">⌄</span>
-                          </label>
-                        </td>
-                        <td data-label="Tanggal pemesanan">
-                          <span className="text-base font-semibold text-ink block">
-                            {dateLabel(
-                              booking.bookingDate || booking.createdAt,
-                            )}
-                          </span>
-                          <small className="text-xs text-muted">{timeLabel(booking.bookingAt)}</small>
-                        </td>
-                        <td className="text-right">
-                          <div className="booking-actions">
-                            <button
-                              type="button"
-                              title={`Edit data ${booking.name}`}
-                              aria-label={`Edit data ${booking.name}`}
-                              onClick={() => openEditForm(booking)}
-                              className="btn-icon btn-icon-edit"
+                              <span className="wa-dot" aria-hidden="true" />
+                              <span>{booking.phone}</span>
+                            </a>
+                          </td>
+                          <td data-label="Status pemesanan">
+                            <label
+                              className={`status-label ${booking.status === STATUSES[0] ? "status-waiting" : booking.status === STATUSES[1] ? "status-verified" : "status-issued"} cursor-pointer`}
                             >
-                              <svg
-                                aria-hidden="true"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke="currentColor"
-                                strokeWidth="1.7"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
+                              <span className="status-dot"></span>
+                              <select
+                                aria-label={`Status ${booking.name}`}
+                                value={booking.status}
+                                onChange={(event) =>
+                                  updateStatus(booking.id, event.target.value)
+                                }
+                                className="bg-transparent border-none text-inherit font-inherit text-xs cursor-pointer appearance-none p-0 m-0 w-full"
                               >
-                                <path d="m15 5 4 4" />
-                                <path d="M4 20h4l11-11a2.1 2.1 0 0 0-4-4L4 16v4Z" />
-                              </svg>
-                            </button>
-                            <button
-                              type="button"
-                              title={`Hapus data ${booking.name}`}
-                              aria-label={`Hapus data ${booking.name}`}
-                              onClick={() => deleteBooking(booking.id)}
-                              className="btn-icon btn-icon-delete"
-                            >
-                              <svg
-                                aria-hidden="true"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke="currentColor"
-                                strokeWidth="1.7"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
+                                {STATUSES.map((status) => (
+                                  <option key={status} value={status}>
+                                    {status === "Booked" ? "Dipesan" : status}
+                                  </option>
+                                ))}
+                              </select>
+                              <span className="select-chevron text-xs text-muted pointer-events-none">
+                                ⌄
+                              </span>
+                            </label>
+                          </td>
+                          <td data-label="Tanggal pemesanan">
+                            <span className="text-base font-semibold text-ink block">
+                              {dateLabel(
+                                booking.bookingDate || booking.createdAt,
+                              )}
+                            </span>
+                            <small className="text-xs text-muted">
+                              Pukul {timeLabel(booking.bookingAt)}
+                            </small>
+                          </td>
+                          <td className="text-right">
+                            <div className="booking-actions">
+                              <button
+                                type="button"
+                                title={`Edit data ${booking.name}`}
+                                aria-label={`Edit data ${booking.name}`}
+                                onClick={() => openEditForm(booking)}
+                                className="btn-icon btn-icon-edit"
                               >
-                                <path d="M3 6h18" />
-                                <path d="M8 6V4h8v2" />
-                                <path d="m19 6-1 14H6L5 6" />
-                                <path d="M10 11v5M14 11v5" />
-                              </svg>
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
+                                <svg
+                                  aria-hidden="true"
+                                  viewBox="0 0 24 24"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  strokeWidth="1.7"
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                >
+                                  <path d="m15 5 4 4" />
+                                  <path d="M4 20h4l11-11a2.1 2.1 0 0 0-4-4L4 16v4Z" />
+                                </svg>
+                              </button>
+                              <button
+                                type="button"
+                                title={`Hapus data ${booking.name}`}
+                                aria-label={`Hapus data ${booking.name}`}
+                                onClick={() => setDeletingBooking(booking)}
+                                className="btn-icon btn-icon-delete"
+                              >
+                                <svg
+                                  aria-hidden="true"
+                                  viewBox="0 0 24 24"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  strokeWidth="1.7"
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                >
+                                  <path d="M3 6h18" />
+                                  <path d="M8 6V4h8v2" />
+                                  <path d="m19 6-1 14H6L5 6" />
+                                  <path d="M10 11v5M14 11v5" />
+                                </svg>
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
                     {filteredBookings.length === 0 && (
                       <tr className="empty-row">
                         <td className="empty-state" colSpan="6">
@@ -1043,13 +1321,13 @@ function App() {
                             </span>
                             <strong className="text-base text-ink block">
                               {isLoadingBookings
-                                ? "Memuat data dari MySQL..."
-                                : "Belum ada data yang cocok"}
+                                ? "Memuat manifes dari MySQL..."
+                                : "Manifes masih kosong atau tidak cocok"}
                             </strong>
                             <span className="text-sm">
                               {isLoadingBookings
-                                ? "Manifest penerbangan sedang dimuat."
-                                : "Coba ubah pencarian atau filter status."}
+                                ? "Sedang mengambil data penumpang terbaru."
+                                : "Tambahkan reservasi baru atau ubah filter pencarian di atas."}
                             </span>
                           </div>
                         </td>
@@ -1058,17 +1336,28 @@ function App() {
                   </tbody>
                 </table>
               </div>
-              <footer className="flex justify-between items-center text-sm text-muted mt-12">
+              <footer className="manifest-footer">
                 <span>
                   Menampilkan <strong className="text-ink">{filteredBookings.length}</strong> dari{" "}
-                  <strong className="text-ink">{currentBookings.length}</strong> pemesanan
+                  <strong className="text-ink">{currentBookings.length}</strong> penumpang terdaftar
                 </span>
                 <div className="capacity-legend">
                   <span className="flex items-center gap-2 text-xs">
-                    <span className="legend-dot" style={{ backgroundColor: "var(--sf-surface-hover)", border: "1px solid var(--sf-line)" }}></span>Nomor tersedia
+                    <span
+                      className="legend-dot"
+                      style={{
+                        backgroundColor: "var(--sf-surface-hover)",
+                        border: "1px solid var(--sf-line)",
+                      }}
+                    ></span>
+                    Kursi kosong ({remainingSeats})
                   </span>
                   <span className="flex items-center gap-2 text-xs">
-                    <span className="legend-dot" style={{ backgroundColor: "var(--sf-teal)" }}></span>Nomor digunakan
+                    <span
+                      className="legend-dot"
+                      style={{ backgroundColor: "var(--sf-teal)" }}
+                    ></span>
+                    Kursi terisi ({occupiedSeats})
                   </span>
                 </div>
               </footer>
@@ -1092,10 +1381,10 @@ function App() {
           >
             <div className="modal-heading">
               <div>
-                <span className="reservation-kicker">RESERVASI BARU</span>
-                <h2 id="form-title">Input data pemesan</h2>
+                <span className="reservation-kicker">ISSUING DESK • RESERVASI BARU</span>
+                <h2 id="form-title">Formulir Pemesanan Tiket</h2>
                 <p className="reservation-subtitle">
-                  Lengkapi data penumpang dan jadwal penerbangan untuk membuat pemesanan.
+                  Masukkan identitas penumpang sesuai KTP/KK dan pilih jadwal keberangkatan.
                 </p>
               </div>
               <button
@@ -1112,17 +1401,22 @@ function App() {
                 <div className="form-section-heading">
                   <span className="form-section-number">01</span>
                   <div>
-                    <h3>Data penumpang</h3>
-                    <p>Gunakan nama sesuai identitas dan nomor WhatsApp aktif.</p>
+                    <h3>Daftar Penumpang</h3>
+                    <p>Gunakan nama lengkap sesuai identitas resmi dan nomor WhatsApp aktif.</p>
                   </div>
                   <span className="form-section-count">
-                    {form.passengers.length} penumpang
+                    {form.passengers.length} PAX
                   </span>
                 </div>
                 <div className="passenger-list">
                   {form.passengers.map((passenger, index) => (
                     <fieldset className="passenger-card" key={index}>
-                      <legend>Penumpang {String(index + 1).padStart(2, "0")}</legend>
+                      <legend>
+                        PAX #{String(index + 1).padStart(2, "0")}
+                        {formBookingNumbers[index]
+                          ? ` • SEAT ${String(formBookingNumbers[index]).padStart(2, "0")}`
+                          : ""}
+                      </legend>
                       <label>
                         Nama lengkap
                         <input
@@ -1130,7 +1424,7 @@ function App() {
                           required
                           autoFocus={index === 0}
                           autoComplete="name"
-                          placeholder="Sesuai kartu identitas"
+                          placeholder="Sesuai KTP / Paspor"
                           value={passenger.name}
                           onChange={(event) =>
                             setForm((current) => ({
@@ -1176,7 +1470,7 @@ function App() {
                         />
                       </label>
                       <label>
-                        Tipe penumpang
+                        Kategori PAX
                         <select
                           className="form-control"
                           value={passenger.type || "adult"}
@@ -1195,9 +1489,9 @@ function App() {
                             }))
                           }
                         >
-                          <option value="adult">Dewasa</option>
-                          <option value="child">Anak-anak</option>
-                          <option value="infant">Bayi</option>
+                          <option value="adult">Dewasa (Adult)</option>
+                          <option value="child">Anak-anak (Child)</option>
+                          <option value="infant">Bayi (Infant - Non Seat)</option>
                         </select>
                       </label>
                       {form.passengers.length > 1 && (
@@ -1237,10 +1531,10 @@ function App() {
                       }))
                     }
                   >
-                    <span aria-hidden="true">+</span> Tambah penumpang
+                    <span aria-hidden="true">+</span> Tambah Penumpang Lain
                   </button>
                   <span className="passenger-capacity-hint">
-                    Sisa kuota: {availableBookingNumbers.length} penumpang
+                    Sisa kuota jadwal ini: <strong>{availableBookingNumbers.length} nomor</strong>
                   </span>
                 </div>
               </section>
@@ -1248,8 +1542,8 @@ function App() {
                 <div className="form-section-heading">
                   <span className="form-section-number">02</span>
                   <div>
-                    <h3>Detail penerbangan</h3>
-                    <p>Pilih rute dan tanggal sesuai jadwal operasional.</p>
+                    <h3>Sektor & Tanggal Penerbangan</h3>
+                    <p>Pilih rute dan tanggal sesuai jadwal operasional Senin, Rabu, atau Sabtu.</p>
                   </div>
                 </div>
                 <div className="booking-details-grid">
@@ -1289,18 +1583,40 @@ function App() {
                       }}
                       className="form-control"
                     />
+                    <div
+                      className="quick-date-chips"
+                      role="group"
+                      aria-label="Pilih cepat tanggal jadwal bulan ini"
+                    >
+                      {flightDatesInMonth(form.date.slice(0, 7))
+                        .slice(0, 6)
+                        .map((d) => (
+                          <button
+                            key={d}
+                            type="button"
+                            className={`quick-date-chip ${form.date === d ? "active" : ""}`}
+                            onClick={() => setForm({ ...form, date: d })}
+                          >
+                            {new Intl.DateTimeFormat("id-ID", {
+                              weekday: "short",
+                              day: "numeric",
+                              month: "short",
+                            }).format(new Date(`${d}T00:00:00`))}
+                          </button>
+                        ))}
+                    </div>
                   </label>
                 </div>
               </section>
               <div className="booking-number-preview">
                 <div>
-                  <span className="preview-label">NOMOR URUT PEMESANAN</span>
-                  <small>Nomor dibuat otomatis saat pemesanan disimpan.</small>
+                  <span className="preview-label">ALOKASI NOMOR MANIFES / KURSI</span>
+                  <small>Dialokasikan otomatis saat reservasi disimpan ke database.</small>
                 </div>
                 <strong>
                   {formBookingNumbers.length === form.passengers.length
                     ? formBookingNumbers
-                        .map((number) => String(number).padStart(2, "0"))
+                        .map((number) => `#${String(number).padStart(2, "0")}`)
                         .join(", ")
                     : "Kuota tidak cukup"}
                 </strong>
@@ -1322,13 +1638,14 @@ function App() {
                     isSavingBooking
                   }
                 >
-                  {isSavingBooking ? "Menyimpan..." : "Simpan pemesanan"}
+                  {isSavingBooking ? "Menyimpan..." : "Simpan Reservasi"}
                 </button>
               </div>
             </form>
           </section>
         </div>
       )}
+
       {editingBooking && (
         <div
           className="modal-backdrop"
@@ -1344,8 +1661,10 @@ function App() {
           >
             <div className="modal-heading">
               <div>
-                <span className="section-kicker">EDIT DATA</span>
-                <h2 id="edit-form-title">Edit penumpang</h2>
+                <span className="section-kicker">
+                  EDIT MANIFES • SEAT #{String(editingBooking.bookingNo).padStart(2, "0")}
+                </span>
+                <h2 id="edit-form-title">Perbarui Data Penumpang</h2>
               </div>
               <button
                 type="button"
@@ -1358,7 +1677,7 @@ function App() {
             </div>
             <p className="modal-description">
               Nomor urut dan tanggal terbang tetap. Jika pindah rute, nomor urut
-              disesuaikan bila nomor saat ini sudah dipakai.
+              disesuaikan otomatis apabila nomor saat ini sudah terisi.
             </p>
             <form onSubmit={saveBookingChanges}>
               <label>
@@ -1394,7 +1713,7 @@ function App() {
                 />
               </label>
               <label>
-                Tipe Penumpang
+                Kategori Penumpang
                 <select
                   value={editForm.type || "adult"}
                   onChange={(event) =>
@@ -1405,9 +1724,9 @@ function App() {
                   }
                   className="form-control"
                 >
-                  <option value="adult">Dewasa</option>
-                  <option value="child">Anak-anak</option>
-                  <option value="infant">Bayi</option>
+                  <option value="adult">Dewasa (Adult)</option>
+                  <option value="child">Anak-anak (Child)</option>
+                  <option value="infant">Bayi (Infant - Non Seat)</option>
                 </select>
               </label>
               <label>
@@ -1444,13 +1763,81 @@ function App() {
                   className="btn btn-primary"
                   disabled={isUpdatingBooking}
                 >
-                  {isUpdatingBooking ? "Menyimpan..." : "Simpan perubahan"}
+                  {isUpdatingBooking ? "Menyimpan..." : "Simpan Perubahan"}
                 </button>
               </div>
             </form>
           </section>
         </div>
       )}
+
+      {deletingBooking && (
+        <div
+          className="modal-backdrop"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget && !isDeletingBooking) {
+              setDeletingBooking(null);
+            }
+          }}
+        >
+          <section
+            className="booking-modal confirm-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="delete-confirm-title"
+          >
+            <div className="modal-heading">
+              <div>
+                <span className="section-kicker">KONFIRMASI PENGHAPUSAN</span>
+                <h2 id="delete-confirm-title">Hapus dari Manifes?</h2>
+              </div>
+              <button
+                type="button"
+                className="close-button"
+                onClick={() => setDeletingBooking(null)}
+                disabled={isDeletingBooking}
+                aria-label="Tutup"
+              >
+                ×
+              </button>
+            </div>
+            <div className="confirm-modal-body">
+              <p className="m-0 text-sm text-muted">
+                Data penumpang berikut akan dihapus permanen dari database MySQL:
+              </p>
+              <div className="confirm-summary-card">
+                <strong>
+                  Seat #{String(deletingBooking.bookingNo).padStart(2, "0")} —{" "}
+                  {deletingBooking.name}
+                </strong>
+                <span>
+                  Sektor {deletingBooking.route} • {dateLabel(deletingBooking.date)}
+                </span>
+                <span>WhatsApp: {deletingBooking.phone}</span>
+              </div>
+              <div className="modal-actions">
+                <button
+                  type="button"
+                  className="btn btn-outline"
+                  onClick={() => setDeletingBooking(null)}
+                  disabled={isDeletingBooking}
+                >
+                  Batal
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-danger"
+                  onClick={() => deleteBooking(deletingBooking.id)}
+                  disabled={isDeletingBooking}
+                >
+                  {isDeletingBooking ? "Menghapus..." : "Ya, Hapus Permanen"}
+                </button>
+              </div>
+            </div>
+          </section>
+        </div>
+      )}
+
       {isFinanceLoginOpen && (
         <div
           className="modal-backdrop"
@@ -1470,8 +1857,8 @@ function App() {
           >
             <div className="modal-heading">
               <div>
-                <span className="section-kicker">AREA TERBATAS</span>
-                <h2 id="finance-login-title">Masuk ke Keuangan</h2>
+                <span className="section-kicker">OTORISASI KEUANGAN</span>
+                <h2 id="finance-login-title">Akses Portal Keuangan</h2>
               </div>
               <button
                 className="close-button"
@@ -1488,7 +1875,7 @@ function App() {
               </button>
             </div>
             <p className="modal-description">
-              Masuk dengan akun yang diizinkan untuk membuka data penghasilan.
+              Masukkan kredensial Keuangan untuk membuka laporan penghasilan dan rincian fee tiket.
             </p>
             {financeAuthConfigured === false && (
               <div className="finance-auth-notice" role="status">
@@ -1543,13 +1930,14 @@ function App() {
                   type="submit"
                   disabled={isFinanceSubmitting}
                 >
-                  {isFinanceSubmitting ? "Memeriksa..." : "Masuk"}
+                  {isFinanceSubmitting ? "Memverifikasi..." : "Buka Portal"}
                 </button>
               </div>
             </form>
           </section>
         </div>
       )}
+
       {toast && (
         <div className="toast-message">
           <span>✓</span>
