@@ -1454,12 +1454,11 @@ function App() {
                   </thead>
                   <tbody>
                     {filteredBookings.map((booking) => {
-                      const initials = String(booking.name || "P")
-                        .trim()
-                        .split(/\s+/)
-                        .slice(0, 2)
-                        .map((part) => part[0])
-                        .join("");
+                      const initial =
+                        String(booking.name || "P")
+                          .trim()
+                          .charAt(0)
+                          .toUpperCase() || "P";
                       return (
                         <tr key={booking.id}>
                           <td data-label="No. Kursi">
@@ -1470,7 +1469,7 @@ function App() {
                           <td data-label="Penumpang">
                             <div className="passenger-cell">
                               <span className="passenger-avatar" aria-hidden="true">
-                                {initials}
+                                {initial}
                               </span>
                               <div className="passenger-info">
                                 <strong className="text-base font-semibold text-ink">

@@ -174,7 +174,7 @@ select {
   justify-content: center;
   width: 2.35rem;
   height: 2.35rem;
-  border-radius: 0.65rem 1rem 0.65rem 1rem;
+  border-radius: 0.7rem;
   background: linear-gradient(
     135deg,
     var(--lf-terracotta),
@@ -183,7 +183,7 @@ select {
   color: #fff;
   font-weight: 800;
   font-size: 1.15rem;
-  box-shadow: 0 8px 18px rgb(38 121 168 / 26%);
+  box-shadow: 0 8px 18px rgb(13 148 136 / 26%);
 }
 
 .mobile-brand-mark {
@@ -308,15 +308,15 @@ select {
 
 .help-icon {
   display: inline-flex;
-  flex: 0 0 1.4rem;
+  flex: 0 0 1.6rem;
   align-items: center;
   justify-content: center;
-  width: 1.4rem;
-  height: 1.4rem;
-  border-radius: 50%;
-  background: rgb(38 121 168 / 22%);
-  color: #c4e7f8;
-  font-size: 0.72rem;
+  width: 1.6rem;
+  height: 1.6rem;
+  border-radius: 0.5rem;
+  background: rgb(20 184 166 / 22%);
+  color: #99f6e4;
+  font-size: 0.75rem;
   font-weight: 800;
 }
 
@@ -856,9 +856,9 @@ select {
   width: 2.4rem;
   height: 2.4rem;
   border: 1px solid rgb(255 255 255 / 14%);
-  border-radius: 50%;
+  border-radius: 0.65rem;
   background: var(--lf-navy-700);
-  color: #a9d8ef;
+  color: #99f6e4;
 }
 
 .flight-plane svg {
@@ -1066,7 +1066,7 @@ select {
   min-height: 3.9rem;
   padding: 0.55rem 0.7rem;
   border: 1px solid var(--sf-line);
-  border-radius: 0.65rem 0.95rem 0.65rem 0.95rem;
+  border-radius: 0.75rem;
   background: var(--sf-surface);
   color: var(--sf-ink);
   font-size: 0.72rem;
@@ -2265,7 +2265,7 @@ select {
   min-width: 0;
   padding: 1rem 1.05rem;
   border: 1px solid var(--sf-line);
-  border-radius: 0.75rem 1.05rem 0.75rem 1.05rem;
+  border-radius: 0.85rem;
   background: var(--sf-surface-hover);
   transition:
     border-color var(--sf-transition),
