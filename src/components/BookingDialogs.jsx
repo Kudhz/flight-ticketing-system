@@ -2,6 +2,7 @@ import {
   ROUTES,
   dateLabel,
   flightDatesInMonth,
+  formatBookingSeat,
   isFlightDate,
 } from "../utils/bookingUtils";
 
@@ -16,6 +17,11 @@ export function NewReservationDialog({
   onSubmit,
   onShowMessage,
 }) {
+  const seatedInFormCount = form.passengers.filter(
+    (passenger) => (passenger.type || "adult") !== "infant",
+  ).length;
+  const hasSeatQuota = seatedInFormCount <= availableBookingNumbers.length;
+
   return (
     <div
       className="modal-backdrop"
@@ -69,9 +75,11 @@ export function NewReservationDialog({
                 <fieldset className="passenger-card" key={index}>
                   <legend>
                     PAX #{String(index + 1).padStart(2, "0")}
-                    {formBookingNumbers[index]
-                      ? ` • SEAT ${String(formBookingNumbers[index]).padStart(2, "0")}`
-                      : ""}
+                    {formBookingNumbers[index] === "INF"
+                      ? " • NON-SEAT (INFANT)"
+                      : formBookingNumbers[index]
+                        ? ` • SEAT ${String(formBookingNumbers[index]).padStart(2, "0")}`
+                        : " • KURSI PENUH"}
                   </legend>
                   <label>
                     Nama lengkap
@@ -174,24 +182,26 @@ export function NewReservationDialog({
               <button
                 type="button"
                 className="btn btn-outline add-passenger-button"
-                disabled={
-                  form.passengers.length >= availableBookingNumbers.length
-                }
-                onClick={() =>
+                onClick={() => {
+                  const nextType =
+                    seatedInFormCount >= availableBookingNumbers.length
+                      ? "infant"
+                      : "adult";
                   setForm((current) => ({
                     ...current,
                     passengers: [
                       ...current.passengers,
-                      { name: "", phone: "", type: "adult" },
+                      { name: "", phone: "", type: nextType },
                     ],
-                  }))
-                }
+                  }));
+                }}
               >
                 <span aria-hidden="true">+</span> Tambah PAX Lain
               </button>
               <span className="passenger-capacity-hint">
-                Sisa kuota jadwal ini:{" "}
-                <strong>{availableBookingNumbers.length} nomor</strong>
+                Sisa kuota kursi:{" "}
+                <strong>{availableBookingNumbers.length} kursi</strong> (Infant
+                non-seat tetap bisa ditambah)
               </span>
             </div>
           </section>
@@ -280,11 +290,15 @@ export function NewReservationDialog({
               </small>
             </div>
             <strong>
-              {formBookingNumbers.length === form.passengers.length
+              {hasSeatQuota
                 ? formBookingNumbers
-                    .map((number) => `#${String(number).padStart(2, "0")}`)
+                    .map((number) =>
+                      number === "INF"
+                        ? "INF"
+                        : `#${String(number).padStart(2, "0")}`,
+                    )
                     .join(", ")
-                : "Kuota tidak cukup"}
+                : "Kuota kursi tidak cukup"}
             </strong>
           </div>
           <div className="modal-actions">
@@ -298,11 +312,7 @@ export function NewReservationDialog({
             <button
               type="submit"
               className="btn btn-primary"
-              disabled={
-                formBookingNumbers.length !== form.passengers.length ||
-                isLoadingBookings ||
-                isSavingBooking
-              }
+              disabled={!hasSeatQuota || isLoadingBookings || isSavingBooking}
             >
               {isSavingBooking ? "Menyimpan..." : "Simpan Reservasi"}
             </button>
@@ -340,8 +350,7 @@ export function EditPassengerDialog({
         <div className="modal-heading">
           <div>
             <span className="section-kicker">
-              EDIT MANIFES • SEAT #
-              {String(editingBooking.bookingNo).padStart(2, "0")}
+              EDIT MANIFES • {formatBookingSeat(editingBooking)}
             </span>
             <h2 id="edit-form-title">Perbarui Data & Jadwal Penumpang</h2>
           </div>

@@ -355,6 +355,127 @@ test("GET /api/bookings menghitung sisa kursi", async (t) => {
   assert.equal(noSchedule.status, "no_schedule");
 });
 
+test("POST /api/bookings tidak menghitung infant sebagai pemakai kursi 1..12", async (t) => {
+  // Simulasikan 11 penumpang dewasa (kursi 1..11) + 1 infant lama yang sempat memakai nomor 12.
+  const rows = [
+    ...Array.from({ length: 11 }, (_, index) => ({
+      id: index + 1,
+      name: `PAX ${index + 1}`,
+      phone: `0811${index}`,
+      type: "adult",
+      bookingNo: index + 1,
+      route: "MNA-IAX",
+      date: "2026-11-21",
+      status: "Booked",
+      source: "web",
+    })),
+    {
+      id: 12,
+      name: "BAYI LAMA",
+      phone: "081199",
+      type: "infant",
+      bookingNo: 12,
+      route: "MNA-IAX",
+      date: "2026-11-21",
+      status: "Booked",
+      source: "web",
+    },
+  ];
+
+  const handle = async (sql, params) => {
+    assertBound(sql, params);
+    if (/SELECT booking_no, id, passenger_type/.test(sql)) {
+      return [
+        rows.map((r) => ({
+          id: r.id,
+          booking_no: r.bookingNo,
+          passenger_type: r.type,
+        })),
+      ];
+    }
+    if (/UPDATE bookings SET booking_no/.test(sql)) {
+      const target = rows.find((r) => r.id === params.id);
+      if (target) target.bookingNo = params.bookingNo;
+      return [{ affectedRows: 1 }];
+    }
+    if (/INSERT INTO bookings/.test(sql)) {
+      const id = rows.length + 1;
+      rows.push({
+        id,
+        name: params.name,
+        phone: params.phone,
+        type: params.type,
+        bookingNo: params.bookingNo,
+        route: params.route,
+        date: params.date,
+        status: params.status,
+        source: params.source,
+      });
+      return [{ insertId: id }];
+    }
+    if (/FROM bookings WHERE id = :id/.test(sql)) {
+      const r = rows.find((item) => item.id === params.id);
+      return [
+        r
+          ? [
+              {
+                id: r.id,
+                passenger_name: r.name,
+                phone: r.phone,
+                passenger_type: r.type,
+                booking_no: r.bookingNo,
+                route_code: r.route,
+                travel_date: r.date,
+                status: r.status,
+                booking_source: r.source,
+                booking_at: "2026-11-18 13:00:00",
+              },
+            ]
+          : [],
+      ];
+    }
+    if (/LOWER\(TRIM\(passenger_name\)\)/.test(sql)) return [[]];
+    throw new Error(`Query tidak diharapkan: ${sql}`);
+  };
+
+  const connection = {
+    execute: handle,
+    beginTransaction: async () => {},
+    commit: async () => {},
+    rollback: async () => {},
+    release: () => {},
+  };
+  const bookingsPool = { execute: handle, query: handle, getConnection: async () => connection };
+  const { url, close } = await startServer({ bookingsPool });
+  t.after(close);
+
+  // Penumpang dewasa ke-12 tetap harus bisa masuk ke kursi #12 (infant lama digeser ke #13).
+  let res = await fetch(
+    `${url}/api/bookings`,
+    json({ route: "MNA-IAX", date: "2026-11-21", passengers: [{ name: "DEWASA 12", phone: "081200", type: "adult" }] }),
+  );
+  assert.equal(res.status, 201);
+  const [adult12] = await res.json();
+  assert.equal(adult12.bookingNo, 12);
+  assert.equal(rows.find((r) => r.id === 12).bookingNo, 13);
+
+  // Saat kursi 1..12 sudah penuh 12 dewasa, infant baru tetap bisa ditambahkan (mendapat #14).
+  res = await fetch(
+    `${url}/api/bookings`,
+    json({ route: "MNA-IAX", date: "2026-11-21", passengers: [{ name: "BAYI BARU", phone: "081201", type: "infant" }] }),
+  );
+  assert.equal(res.status, 201);
+  const [infant2] = await res.json();
+  assert.equal(infant2.bookingNo, 14);
+
+  // Sedangkan dewasa ke-13 harus ditolak dengan 409.
+  res = await fetch(
+    `${url}/api/bookings`,
+    json({ route: "MNA-IAX", date: "2026-11-21", passengers: [{ name: "DEWASA 13", phone: "081202", type: "adult" }] }),
+  );
+  assert.equal(res.status, 409);
+});
+
 test("API flights menyembunyikan data keuangan untuk pengguna belum login", async (t) => {
   const { url, close } = await startServer({ flightsPool: fakeFlightsPool() });
   t.after(close);

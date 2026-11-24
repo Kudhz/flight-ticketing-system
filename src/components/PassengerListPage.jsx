@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import {
   STATUSES,
   dateLabel,
+  formatBookingSeat,
   isBookingCheckedIn,
   weekdayName,
 } from "../utils/bookingUtils";
@@ -198,7 +199,7 @@ function PassengerListPage({
         )}
 
         <span className="booking-number-pill pax-desktop-only">
-          #{String(booking.bookingNo).padStart(2, "0")}
+          {formatBookingSeat(booking)}
         </span>
 
         <div className="pax-checklist-identity">

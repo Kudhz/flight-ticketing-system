@@ -1,6 +1,7 @@
 import {
   STATUSES,
   dateLabel,
+  formatBookingSeat,
   isN8nBooking,
   timeLabel,
   weekdayName,
@@ -136,7 +137,7 @@ function PassengerManifestSection({
                 <tr key={booking.id}>
                   <td data-label="No. Kursi">
                     <span className="booking-number-pill">
-                      #{String(booking.bookingNo).padStart(2, "0")}
+                      {formatBookingSeat(booking)}
                     </span>
                   </td>
                   <td data-label="Penumpang">

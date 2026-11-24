@@ -99,6 +99,11 @@ export const normalizePassengerName = (name) =>
     .trim()
     .toLocaleUpperCase("id-ID");
 
+export const formatBookingSeat = (booking) =>
+  booking?.type === "infant" || Number(booking?.bookingNo) > BOOKING_LIMIT
+    ? "INF"
+    : `#${String(booking?.bookingNo ?? "").padStart(2, "0")}`;
+
 export const isBookingCheckedIn = (booking, overrides = {}) => {
   if (booking && overrides && Object.hasOwn(overrides, booking.id)) {
     return Boolean(overrides[booking.id]);

@@ -632,15 +632,21 @@ function App() {
     (booking) => booking.route === form.route && booking.date === form.date,
   );
   const formUsedNumbers = new Set(
-    formManifest.map((booking) => booking.bookingNo),
+    formManifest
+      .filter(isOccupiedSeat)
+      .map((booking) => Number(booking.bookingNo))
+      .filter((number) => number >= 1 && number <= BOOKING_LIMIT),
   );
   const availableBookingNumbers = BOOKING_NUMBERS.filter(
     (number) => !formUsedNumbers.has(number),
   );
-  const formBookingNumbers = availableBookingNumbers.slice(
-    0,
-    form.passengers.length,
-  );
+  const formBookingNumbers = form.passengers.reduce((acc, passenger) => {
+    if ((passenger.type || "adult") === "infant") {
+      return [...acc, "INF"];
+    }
+    const usedSeatsInAcc = acc.filter((item) => item !== "INF").length;
+    return [...acc, availableBookingNumbers[usedSeatsInAcc] ?? null];
+  }, []);
   const filteredBookings = currentBookings
     .filter((booking) => {
       const isFromN8n = isN8nBooking(booking);
@@ -667,9 +673,15 @@ function App() {
   }
 
   async function copyWhatsAppManifest() {
-    const sorted = [...currentBookings].sort(
-      (a, b) => Number(a.bookingNo) - Number(b.bookingNo),
-    );
+    const sorted = [...currentBookings].sort((a, b) => {
+      const aInfant = a.type === "infant" ? 1 : 0;
+      const bInfant = b.type === "infant" ? 1 : 0;
+      return (
+        aInfant - bInfant ||
+        Number(a.bookingNo) - Number(b.bookingNo) ||
+        Number(a.id) - Number(b.id)
+      );
+    });
     const checkedCount = sorted.filter((b) =>
       isBookingCheckedIn(b, checkedInOverrides),
     ).length;
@@ -702,8 +714,12 @@ function App() {
         const checkInTag = isBookingCheckedIn(b, checkedInOverrides)
           ? " | ✅ Check-in"
           : "";
+        const seatPrefix =
+          b.type === "infant" || Number(b.bookingNo) > BOOKING_LIMIT
+            ? "INF"
+            : String(b.bookingNo).padStart(2, "0");
         lines.push(
-          `${String(b.bookingNo).padStart(2, "0")}. *${b.name}*${tag} — ${b.phone} (${statusShort}${checkInTag})`,
+          `${seatPrefix}. *${b.name}*${tag} — ${b.phone} (${statusShort}${checkInTag})`,
         );
       });
     }
@@ -865,10 +881,17 @@ function App() {
   }
 
   function openBookingForm() {
+    const defaultType = remainingSeats === 0 ? "infant" : "adult";
     setForm((current) => ({
       ...current,
       route: selectedRoute,
       date: selectedDate,
+      passengers:
+        current.passengers.length === 1 &&
+        !current.passengers[0].name &&
+        !current.passengers[0].phone
+          ? [{ name: "", phone: "", type: defaultType }]
+          : current.passengers,
     }));
     setShowForm(true);
   }
@@ -879,7 +902,10 @@ function App() {
       (booking) => booking.route === form.route && booking.date === form.date,
     );
     const usedNumbers = new Set(
-      formCurrentManifest.map((booking) => booking.bookingNo),
+      formCurrentManifest
+        .filter(isOccupiedSeat)
+        .map((booking) => Number(booking.bookingNo))
+        .filter((number) => number >= 1 && number <= BOOKING_LIMIT),
     );
     const availableNumbers = BOOKING_NUMBERS.filter(
       (number) => !usedNumbers.has(number),
@@ -889,6 +915,9 @@ function App() {
       phone: passenger.phone.trim(),
       type: passenger.type || "adult",
     }));
+    const seatedPassengersCount = passengers.filter(
+      (passenger) => passenger.type !== "infant",
+    ).length;
 
     if (!isFlightDate(form.date)) {
       showMessage("Penerbangan hanya tersedia Senin, Rabu, dan Sabtu.");
@@ -898,12 +927,17 @@ function App() {
       showMessage("Lengkapi nama dan nomor WhatsApp setiap penumpang.");
       return;
     }
-    if (passengers.length > availableNumbers.length) {
+    if (seatedPassengersCount > availableNumbers.length) {
       showMessage(
-        `Kuota tersisa hanya ${availableNumbers.length} penumpang untuk jadwal ini.`,
+        `Kuota kursi tersisa hanya ${availableNumbers.length} kursi untuk jadwal ini.`,
       );
       return;
     }
+
+    const hasLegacySeatedInfant = formCurrentManifest.some(
+      (booking) =>
+        booking.type === "infant" && Number(booking.bookingNo) <= BOOKING_LIMIT,
+    );
 
     setIsSavingBooking(true);
     isSavingBookingRef.current = true;
@@ -937,6 +971,9 @@ function App() {
         );
         return [...uniqueCreated, ...current];
       });
+      if (hasLegacySeatedInfant) {
+        fetchBookings().then(setBookings).catch(() => {});
+      }
       setShowForm(false);
       setForm((current) => ({
         ...current,

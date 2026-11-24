@@ -123,7 +123,13 @@ export function extractPassengers(body) {
     return { name, phone, type };
   });
 
-  if (passengers.length > BOOKING_LIMIT) {
+  const seatedPassengersCount = passengers.filter(
+    (passenger) => passenger.type !== "infant",
+  ).length;
+  if (
+    seatedPassengersCount > BOOKING_LIMIT ||
+    passengers.length > BOOKING_LIMIT * 2
+  ) {
     throw new InvalidInput(
       `Jumlah penumpang melebihi kapasitas maksimum ${BOOKING_LIMIT}.`,
     );
@@ -173,6 +179,62 @@ const freeNumbers = (usedNumbers) =>
   Array.from({ length: BOOKING_LIMIT }, (_, index) => index + 1).filter(
     (number) => !usedNumbers.includes(number),
   );
+
+async function allocateScheduleNumbers(
+  connection,
+  route,
+  date,
+  excludeId = null,
+) {
+  const [usedRows] =
+    excludeId === null
+      ? await connection.execute(
+          `SELECT booking_no, id, passenger_type FROM bookings
+           WHERE route_code = :route AND travel_date = :date FOR UPDATE`,
+          { route, date },
+        )
+      : await connection.execute(
+          `SELECT booking_no, id, passenger_type FROM bookings
+           WHERE route_code = :route AND travel_date = :date AND id <> :id FOR UPDATE`,
+          { route, date, id: excludeId },
+        );
+
+  const allUsed = new Set(usedRows.map((row) => Number(row.booking_no)));
+  const takeNextInfantNo = () => {
+    let candidate = BOOKING_LIMIT + 1;
+    while (allUsed.has(candidate)) candidate += 1;
+    allUsed.add(candidate);
+    return candidate;
+  };
+
+  // Bebaskan nomor kursi 1..12 jika sebelumnya sempat ditempati oleh penumpang infant.
+  for (const row of usedRows) {
+    const no = Number(row.booking_no);
+    if (
+      row.passenger_type === "infant" &&
+      row.id !== undefined &&
+      no >= 1 &&
+      no <= BOOKING_LIMIT
+    ) {
+      const nextNo = takeNextInfantNo();
+      allUsed.delete(no);
+      row.booking_no = nextNo;
+      await connection.execute(
+        `UPDATE bookings SET booking_no = :bookingNo WHERE id = :id`,
+        { bookingNo: nextNo, id: Number(row.id) },
+      );
+    }
+  }
+
+  const seatedUsed = usedRows
+    .filter((row) => (row.passenger_type || "adult") !== "infant")
+    .map((row) => Number(row.booking_no));
+
+  return {
+    availableSeats: freeNumbers(seatedUsed),
+    takeNextInfantNo,
+  };
+}
 
 export async function findAlternativeFlights(
   db,
@@ -425,20 +487,28 @@ async function createBookings(pool, passengers, route, date, source = "n8n") {
       }
     }
 
-    const [used] = await connection.execute(
-      `SELECT booking_no FROM bookings WHERE route_code = :route AND travel_date = :date FOR UPDATE`,
-      { route, date },
+    const { availableSeats, takeNextInfantNo } = await allocateScheduleNumbers(
+      connection,
+      route,
+      date,
     );
-    const available = freeNumbers(used.map((row) => Number(row.booking_no)));
-    if (passengers.length > available.length) {
+    const seatedNeeded = passengers.filter(
+      (passenger) => passenger.type !== "infant",
+    ).length;
+    if (seatedNeeded > availableSeats.length) {
       throw new HttpError(409, {
         success: false,
         error: "Kapasitas pemesanan untuk jadwal ini tidak mencukupi.",
       });
     }
 
+    let seatCursor = 0;
     const bookings = [];
-    for (const [index, passenger] of passengers.entries()) {
+    for (const passenger of passengers) {
+      const assignedNo =
+        passenger.type === "infant"
+          ? takeNextInfantNo()
+          : availableSeats[seatCursor++];
       const [result] = await connection.execute(
         `INSERT INTO bookings
            (passenger_name, phone, passenger_type, booking_no, route_code, travel_date, status, booking_source, booking_at)
@@ -447,7 +517,7 @@ async function createBookings(pool, passengers, route, date, source = "n8n") {
           name: passenger.name,
           phone: passenger.phone,
           type: passenger.type,
-          bookingNo: available[index],
+          bookingNo: assignedNo,
           route,
           date,
           status: STATUSES[0],
@@ -524,19 +594,32 @@ async function updateBooking(pool, id, body, webhookUrl) {
       throw new InvalidInput("Tidak ada perubahan data pemesanan.");
     }
 
-    if (route !== current.route || date !== current.date) {
-      const [used] = await connection.execute(
-        `SELECT booking_no FROM bookings
-         WHERE route_code = :route AND travel_date = :date AND id <> :id FOR UPDATE`,
-        { route, date, id },
-      );
-      const available = freeNumbers(used.map((row) => Number(row.booking_no)));
-      if (available.length === 0) {
-        throw new HttpError(409, {
-          error: "Kapasitas pada rute dan tanggal tujuan sudah penuh.",
-        });
+    const scheduleChanged = route !== current.route || date !== current.date;
+    const seatTypeChanged =
+      type !== current.type &&
+      (type === "infant" || current.type === "infant");
+
+    if (scheduleChanged || seatTypeChanged) {
+      const { availableSeats, takeNextInfantNo } =
+        await allocateScheduleNumbers(connection, route, date, id);
+      if (type === "infant") {
+        if (bookingNo <= BOOKING_LIMIT || scheduleChanged) {
+          bookingNo = takeNextInfantNo();
+        }
+      } else {
+        if (availableSeats.length === 0) {
+          throw new HttpError(409, {
+            error: "Kapasitas pada rute dan tanggal tujuan sudah penuh.",
+          });
+        }
+        if (
+          bookingNo < 1 ||
+          bookingNo > BOOKING_LIMIT ||
+          !availableSeats.includes(bookingNo)
+        ) {
+          bookingNo = availableSeats[0];
+        }
       }
-      if (!available.includes(bookingNo)) bookingNo = available[0];
     }
 
     await connection.execute(
