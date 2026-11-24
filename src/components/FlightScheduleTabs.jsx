@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { localDateISO } from "../utils/bookingUtils";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { BOOKING_LIMIT, dateLabel, localDateISO } from "../utils/bookingUtils";
 
 const monthLabel = (month) =>
   new Intl.DateTimeFormat("id-ID", {
@@ -7,10 +7,17 @@ const monthLabel = (month) =>
     year: "numeric",
   }).format(new Date(`${month}-01T00:00:00`));
 
-const flightDateLabel = (date) =>
+const fullFlightDateLabel = (date) =>
+  new Intl.DateTimeFormat("id-ID", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  }).format(new Date(`${date}T00:00:00`));
+
+const shortDayLabel = (date) =>
   new Intl.DateTimeFormat("id-ID", {
     weekday: "short",
-    day: "numeric",
   }).format(new Date(`${date}T00:00:00`));
 
 const MONTHS = Array.from({ length: 12 }, (_, index) => ({
@@ -20,20 +27,220 @@ const MONTHS = Array.from({ length: 12 }, (_, index) => ({
   ),
 }));
 
+const NEAR_FULL_THRESHOLD = 9;
+
+export function MobileRouteDateBar({
+  routes,
+  selectedRoute,
+  selectedDate,
+  dates,
+  bookingCounts,
+  occupiedSeats,
+  onRouteChange,
+  onDateChange,
+  onPrevMonth,
+  onNextMonth,
+}) {
+  const currentIdx = dates.indexOf(selectedDate);
+
+  const stepDate = (delta) => {
+    const nextIdx = currentIdx + delta;
+    if (nextIdx >= 0 && nextIdx < dates.length) {
+      onDateChange(dates[nextIdx]);
+    } else if (delta < 0 && onPrevMonth) {
+      onPrevMonth();
+    } else if (delta > 0 && onNextMonth) {
+      onNextMonth();
+    }
+  };
+
+  const compactDateText = new Intl.DateTimeFormat("id-ID", {
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+  }).format(new Date(`${selectedDate}T00:00:00`));
+
+  return (
+    <div
+      className="mobile-schedule-quickbar"
+      aria-label="Akses cepat rute dan tanggal"
+    >
+      <div
+        className="mobile-route-Toggle"
+        role="group"
+        aria-label="Pilih rute cepat"
+      >
+        {routes.map((route) => {
+          const isActive = route.value === selectedRoute;
+          return (
+            <button
+              key={route.value}
+              type="button"
+              className={`mobile-route-pill ${isActive ? "active" : ""}`}
+              onClick={() => onRouteChange(route.value)}
+              aria-pressed={isActive}
+            >
+              <span>{route.originCode}</span>
+              <span className="mobile-route-arrow" aria-hidden="true">
+                ✈
+              </span>
+              <span>{route.destinationCode}</span>
+            </button>
+          );
+        })}
+      </div>
+
+      <div className="mobile-date-stepper">
+        <button
+          type="button"
+          className="mobile-date-step-btn"
+          onClick={() => stepDate(-1)}
+          aria-label="Jadwal sebelumnya"
+        >
+          ‹
+        </button>
+
+        <label className="mobile-date-select-wrap">
+          <span className="mobile-date-display">
+            <strong>{compactDateText}</strong>
+            <small
+              className={`mobile-date-quota ${occupiedSeats >= BOOKING_LIMIT ? "full" : occupiedSeats >= NEAR_FULL_THRESHOLD ? "warn" : ""}`}
+            >
+              {occupiedSeats >= BOOKING_LIMIT
+                ? "FULL"
+                : `${occupiedSeats}/${BOOKING_LIMIT}`}
+            </small>
+            <span className="mobile-date-caret" aria-hidden="true">
+              ▾
+            </span>
+          </span>
+          <select
+            aria-label="Pilih cepat tanggal penerbangan"
+            value={selectedDate}
+            onChange={(e) => onDateChange(e.target.value)}
+          >
+            {dates.map((d) => {
+              const cnt = bookingCounts[d] || 0;
+              const label = new Intl.DateTimeFormat("id-ID", {
+                weekday: "short",
+                day: "2-digit",
+                month: "short",
+                year: "numeric",
+              }).format(new Date(`${d}T00:00:00`));
+              return (
+                <option key={d} value={d}>
+                  {label} — {cnt >= BOOKING_LIMIT ? "FULL" : `${cnt}/12 kursi`}
+                </option>
+              );
+            })}
+          </select>
+        </label>
+
+        <button
+          type="button"
+          className="mobile-date-step-btn"
+          onClick={() => stepDate(1)}
+          aria-label="Jadwal berikutnya"
+        >
+          ›
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function FlightScheduleTabs({
   dates,
   bookingCounts,
+  dateDetails = {},
   selectedMonth,
   selectedDate,
   routes,
   selectedRoute,
+  isModalOpen = false,
+  isActiveView = true,
   onRouteChange,
   onMonthChange,
   onYearChange,
   onDateChange,
+  onJumpNearest,
 }) {
   const [yearInput, setYearInput] = useState(selectedMonth.slice(0, 4));
+  const [hidePast, setHidePast] = useState(
+    () => window.localStorage.getItem("seatflow-hide-past-dates") === "on",
+  );
+  const tabRefs = useRef({});
   const selectedMonthNumber = selectedMonth.slice(5, 7);
+  const today = localDateISO();
+  const isCurrentMonth = selectedMonth === today.slice(0, 7);
+  const pastDatesCount = useMemo(
+    () => dates.filter((d) => d < today).length,
+    [dates, today],
+  );
+  const canHidePast =
+    isCurrentMonth && pastDatesCount > 0 && pastDatesCount < dates.length;
+  const effectiveHidePast = canHidePast && hidePast;
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(
+        "seatflow-hide-past-dates",
+        hidePast ? "on" : "off",
+      );
+    } catch {
+      // Abaikan jika localStorage penuh
+    }
+  }, [hidePast]);
+
+  const visibleDates = useMemo(
+    () =>
+      effectiveHidePast
+        ? dates.filter((d) => d >= today || d === selectedDate)
+        : dates,
+    [dates, effectiveHidePast, selectedDate, today],
+  );
+
+  useEffect(() => {
+    if (!isActiveView || isModalOpen || visibleDates.length === 0) {
+      return undefined;
+    }
+
+    function handleArrowNav(event) {
+      if (event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) {
+        return;
+      }
+      if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") {
+        return;
+      }
+      const activeTag = document.activeElement?.tagName || "";
+      if (
+        ["INPUT", "SELECT", "TEXTAREA"].includes(activeTag) ||
+        document.activeElement?.isContentEditable
+      ) {
+        return;
+      }
+
+      const currentIdx = visibleDates.indexOf(selectedDate);
+      if (currentIdx === -1) return;
+
+      const nextIdx =
+        event.key === "ArrowRight" ? currentIdx + 1 : currentIdx - 1;
+      if (nextIdx < 0 || nextIdx >= visibleDates.length) return;
+
+      event.preventDefault();
+      const targetDate = visibleDates[nextIdx];
+      onDateChange(targetDate);
+      if (
+        document.activeElement?.classList?.contains("flight-date-tab") &&
+        tabRefs.current[targetDate]
+      ) {
+        tabRefs.current[targetDate].focus();
+      }
+    }
+
+    window.addEventListener("keydown", handleArrowNav);
+    return () => window.removeEventListener("keydown", handleArrowNav);
+  }, [isActiveView, isModalOpen, onDateChange, selectedDate, visibleDates]);
 
   const stepMonth = (delta) => {
     const [yearNum, monthNum] = selectedMonth.split("-").map(Number);
@@ -51,7 +258,8 @@ function FlightScheduleTabs({
     (acc, count) => acc + count,
     0,
   );
-  const today = localDateISO();
+
+  const nearestUpcomingToday = dates.includes(today);
 
   return (
     <section className="schedule-tabs" aria-label="Pilih jadwal penerbangan">
@@ -166,35 +374,98 @@ function FlightScheduleTabs({
             <strong>Tanggal — {monthLabel(selectedMonth)}</strong>
             <span className="schedule-freq-pill">SEN • RAB • SAB</span>
           </div>
-          <span className="flight-date-heading-hint">
-            Klik tanggal untuk memuat manifes & peta kursi
-          </span>
+
+          <div className="flight-date-quick-bar">
+            {onJumpNearest && (
+              <button
+                type="button"
+                className="calendar-quick-btn primary-quick"
+                onClick={onJumpNearest}
+                title="Lompat langsung ke jadwal penerbangan aktif terdekat"
+              >
+                <span className="quick-btn-dot" aria-hidden="true" />
+                {nearestUpcomingToday ? "Hari Ini" : "Jadwal Terdekat"}
+              </button>
+            )}
+            {canHidePast && (
+              <button
+                type="button"
+                className={`calendar-quick-btn ${effectiveHidePast ? "active" : ""}`}
+                onClick={() => setHidePast((prev) => !prev)}
+                aria-pressed={effectiveHidePast}
+                title="Sembunyikan atau tampilkan jadwal yang sudah lewat pada bulan ini"
+              >
+                {effectiveHidePast
+                  ? `Tampilkan Lewat (${pastDatesCount})`
+                  : "Sembunyikan Lewat"}
+              </button>
+            )}
+          </div>
         </div>
+
         <div
           className="flight-date-tabs"
           role="group"
           aria-label={`Tanggal penerbangan ${monthLabel(selectedMonth)}`}
         >
-          {dates.map((date) => {
+          {visibleDates.map((date) => {
             const count = bookingCounts[date] || 0;
-            const fillPct = Math.min(Math.round((count / 12) * 100), 100);
-            const isFull = count >= 12;
+            const detail = dateDetails[date] || {
+              mdcSeats: 0,
+              iaxSeats: 0,
+              waitingRoute: 0,
+              waitingTotal: 0,
+            };
+            const fillPct = Math.min(
+              Math.round((count / BOOKING_LIMIT) * 100),
+              100,
+            );
+            const isFull = count >= BOOKING_LIMIT;
+            const isNearFull = !isFull && count >= NEAR_FULL_THRESHOLD;
             const isToday = date === today;
             const isPast = date < today;
             const isSelected = date === selectedDate;
+            const hasWaiting = detail.waitingRoute > 0;
+
+            const tierClass = isFull
+              ? "tier-full"
+              : isNearFull
+                ? "tier-warn"
+                : count > 0
+                  ? "tier-open"
+                  : "tier-empty";
+
+            const tooltipParts = [
+              fullFlightDateLabel(date),
+              `MNA-MDC: ${detail.mdcSeats}/${BOOKING_LIMIT} kursi`,
+              `MNA-IAX: ${detail.iaxSeats}/${BOOKING_LIMIT} kursi`,
+            ];
+            if (detail.waitingTotal > 0) {
+              tooltipParts.push(`${detail.waitingTotal} menunggu verifikasi`);
+            }
+
             return (
               <button
-                className={`flight-date-tab ${count ? "has-bookings" : ""} ${isFull ? "is-full" : ""} ${isToday ? "is-today" : ""} ${isPast ? "is-past" : ""} ${isSelected ? "selected" : ""}`}
+                ref={(el) => {
+                  if (el) tabRefs.current[date] = el;
+                }}
+                className={`flight-date-tab ${tierClass} ${isToday ? "is-today" : ""} ${isPast ? "is-past" : ""} ${isSelected ? "selected" : ""}`}
                 type="button"
                 key={date}
+                title={tooltipParts.join(" • ")}
                 aria-pressed={isSelected}
-                aria-label={`${flightDateLabel(date)}${isToday ? " (Hari ini)" : ""}${count ? `, ${count} dari 12 kursi` : ", belum ada pemesanan"}`}
+                aria-label={`${dateLabel(date)}${isToday ? " (Hari ini)" : ""}, ${count} dari ${BOOKING_LIMIT} kursi terisi${hasWaiting ? `, ${detail.waitingRoute} menunggu verifikasi` : ""}`}
                 onClick={() => onDateChange(date)}
               >
+                {hasWaiting && (
+                  <span
+                    className="date-waiting-corner"
+                    title={`${detail.waitingRoute} penumpang menunggu verifikasi`}
+                    aria-hidden="true"
+                  />
+                )}
                 <span className="date-tab-top">
-                  <span className="date-tab-day">
-                    {flightDateLabel(date).split(",")[0]}
-                  </span>
+                  <span className="date-tab-day">{shortDayLabel(date)}</span>
                   {isToday && (
                     <span
                       className="date-tab-today-dot"
@@ -204,10 +475,8 @@ function FlightScheduleTabs({
                   )}
                 </span>
                 <strong className="date-tab-num">{date.slice(-2)}</strong>
-                <span
-                  className={`date-tab-status ${count > 0 ? "filled" : ""} ${isFull ? "full" : ""}`}
-                >
-                  {isFull ? "FULL" : `${count}/12`}
+                <span className={`date-tab-status ${tierClass}`}>
+                  {isFull ? "FULL" : `${count}/${BOOKING_LIMIT}`}
                 </span>
                 <div className="date-tab-meter" aria-hidden="true">
                   <div
@@ -218,6 +487,32 @@ function FlightScheduleTabs({
               </button>
             );
           })}
+        </div>
+
+        <div
+          className="flight-calendar-legend"
+          aria-label="Keterangan warna tanggal"
+        >
+          <div className="calendar-legend-items">
+            <span>
+              <i className="cal-dot today" aria-hidden="true" /> Hari ini
+            </span>
+            <span>
+              <i className="cal-dot open" aria-hidden="true" /> Tersedia
+            </span>
+            <span>
+              <i className="cal-dot warn" aria-hidden="true" /> Hampir penuh
+            </span>
+            <span>
+              <i className="cal-dot full" aria-hidden="true" /> Penuh
+            </span>
+            <span>
+              <i className="cal-dot waiting" aria-hidden="true" /> Menunggu verifikasi
+            </span>
+          </div>
+          <span className="calendar-kbd-hint">
+            <kbd>←</kbd> <kbd>→</kbd> Pindah tanggal
+          </span>
         </div>
       </div>
     </section>

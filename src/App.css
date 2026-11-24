@@ -6244,25 +6244,72 @@ select {
   }
 }
 
-/* ---------- Clean Grid Date Picker (FlightScheduleTabs) ---------- */
+/* ---------- Rounded Date Boxes & Mobile Quick Bar (FlightScheduleTabs) ---------- */
+.mobile-schedule-quickbar {
+  display: none;
+}
+
 .flight-date-heading {
+  display: flex;
   flex-direction: row;
   align-items: center;
   justify-content: space-between;
   flex-wrap: wrap;
-  gap: 0.4rem 0.75rem;
+  gap: 0.5rem 0.85rem;
   margin-bottom: 0.85rem;
 }
 
 .flight-date-heading-main {
   display: inline-flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 0.5rem;
 }
 
-.flight-date-heading-hint {
+.flight-date-quick-bar {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.calendar-quick-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-height: 1.9rem;
+  padding: 0.25rem 0.68rem;
+  border: 1px solid var(--sf-line);
+  border-radius: 999px;
+  background: var(--sf-surface);
   color: var(--sf-muted);
-  font-size: 0.74rem;
+  font-size: 0.71rem;
+  font-weight: 680;
+  cursor: pointer;
+  transition:
+    border-color var(--sf-transition),
+    background var(--sf-transition),
+    color var(--sf-transition);
+}
+
+.calendar-quick-btn:hover {
+  border-color: var(--sf-border-focus);
+  background: var(--sf-surface-hover);
+  color: var(--sf-ink);
+}
+
+.calendar-quick-btn.primary-quick,
+.calendar-quick-btn.active {
+  border-color: color-mix(in srgb, var(--lf-terracotta) 48%, var(--sf-line));
+  background: var(--sf-teal-light);
+  color: var(--sf-teal-dark);
+}
+
+.quick-btn-dot {
+  width: 0.4rem;
+  height: 0.4rem;
+  border-radius: 50%;
+  background: #10b981;
 }
 
 .flight-date-tabs {
@@ -6283,7 +6330,7 @@ select {
   padding: 0.52rem 0.4rem 0.68rem;
   overflow: hidden;
   border: 1px solid var(--sf-line);
-  border-radius: 0.78rem;
+  border-radius: 0.85rem;
   background: var(--sf-surface);
   color: var(--sf-ink);
   cursor: pointer;
@@ -6303,28 +6350,48 @@ select {
 }
 
 .flight-date-tab.is-past:not(.selected) {
-  opacity: 0.62;
+  opacity: 0.58;
 }
 
 .flight-date-tab.is-past:not(.selected):hover {
-  opacity: 0.95;
+  opacity: 0.94;
 }
 
-.flight-date-tab.has-bookings:not(.selected) {
-  border-color: color-mix(in srgb, var(--lf-terracotta) 48%, var(--sf-line));
-  background: color-mix(in srgb, var(--sf-teal-light) 42%, var(--sf-surface));
+.flight-date-tab.tier-open:not(.selected) {
+  border-color: rgb(16 185 129 / 38%);
+  background: color-mix(in srgb, var(--sf-green-light) 34%, var(--sf-surface));
 }
 
-.flight-date-tab.is-full:not(.selected) {
-  border-color: rgb(239 68 68 / 42%);
-  background: rgb(239 68 68 / 6%);
+.flight-date-tab.tier-warn:not(.selected) {
+  border-color: rgb(245 158 11 / 48%);
+  background: color-mix(in srgb, var(--sf-amber-light) 40%, var(--sf-surface));
+}
+
+.flight-date-tab.tier-full:not(.selected) {
+  border-color: rgb(239 68 68 / 45%);
+  background: color-mix(in srgb, var(--sf-red-light) 36%, var(--sf-surface));
+}
+
+.flight-date-tab.is-today:not(.selected) {
+  box-shadow: inset 0 0 0 1px rgb(16 185 129 / 45%);
+}
+
+.date-waiting-corner {
+  position: absolute;
+  top: 0.38rem;
+  right: 0.38rem;
+  width: 0.44rem;
+  height: 0.44rem;
+  border-radius: 50%;
+  background: #f97316;
+  box-shadow: 0 0 0 2px rgb(249 115 22 / 22%);
 }
 
 .date-tab-top {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 0.28rem;
+  gap: 0.26rem;
 }
 
 .flight-date-tab .date-tab-day {
@@ -6337,8 +6404,8 @@ select {
 }
 
 .date-tab-today-dot {
-  width: 0.38rem;
-  height: 0.38rem;
+  width: 0.36rem;
+  height: 0.36rem;
   border-radius: 50%;
   background: #10b981;
   box-shadow: 0 0 0 2px rgb(16 185 129 / 25%);
@@ -6353,22 +6420,27 @@ select {
 }
 
 .date-tab-status {
-  padding: 0.08rem 0.38rem;
+  padding: 0.08rem 0.4rem;
   border-radius: 999px;
   background: var(--sf-surface-hover);
   color: var(--sf-muted);
   font-size: 0.62rem;
-  font-weight: 700;
+  font-weight: 750;
   font-variant-numeric: tabular-nums;
   line-height: 1.25;
 }
 
-.date-tab-status.filled {
-  background: var(--sf-teal-light);
-  color: var(--sf-teal-dark);
+.date-tab-status.tier-open {
+  background: var(--sf-green-light);
+  color: var(--sf-green);
 }
 
-.date-tab-status.full {
+.date-tab-status.tier-warn {
+  background: var(--sf-amber-light);
+  color: var(--lf-amber);
+}
+
+.date-tab-status.tier-full {
   background: var(--sf-red-light);
   color: var(--sf-red);
   letter-spacing: 0.04em;
@@ -6389,11 +6461,15 @@ select {
 .flight-date-tab .date-tab-meter-fill {
   height: 100%;
   border-radius: 0 999px 999px 0;
-  background: var(--lf-terracotta);
+  background: #10b981;
   transition: width 0.25s ease;
 }
 
-.flight-date-tab.is-full:not(.selected) .date-tab-meter-fill {
+.flight-date-tab.tier-warn:not(.selected) .date-tab-meter-fill {
+  background: #f59e0b;
+}
+
+.flight-date-tab.tier-full:not(.selected) .date-tab-meter-fill {
   background: #ef4444;
 }
 
@@ -6419,6 +6495,11 @@ select {
   box-shadow: 0 0 0 2px rgb(255 255 255 / 32%);
 }
 
+.flight-date-tab.selected .date-waiting-corner {
+  background: #fde047;
+  box-shadow: 0 0 0 2px rgb(253 224 71 / 35%);
+}
+
 .flight-date-tab.selected .date-tab-status {
   background: rgb(255 255 255 / 22%);
   color: #fff;
@@ -6432,19 +6513,266 @@ select {
   background: #fff;
 }
 
+.flight-calendar-legend {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.45rem 1rem;
+  margin-top: 0.75rem;
+  padding-top: 0.65rem;
+  border-top: 1px solid var(--sf-line);
+  color: var(--sf-muted);
+  font-size: 0.7rem;
+}
+
+.calendar-legend-items {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.45rem 0.85rem;
+}
+
+.calendar-legend-items span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.cal-dot {
+  display: inline-block;
+  width: 0.45rem;
+  height: 0.45rem;
+  border-radius: 50%;
+}
+
+.cal-dot.today {
+  background: #10b981;
+  box-shadow: 0 0 0 2px rgb(16 185 129 / 22%);
+}
+
+.cal-dot.open {
+  background: #10b981;
+}
+
+.cal-dot.warn {
+  background: #f59e0b;
+}
+
+.cal-dot.full {
+  background: #ef4444;
+}
+
+.cal-dot.waiting {
+  background: #f97316;
+}
+
+.calendar-kbd-hint {
+  color: var(--sf-muted);
+  font-size: 0.68rem;
+}
+
+.calendar-kbd-hint kbd {
+  display: inline-block;
+  padding: 0.05rem 0.35rem;
+  border: 1px solid var(--sf-line);
+  border-radius: 0.3rem;
+  background: var(--sf-surface-hover);
+  color: var(--sf-ink);
+  font-family: inherit;
+  font-size: 0.64rem;
+  font-weight: 700;
+}
+
 @media (max-width: 640px) {
+  /* Sticky Quick Switcher Rute & Tanggal di bagian atas layar HP */
+  .mobile-schedule-quickbar {
+    position: sticky;
+    top: 0.45rem;
+    z-index: 18;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: center;
+    gap: 0.45rem;
+    margin-bottom: 0.9rem;
+    padding: 0.4rem;
+    border: 1px solid var(--sf-line);
+    border-radius: 0.95rem;
+    background: color-mix(in srgb, var(--sf-surface) 92%, transparent);
+    backdrop-filter: blur(10px);
+    box-shadow: var(--sf-shadow-md);
+  }
+
+  .mobile-route-Toggle {
+    display: inline-grid;
+    grid-template-columns: repeat(2, auto);
+    gap: 0.2rem;
+    padding: 0.16rem;
+    border: 1px solid var(--sf-line);
+    border-radius: 0.72rem;
+    background: var(--sf-surface-hover);
+  }
+
+  .mobile-route-pill {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.18rem;
+    min-height: 2rem;
+    padding: 0.22rem 0.48rem;
+    border: 0;
+    border-radius: 0.56rem;
+    background: transparent;
+    color: var(--sf-muted);
+    font-size: 0.68rem;
+    font-weight: 800;
+    letter-spacing: 0.02em;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+
+  .mobile-route-pill.active {
+    background: var(--lf-terracotta);
+    color: #fff;
+    box-shadow: 0 2px 8px rgb(14 165 233 / 24%);
+  }
+
+  .mobile-route-arrow {
+    font-size: 0.6rem;
+    opacity: 0.85;
+  }
+
+  .mobile-date-stepper {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    min-width: 0;
+  }
+
+  .mobile-date-step-btn {
+    display: inline-flex;
+    flex: 0 0 2.05rem;
+    align-items: center;
+    justify-content: center;
+    width: 2.05rem;
+    height: 2.15rem;
+    padding: 0;
+    border: 1px solid var(--sf-line);
+    border-radius: 0.65rem;
+    background: var(--sf-surface-hover);
+    color: var(--sf-ink);
+    font-size: 1rem;
+    font-weight: 750;
+    cursor: pointer;
+  }
+
+  .mobile-date-select-wrap {
+    position: relative;
+    display: flex;
+    flex: 1 1 auto;
+    align-items: center;
+    justify-content: center;
+    min-width: 0;
+    height: 2.15rem;
+    padding: 0 0.45rem;
+    border: 1px solid var(--sf-line);
+    border-radius: 0.65rem;
+    background: var(--sf-surface);
+    cursor: pointer;
+  }
+
+  .mobile-date-display {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.3rem;
+    min-width: 0;
+    width: 100%;
+    pointer-events: none;
+  }
+
+  .mobile-date-display strong {
+    color: var(--sf-ink);
+    font-size: 0.74rem;
+    font-weight: 750;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .mobile-date-quota {
+    flex: 0 0 auto;
+    padding: 0.06rem 0.34rem;
+    border-radius: 999px;
+    background: var(--sf-teal-light);
+    color: var(--sf-teal-dark);
+    font-size: 0.6rem;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .mobile-date-quota.warn {
+    background: var(--sf-amber-light);
+    color: var(--lf-amber);
+  }
+
+  .mobile-date-quota.full {
+    background: var(--sf-red-light);
+    color: var(--sf-red);
+  }
+
+  .mobile-date-caret {
+    color: var(--sf-muted);
+    font-size: 0.65rem;
+  }
+
+  .mobile-date-select-wrap select {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    cursor: pointer;
+  }
+
+  /* Ringkaskan pemilih rute & bulan di dalam section jadwal pada tampilan HP */
+  .schedule-tabs .route-switcher-cards {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.45rem;
+  }
+
+  .schedule-tabs .route-sector-card {
+    padding: 0.55rem 0.65rem;
+  }
+
+  .schedule-tabs .route-sector-cities,
+  .schedule-tabs .deck-sub {
+    display: none;
+  }
+
+  .schedule-period-deck .schedule-period-controls {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 4.8rem auto;
+    align-items: end;
+    gap: 0.4rem;
+  }
+
   .flight-date-tabs {
     grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 0.42rem;
   }
 
   .flight-date-tab {
-    min-height: 4.25rem;
-    padding: 0.45rem 0.3rem 0.6rem;
-    border-radius: 0.7rem;
+    min-height: 4.2rem;
+    padding: 0.45rem 0.3rem 0.58rem;
+    border-radius: 0.8rem;
   }
 
   .flight-date-tab .date-tab-num {
     font-size: 1.02rem;
+  }
+
+  .calendar-kbd-hint {
+    display: none;
   }
 }

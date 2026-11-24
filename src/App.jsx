@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import AppSidebar from "./components/AppSidebar";
-import FlightScheduleTabs from "./components/FlightScheduleTabs";
+import FlightScheduleTabs, {
+  MobileRouteDateBar,
+} from "./components/FlightScheduleTabs";
 import FlightDataPages from "./components/FlightDataPages";
 import FlightDispatchBanner from "./components/FlightDispatchBanner";
 import {
@@ -625,6 +627,32 @@ function App() {
     }
     return counts;
   }, {});
+
+  const dateDetailsByDate = useMemo(() => {
+    const details = {};
+    bookings.forEach((booking) => {
+      if (!booking.date?.startsWith(`${selectedMonth}-`)) return;
+      if (!details[booking.date]) {
+        details[booking.date] = {
+          mdcSeats: 0,
+          iaxSeats: 0,
+          waitingRoute: 0,
+          waitingTotal: 0,
+        };
+      }
+      const entry = details[booking.date];
+      if (isOccupiedSeat(booking)) {
+        if (booking.route === "MNA-MDC") entry.mdcSeats += 1;
+        if (booking.route === "MNA-IAX") entry.iaxSeats += 1;
+      }
+      if (booking.status === STATUSES[0]) {
+        entry.waitingTotal += 1;
+        if (booking.route === selectedRoute) entry.waitingRoute += 1;
+      }
+    });
+    return details;
+  }, [bookings, selectedMonth, selectedRoute]);
+
   const today = localDateISO();
   const bookingDateEntries = Object.entries(bookingCountsByDate);
   const todayBookingEntries = bookingDateEntries.filter(
@@ -1170,6 +1198,37 @@ function App() {
         )}
 
         <div className={isFlightDataPage ? "hidden" : ""}>
+          <MobileRouteDateBar
+            routes={ROUTES}
+            selectedRoute={selectedRoute}
+            selectedDate={selectedDate}
+            dates={flightDates}
+            bookingCounts={bookingCountsByDate}
+            occupiedSeats={occupiedSeats}
+            onRouteChange={setSelectedRoute}
+            onDateChange={setSelectedDate}
+            onPrevMonth={() => {
+              const [y, m] = selectedMonth.split("-").map(Number);
+              const prev = new Date(y, m - 2, 1);
+              const prevMonth = `${prev.getFullYear()}-${String(prev.getMonth() + 1).padStart(2, "0")}`;
+              const prevDates = flightDatesInMonth(prevMonth);
+              setSelectedMonth(prevMonth);
+              if (prevDates.length > 0) {
+                setSelectedDate(prevDates[prevDates.length - 1]);
+              }
+            }}
+            onNextMonth={() => {
+              const [y, m] = selectedMonth.split("-").map(Number);
+              const next = new Date(y, m, 1);
+              const nextMonth = `${next.getFullYear()}-${String(next.getMonth() + 1).padStart(2, "0")}`;
+              const nextDates = flightDatesInMonth(nextMonth);
+              setSelectedMonth(nextMonth);
+              if (nextDates.length > 0) {
+                setSelectedDate(nextDates[0]);
+              }
+            }}
+          />
+
           <div className="ticketing-page-heading">
             <section className="section-header">
               <div className="section-eyebrow">
@@ -1252,10 +1311,18 @@ function App() {
             key={selectedMonth}
             dates={flightDates}
             bookingCounts={bookingCountsByDate}
+            dateDetails={dateDetailsByDate}
             selectedMonth={selectedMonth}
             selectedDate={selectedDate}
             routes={ROUTES}
             selectedRoute={selectedRoute}
+            isModalOpen={
+              Boolean(showForm) ||
+              Boolean(editingBooking) ||
+              Boolean(deletingBooking) ||
+              Boolean(isFinanceLoginOpen)
+            }
+            isActiveView={!isFlightDataPage}
             onRouteChange={setSelectedRoute}
             onMonthChange={(monthNumber) => {
               const month = `${selectedMonth.slice(0, 4)}-${monthNumber}`;
@@ -1268,6 +1335,23 @@ function App() {
               setSelectedDate(nearestFlightDateInMonth(month));
             }}
             onDateChange={setSelectedDate}
+            onJumpNearest={() => {
+              const currentMonth = today.slice(0, 7);
+              const upcomingThisMonth = flightDatesInMonth(currentMonth).find(
+                (d) => d >= today,
+              );
+              if (upcomingThisMonth) {
+                setSelectedMonth(currentMonth);
+                setSelectedDate(upcomingThisMonth);
+                return;
+              }
+              const [y, m] = currentMonth.split("-").map(Number);
+              const next = new Date(y, m, 1);
+              const nextMonth = `${next.getFullYear()}-${String(next.getMonth() + 1).padStart(2, "0")}`;
+              const nextFirst = flightDatesInMonth(nextMonth)[0];
+              setSelectedMonth(nextMonth);
+              if (nextFirst) setSelectedDate(nextFirst);
+            }}
           />
 
           {activePage === "overview" && (
