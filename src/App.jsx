@@ -953,7 +953,7 @@ function App() {
     }
   }
 
-  async function toggleCheckIn(booking) {
+  function toggleCheckIn(booking) {
     if (!booking) return;
     const nextCheckedIn = !isBookingCheckedIn(booking, checkedInOverrides);
 
@@ -969,43 +969,6 @@ function App() {
       }
       return next;
     });
-    setBookings((current) =>
-      current.map((item) =>
-        item.id === booking.id ? { ...item, checkedIn: nextCheckedIn } : item,
-      ),
-    );
-
-    try {
-      const updatedBooking = await apiRequest(
-        `${BOOKINGS_ENDPOINT}?id=${booking.id}`,
-        {
-          method: "PATCH",
-          body: JSON.stringify({ checkedIn: nextCheckedIn }),
-        },
-      );
-      if (updatedBooking && typeof updatedBooking.checkedIn === "boolean") {
-        setBookings((current) =>
-          current.map((item) =>
-            item.id === booking.id ? updatedBooking : item,
-          ),
-        );
-        setCheckedInOverrides((prev) => {
-          const next = { ...prev };
-          delete next[booking.id];
-          try {
-            window.localStorage.setItem(
-              "seatflow-checked-in-v1",
-              JSON.stringify(next),
-            );
-          } catch {
-            // Abaikan
-          }
-          return next;
-        });
-      }
-    } catch {
-      // Fallback localStorage tetap menjaga status check-in jika API server belum di-restart
-    }
   }
 
   async function updateStatus(id, status) {

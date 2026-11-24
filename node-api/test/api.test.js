@@ -355,35 +355,6 @@ test("GET /api/bookings menghitung sisa kursi", async (t) => {
   assert.equal(noSchedule.status, "no_schedule");
 });
 
-test("PATCH /api/bookings mendukung ceklis check-in penumpang", async (t) => {
-  const bookingsPool = fakeBookingsPool();
-  const { url, close } = await startServer({ bookingsPool });
-  t.after(close);
-
-  const createRes = await fetch(
-    `${url}/api/bookings`,
-    json({ route: "MNA-IAX", date: "2026-11-21", name: "Ani", phone: "0811" }),
-  );
-  const [created] = await createRes.json();
-  assert.equal(created.checkedIn, false);
-
-  const patchIn = await fetch(`${url}/api/bookings?id=${created.id}`, {
-    method: "PATCH",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ checkedIn: true }),
-  });
-  assert.equal(patchIn.status, 200);
-  assert.equal((await patchIn.json()).checkedIn, true);
-
-  const patchOut = await fetch(`${url}/api/bookings?id=${created.id}`, {
-    method: "PATCH",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ checkedIn: false }),
-  });
-  assert.equal(patchOut.status, 200);
-  assert.equal((await patchOut.json()).checkedIn, false);
-});
-
 test("API flights menyembunyikan data keuangan untuk pengguna belum login", async (t) => {
   const { url, close } = await startServer({ flightsPool: fakeFlightsPool() });
   t.after(close);

@@ -25,7 +25,8 @@ export const STATUSES = ["Menunggu verifikasi", "Booked", "Dibayar"];
 // Kapasitas yang ditampilkan pada rekomendasi jadwal alternatif.
 const ALTERNATIVE_CAPACITY = 10;
 
-const BOOKING_COLUMNS = "*";
+const BOOKING_COLUMNS =
+  "id, passenger_name, phone, passenger_type, booking_no, route_code, travel_date, status, booking_source, booking_at";
 
 const VALID_PASSENGER_TYPES = ["adult", "child", "infant"];
 const VALID_BOOKING_SOURCES = ["n8n", "web"];
@@ -43,7 +44,6 @@ export function bookingForApi(row) {
     date: String(row.travel_date),
     status: row.status,
     source: row.booking_source === "n8n" ? "n8n" : "web",
-    checkedIn: Boolean(Number(row.checked_in ?? 0)),
     createdAt: bookingAt.slice(0, 10),
     bookingDate: bookingAt.slice(0, 10),
     bookingAt,
@@ -473,8 +473,7 @@ async function updateBooking(pool, id, body, webhookUrl) {
 
     const current = bookingForApi(rows[0]);
     const has = (key) => Object.hasOwn(body, key);
-    let { name, phone, type, route, date, bookingNo, status, source, checkedIn } =
-      current;
+    let { name, phone, type, route, date, bookingNo, status, source } = current;
 
     if (has("name")) {
       name = toText(body.name).trim();
@@ -519,26 +518,8 @@ async function updateBooking(pool, id, body, webhookUrl) {
         );
       }
     }
-    if (has("checkedIn")) {
-      if (typeof body.checkedIn === "boolean") {
-        checkedIn = body.checkedIn;
-      } else if (body.checkedIn === 1 || body.checkedIn === 0) {
-        checkedIn = Boolean(body.checkedIn);
-      } else {
-        throw new InvalidInput("Status check-in harus berupa boolean.");
-      }
-    }
     if (
-      ![
-        "name",
-        "phone",
-        "type",
-        "route",
-        "date",
-        "status",
-        "source",
-        "checkedIn",
-      ].some(has)
+      !["name", "phone", "type", "route", "date", "status", "source"].some(has)
     ) {
       throw new InvalidInput("Tidak ada perubahan data pemesanan.");
     }
@@ -558,70 +539,14 @@ async function updateBooking(pool, id, body, webhookUrl) {
       if (!available.includes(bookingNo)) bookingNo = available[0];
     }
 
-    if (has("checkedIn")) {
-      try {
-        await connection.execute(
-          `UPDATE bookings
-           SET passenger_name = :name, phone = :phone, passenger_type = :type, 
-               route_code = :route, travel_date = :date, booking_no = :bookingNo,
-               status = :status, booking_source = :source, checked_in = :checkedIn
-           WHERE id = :id`,
-          {
-            name,
-            phone,
-            type,
-            route,
-            date,
-            bookingNo,
-            status,
-            source,
-            checkedIn: checkedIn ? 1 : 0,
-            id,
-          },
-        );
-      } catch (error) {
-        if (
-          error?.code === "ER_BAD_FIELD_ERROR" ||
-          /Unknown column 'checked_in'/i.test(String(error?.message || ""))
-        ) {
-          await pool
-            .execute(
-              "ALTER TABLE bookings ADD COLUMN checked_in TINYINT(1) NOT NULL DEFAULT 0",
-            )
-            .catch(() => {});
-          await connection.execute(
-            `UPDATE bookings
-             SET passenger_name = :name, phone = :phone, passenger_type = :type, 
-                 route_code = :route, travel_date = :date, booking_no = :bookingNo,
-                 status = :status, booking_source = :source, checked_in = :checkedIn
-             WHERE id = :id`,
-            {
-              name,
-              phone,
-              type,
-              route,
-              date,
-              bookingNo,
-              status,
-              source,
-              checkedIn: checkedIn ? 1 : 0,
-              id,
-            },
-          );
-        } else {
-          throw error;
-        }
-      }
-    } else {
-      await connection.execute(
-        `UPDATE bookings
-         SET passenger_name = :name, phone = :phone, passenger_type = :type, 
-             route_code = :route, travel_date = :date, booking_no = :bookingNo,
-             status = :status, booking_source = :source
-         WHERE id = :id`,
-        { name, phone, type, route, date, bookingNo, status, source, id },
-      );
-    }
+    await connection.execute(
+      `UPDATE bookings
+       SET passenger_name = :name, phone = :phone, passenger_type = :type, 
+           route_code = :route, travel_date = :date, booking_no = :bookingNo,
+           status = :status, booking_source = :source
+       WHERE id = :id`,
+      { name, phone, type, route, date, bookingNo, status, source, id },
+    );
 
     return { before: current, after: await fetchBooking(connection, id) };
   });
