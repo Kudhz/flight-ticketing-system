@@ -17,6 +17,7 @@ dist-ssr
 config.local.php
 finance-auth.local.php
 flight-pdf/
+*.sh
 
 # Editor directories and files
 .vscode/*

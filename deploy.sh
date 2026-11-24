@@ -3,6 +3,7 @@
 # Konfigurasi
 SERVER="kudh@10.3.64.137"
 PORT="${PORT:-22}"
+PASSWORD = "ikanasin"
 REMOTE_PATH="/www/wwwroot/flight-ticketing-system/"
 LOCAL_DIST="dist/"
 SSH_KEY="$HOME/.ssh/github_actions_flight_ticketing"

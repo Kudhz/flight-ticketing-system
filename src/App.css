@@ -6243,3 +6243,208 @@ select {
     width: 100%;
   }
 }
+
+/* ---------- Clean Grid Date Picker (FlightScheduleTabs) ---------- */
+.flight-date-heading {
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.4rem 0.75rem;
+  margin-bottom: 0.85rem;
+}
+
+.flight-date-heading-main {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.flight-date-heading-hint {
+  color: var(--sf-muted);
+  font-size: 0.74rem;
+}
+
+.flight-date-tabs {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(4.85rem, 1fr));
+  gap: 0.5rem;
+}
+
+.flight-date-tab {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.16rem;
+  min-width: 0;
+  min-height: 4.55rem;
+  padding: 0.52rem 0.4rem 0.68rem;
+  overflow: hidden;
+  border: 1px solid var(--sf-line);
+  border-radius: 0.78rem;
+  background: var(--sf-surface);
+  color: var(--sf-ink);
+  cursor: pointer;
+  transition:
+    border-color var(--sf-transition),
+    background var(--sf-transition),
+    box-shadow var(--sf-transition),
+    transform var(--sf-transition),
+    opacity var(--sf-transition);
+}
+
+.flight-date-tab:hover {
+  border-color: var(--sf-border-focus);
+  background: var(--sf-surface-hover);
+  transform: translateY(-1px);
+  opacity: 1;
+}
+
+.flight-date-tab.is-past:not(.selected) {
+  opacity: 0.62;
+}
+
+.flight-date-tab.is-past:not(.selected):hover {
+  opacity: 0.95;
+}
+
+.flight-date-tab.has-bookings:not(.selected) {
+  border-color: color-mix(in srgb, var(--lf-terracotta) 48%, var(--sf-line));
+  background: color-mix(in srgb, var(--sf-teal-light) 42%, var(--sf-surface));
+}
+
+.flight-date-tab.is-full:not(.selected) {
+  border-color: rgb(239 68 68 / 42%);
+  background: rgb(239 68 68 / 6%);
+}
+
+.date-tab-top {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.28rem;
+}
+
+.flight-date-tab .date-tab-day {
+  color: var(--sf-muted);
+  font-size: 0.62rem;
+  font-weight: 750;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  line-height: 1;
+}
+
+.date-tab-today-dot {
+  width: 0.38rem;
+  height: 0.38rem;
+  border-radius: 50%;
+  background: #10b981;
+  box-shadow: 0 0 0 2px rgb(16 185 129 / 25%);
+}
+
+.flight-date-tab .date-tab-num {
+  color: var(--sf-ink);
+  font-size: 1.12rem;
+  font-weight: 780;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.15;
+}
+
+.date-tab-status {
+  padding: 0.08rem 0.38rem;
+  border-radius: 999px;
+  background: var(--sf-surface-hover);
+  color: var(--sf-muted);
+  font-size: 0.62rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.25;
+}
+
+.date-tab-status.filled {
+  background: var(--sf-teal-light);
+  color: var(--sf-teal-dark);
+}
+
+.date-tab-status.full {
+  background: var(--sf-red-light);
+  color: var(--sf-red);
+  letter-spacing: 0.04em;
+}
+
+.flight-date-tab .date-tab-meter {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 0.22rem;
+  margin-top: 0;
+  border-radius: 0;
+  background: rgb(148 163 184 / 16%);
+}
+
+.flight-date-tab .date-tab-meter-fill {
+  height: 100%;
+  border-radius: 0 999px 999px 0;
+  background: var(--lf-terracotta);
+  transition: width 0.25s ease;
+}
+
+.flight-date-tab.is-full:not(.selected) .date-tab-meter-fill {
+  background: #ef4444;
+}
+
+.flight-date-tab.selected {
+  border-color: var(--lf-terracotta-strong);
+  background: linear-gradient(
+    145deg,
+    var(--lf-terracotta),
+    var(--lf-terracotta-strong)
+  );
+  color: #fff;
+  box-shadow: 0 6px 16px rgb(24 95 137 / 24%);
+  opacity: 1;
+}
+
+.flight-date-tab.selected .date-tab-day,
+.flight-date-tab.selected .date-tab-num {
+  color: #fff;
+}
+
+.flight-date-tab.selected .date-tab-today-dot {
+  background: #fff;
+  box-shadow: 0 0 0 2px rgb(255 255 255 / 32%);
+}
+
+.flight-date-tab.selected .date-tab-status {
+  background: rgb(255 255 255 / 22%);
+  color: #fff;
+}
+
+.flight-date-tab.selected .date-tab-meter {
+  background: rgb(255 255 255 / 22%);
+}
+
+.flight-date-tab.selected .date-tab-meter-fill {
+  background: #fff;
+}
+
+@media (max-width: 640px) {
+  .flight-date-tabs {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0.42rem;
+  }
+
+  .flight-date-tab {
+    min-height: 4.25rem;
+    padding: 0.45rem 0.3rem 0.6rem;
+    border-radius: 0.7rem;
+  }
+
+  .flight-date-tab .date-tab-num {
+    font-size: 1.02rem;
+  }
+}

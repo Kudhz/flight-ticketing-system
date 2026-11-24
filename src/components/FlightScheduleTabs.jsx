@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { localDateISO } from "../utils/bookingUtils";
 
 const monthLabel = (month) =>
   new Intl.DateTimeFormat("id-ID", {
@@ -50,6 +51,7 @@ function FlightScheduleTabs({
     (acc, count) => acc + count,
     0,
   );
+  const today = localDateISO();
 
   return (
     <section className="schedule-tabs" aria-label="Pilih jadwal penerbangan">
@@ -160,11 +162,13 @@ function FlightScheduleTabs({
 
       <div className="flight-date-section">
         <div className="flight-date-heading">
-          <div className="flex items-center gap-2">
+          <div className="flight-date-heading-main">
             <strong>Tanggal — {monthLabel(selectedMonth)}</strong>
             <span className="schedule-freq-pill">SEN • RAB • SAB</span>
           </div>
-          <span>Klik tanggal untuk memuat manifest dan peta kursi</span>
+          <span className="flight-date-heading-hint">
+            Klik tanggal untuk memuat manifes & peta kursi
+          </span>
         </div>
         <div
           className="flight-date-tabs"
@@ -175,28 +179,42 @@ function FlightScheduleTabs({
             const count = bookingCounts[date] || 0;
             const fillPct = Math.min(Math.round((count / 12) * 100), 100);
             const isFull = count >= 12;
+            const isToday = date === today;
+            const isPast = date < today;
+            const isSelected = date === selectedDate;
             return (
               <button
-                className={`flight-date-tab ${count ? "has-bookings" : ""} ${isFull ? "is-full" : ""} ${date === selectedDate ? "selected" : ""}`}
+                className={`flight-date-tab ${count ? "has-bookings" : ""} ${isFull ? "is-full" : ""} ${isToday ? "is-today" : ""} ${isPast ? "is-past" : ""} ${isSelected ? "selected" : ""}`}
                 type="button"
                 key={date}
-                aria-pressed={date === selectedDate}
-                aria-label={`${flightDateLabel(date)}${count ? `, ${count} pemesanan` : ""}`}
+                aria-pressed={isSelected}
+                aria-label={`${flightDateLabel(date)}${isToday ? " (Hari ini)" : ""}${count ? `, ${count} dari 12 kursi` : ", belum ada pemesanan"}`}
                 onClick={() => onDateChange(date)}
               >
-                <span className="date-tab-day">
-                  {flightDateLabel(date).split(",")[0]}
+                <span className="date-tab-top">
+                  <span className="date-tab-day">
+                    {flightDateLabel(date).split(",")[0]}
+                  </span>
+                  {isToday && (
+                    <span
+                      className="date-tab-today-dot"
+                      title="Hari ini"
+                      aria-hidden="true"
+                    />
+                  )}
                 </span>
                 <strong className="date-tab-num">{date.slice(-2)}</strong>
+                <span
+                  className={`date-tab-status ${count > 0 ? "filled" : ""} ${isFull ? "full" : ""}`}
+                >
+                  {isFull ? "FULL" : `${count}/12`}
+                </span>
                 <div className="date-tab-meter" aria-hidden="true">
                   <div
                     className="date-tab-meter-fill"
                     style={{ width: `${fillPct}%` }}
                   />
                 </div>
-                {count > 0 && (
-                  <small className="flight-date-count">{count}/12</small>
-                )}
               </button>
             );
           })}
