@@ -72,8 +72,10 @@
   --sf-shadow-md: 0 0.5rem 1rem rgb(0 0 0 / 12%);
   --sf-shadow-lg: 0 1rem 3rem rgb(0 0 0 / 17.5%);
   --sf-transition: 0.18s cubic-bezier(0.2, 0.8, 0.2, 1);
-  --lf-font-display: "Space Grotesk", "Noto Sans", "Segoe UI", system-ui, sans-serif;
-  --lf-font-body: "Space Grotesk", "Noto Sans", "Segoe UI", system-ui, sans-serif;
+  --lf-font-display:
+    "Space Grotesk", "Noto Sans", "Segoe UI", system-ui, sans-serif;
+  --lf-font-body:
+    "Space Grotesk", "Noto Sans", "Segoe UI", system-ui, sans-serif;
 }
 
 :root[data-theme="dark"] {
@@ -112,12 +114,9 @@
   --sf-sidebar-hover: #2b3035;
   --sf-sidebar-ink: #f8f9fa;
   --sf-sidebar-muted: #adb5bd;
-  --sf-shadow:
-    0 1px 3px rgb(0 0 0 / 28%),
-    0 8px 24px -4px rgb(0 0 0 / 32%);
+  --sf-shadow: 0 1px 3px rgb(0 0 0 / 28%), 0 8px 24px -4px rgb(0 0 0 / 32%);
   --sf-shadow-md:
-    0 6px 16px rgb(0 0 0 / 34%),
-    0 18px 38px -6px rgb(0 0 0 / 42%);
+    0 6px 16px rgb(0 0 0 / 34%), 0 18px 38px -6px rgb(0 0 0 / 42%);
   --sf-shadow-lg: 0 28px 66px -12px rgb(0 0 0 / 58%);
 }
 
@@ -797,8 +796,16 @@ select {
   border: 1px solid #1b3b52;
   border-radius: 1rem;
   background:
-    radial-gradient(circle 18rem at 90% -5%, rgb(45 212 191 / 22%), transparent),
-    radial-gradient(circle 22rem at 15% 110%, rgb(14 165 233 / 15%), transparent),
+    radial-gradient(
+      circle 18rem at 90% -5%,
+      rgb(45 212 191 / 22%),
+      transparent
+    ),
+    radial-gradient(
+      circle 22rem at 15% 110%,
+      rgb(14 165 233 / 15%),
+      transparent
+    ),
     linear-gradient(120deg, #0b192c, #112d46 58%, #0f4452);
   color: var(--lf-cream);
   box-shadow: var(--sf-shadow-md);
@@ -2766,7 +2773,11 @@ select {
   border: 1px solid var(--sf-line);
   border-radius: 1.15rem;
   background:
-    radial-gradient(circle 18rem at 95% 10%, rgb(14 165 233 / 10%), transparent),
+    radial-gradient(
+      circle 18rem at 95% 10%,
+      rgb(14 165 233 / 10%),
+      transparent
+    ),
     var(--sf-surface);
   box-shadow: var(--sf-shadow);
 }
@@ -3057,6 +3068,7 @@ select {
   height: 1.65rem;
   padding: 0;
   border-radius: 0.28rem;
+  -webkit-user-select: none;
   user-select: none;
 }
 
@@ -3325,7 +3337,11 @@ select {
   height: 2.3rem;
   border: 1px solid var(--sf-line);
   border-radius: 0.7rem;
-  background: linear-gradient(135deg, var(--sf-teal-light), var(--sf-surface-hover));
+  background: linear-gradient(
+    135deg,
+    var(--sf-teal-light),
+    var(--sf-surface-hover)
+  );
   color: var(--sf-teal-dark);
   font-size: 0.76rem;
   font-weight: 800;
@@ -4428,8 +4444,16 @@ select {
 .app-shell[data-theme="light"] .flight-banner {
   border-color: #b6d4fe;
   background:
-    radial-gradient(circle 19rem at 92% -10%, rgb(13 110 253 / 15%), transparent 70%),
-    radial-gradient(circle 22rem at 12% 115%, rgb(25 135 84 / 11%), transparent 70%),
+    radial-gradient(
+      circle 19rem at 92% -10%,
+      rgb(13 110 253 / 15%),
+      transparent 70%
+    ),
+    radial-gradient(
+      circle 22rem at 12% 115%,
+      rgb(25 135 84 / 11%),
+      transparent 70%
+    ),
     linear-gradient(125deg, #ffffff 0%, #f5f9ff 58%, #edf5ff 100%);
   color: #212529;
   box-shadow:
@@ -4444,7 +4468,11 @@ select {
 
 :root[data-theme="light"] .boarding-airline-tag,
 .app-shell[data-theme="light"] .boarding-airline-tag {
-  background: linear-gradient(135deg, rgb(13 110 253 / 12%), rgb(13 110 253 / 6%));
+  background: linear-gradient(
+    135deg,
+    rgb(13 110 253 / 12%),
+    rgb(13 110 253 / 6%)
+  );
   border-color: rgb(13 110 253 / 35%);
   color: #0d6efd;
   text-shadow: 0 0 10px rgb(13 110 253 / 28%);
@@ -4584,8 +4612,16 @@ select {
 .app-shell[data-theme="dark"] .flight-banner {
   border-color: rgb(45 212 191 / 32%);
   background:
-    radial-gradient(circle 19rem at 90% -8%, rgb(45 212 191 / 22%), transparent 70%),
-    radial-gradient(circle 22rem at 15% 112%, rgb(14 165 233 / 15%), transparent 70%),
+    radial-gradient(
+      circle 19rem at 90% -8%,
+      rgb(45 212 191 / 22%),
+      transparent 70%
+    ),
+    radial-gradient(
+      circle 22rem at 15% 112%,
+      rgb(14 165 233 / 15%),
+      transparent 70%
+    ),
     linear-gradient(125deg, #1d2125 0%, #212529 55%, #172b2f 100%);
   color: var(--sf-ink);
   box-shadow:
@@ -4710,7 +4746,11 @@ select {
 }
 
 .seat-occupied {
-  background: linear-gradient(135deg, var(--lf-terracotta), var(--lf-terracotta-strong));
+  background: linear-gradient(
+    135deg,
+    var(--lf-terracotta),
+    var(--lf-terracotta-strong)
+  );
   border-color: #7dd3fc;
   color: #fff;
   box-shadow: 0 3px 10px rgb(14 165 233 / 36%);
@@ -6584,30 +6624,26 @@ select {
   font-weight: 700;
 }
 
-@media (max-width: 640px) {
-  /* Sticky Quick Switcher Rute & Tanggal di bagian atas layar HP */
+@media (max-width: 1024px) {
+  /* Bar Pemilihan Cepat Rute & Tanggal tepat di bawah tombol + Tambah PAX (Tablet & Mobile) */
   .mobile-schedule-quickbar {
-    position: sticky;
-    top: 0.45rem;
-    z-index: 18;
     display: grid;
     grid-template-columns: auto minmax(0, 1fr);
     align-items: center;
-    gap: 0.45rem;
-    margin-bottom: 0.9rem;
-    padding: 0.4rem;
+    gap: 0.6rem;
+    margin: -0.25rem 0 1.15rem;
+    padding: 0.5rem 0.6rem;
     border: 1px solid var(--sf-line);
     border-radius: 0.95rem;
-    background: color-mix(in srgb, var(--sf-surface) 92%, transparent);
-    backdrop-filter: blur(10px);
-    box-shadow: var(--sf-shadow-md);
+    background: var(--sf-surface);
+    box-shadow: var(--sf-shadow);
   }
 
   .mobile-route-Toggle {
     display: inline-grid;
     grid-template-columns: repeat(2, auto);
-    gap: 0.2rem;
-    padding: 0.16rem;
+    gap: 0.25rem;
+    padding: 0.18rem;
     border: 1px solid var(--sf-line);
     border-radius: 0.72rem;
     background: var(--sf-surface-hover);
@@ -6617,18 +6653,21 @@ select {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    gap: 0.18rem;
-    min-height: 2rem;
-    padding: 0.22rem 0.48rem;
+    gap: 0.24rem;
+    min-height: 2.2rem;
+    padding: 0.28rem 0.7rem;
     border: 0;
     border-radius: 0.56rem;
     background: transparent;
     color: var(--sf-muted);
-    font-size: 0.68rem;
+    font-size: 0.74rem;
     font-weight: 800;
     letter-spacing: 0.02em;
     cursor: pointer;
     white-space: nowrap;
+    transition:
+      background var(--sf-transition),
+      color var(--sf-transition);
   }
 
   .mobile-route-pill.active {
@@ -6638,30 +6677,30 @@ select {
   }
 
   .mobile-route-arrow {
-    font-size: 0.6rem;
+    font-size: 0.65rem;
     opacity: 0.85;
   }
 
   .mobile-date-stepper {
     display: flex;
     align-items: center;
-    gap: 0.25rem;
+    gap: 0.35rem;
     min-width: 0;
   }
 
   .mobile-date-step-btn {
     display: inline-flex;
-    flex: 0 0 2.05rem;
+    flex: 0 0 2.25rem;
     align-items: center;
     justify-content: center;
-    width: 2.05rem;
-    height: 2.15rem;
+    width: 2.25rem;
+    height: 2.35rem;
     padding: 0;
     border: 1px solid var(--sf-line);
-    border-radius: 0.65rem;
+    border-radius: 0.68rem;
     background: var(--sf-surface-hover);
     color: var(--sf-ink);
-    font-size: 1rem;
+    font-size: 1.05rem;
     font-weight: 750;
     cursor: pointer;
   }
@@ -6673,11 +6712,11 @@ select {
     align-items: center;
     justify-content: center;
     min-width: 0;
-    height: 2.15rem;
-    padding: 0 0.45rem;
+    height: 2.35rem;
+    padding: 0 0.65rem;
     border: 1px solid var(--sf-line);
-    border-radius: 0.65rem;
-    background: var(--sf-surface);
+    border-radius: 0.68rem;
+    background: var(--sf-surface-hover);
     cursor: pointer;
   }
 
@@ -6685,7 +6724,7 @@ select {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    gap: 0.3rem;
+    gap: 0.4rem;
     min-width: 0;
     width: 100%;
     pointer-events: none;
@@ -6693,7 +6732,7 @@ select {
 
   .mobile-date-display strong {
     color: var(--sf-ink);
-    font-size: 0.74rem;
+    font-size: 0.8rem;
     font-weight: 750;
     white-space: nowrap;
     overflow: hidden;
@@ -6702,11 +6741,11 @@ select {
 
   .mobile-date-quota {
     flex: 0 0 auto;
-    padding: 0.06rem 0.34rem;
+    padding: 0.08rem 0.4rem;
     border-radius: 999px;
     background: var(--sf-teal-light);
     color: var(--sf-teal-dark);
-    font-size: 0.6rem;
+    font-size: 0.64rem;
     font-weight: 800;
     font-variant-numeric: tabular-nums;
   }
@@ -6723,7 +6762,7 @@ select {
 
   .mobile-date-caret {
     color: var(--sf-muted);
-    font-size: 0.65rem;
+    font-size: 0.68rem;
   }
 
   .mobile-date-select-wrap select {
@@ -6733,6 +6772,35 @@ select {
     height: 100%;
     opacity: 0;
     cursor: pointer;
+  }
+}
+
+@media (max-width: 640px) {
+  .mobile-schedule-quickbar {
+    gap: 0.42rem;
+    margin: -0.15rem 0 1rem;
+    padding: 0.4rem;
+  }
+
+  .mobile-route-pill {
+    min-height: 2rem;
+    padding: 0.22rem 0.48rem;
+    font-size: 0.68rem;
+  }
+
+  .mobile-date-step-btn {
+    flex: 0 0 2.05rem;
+    width: 2.05rem;
+    height: 2.15rem;
+  }
+
+  .mobile-date-select-wrap {
+    height: 2.15rem;
+    padding: 0 0.45rem;
+  }
+
+  .mobile-date-display strong {
+    font-size: 0.74rem;
   }
 
   /* Ringkaskan pemilih rute & bulan di dalam section jadwal pada tampilan HP */

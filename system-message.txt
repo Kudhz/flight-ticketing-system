@@ -593,7 +593,7 @@ Contoh penumpang yang jenisnya belum diketahui:
   "reply": "Data penumpang sudah lengkap. Menyiapkan ringkasan pemesanan Anda."
 }
 
-jika data penumpang sudah lengkap langsung berikan ringkasan final dan langsungminta konfirmasi untuk pemesanan
+jika data penumpang sudah lengkap langsung berikan ringkasan final dan langsung minta konfirmasi untuk pemesanan
 ### CONTOH 5 — PELANGGAN MENANYAKAN BULAN BERIKUTNYA
 
 {

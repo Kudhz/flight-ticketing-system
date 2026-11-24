@@ -1198,37 +1198,6 @@ function App() {
         )}
 
         <div className={isFlightDataPage ? "hidden" : ""}>
-          <MobileRouteDateBar
-            routes={ROUTES}
-            selectedRoute={selectedRoute}
-            selectedDate={selectedDate}
-            dates={flightDates}
-            bookingCounts={bookingCountsByDate}
-            occupiedSeats={occupiedSeats}
-            onRouteChange={setSelectedRoute}
-            onDateChange={setSelectedDate}
-            onPrevMonth={() => {
-              const [y, m] = selectedMonth.split("-").map(Number);
-              const prev = new Date(y, m - 2, 1);
-              const prevMonth = `${prev.getFullYear()}-${String(prev.getMonth() + 1).padStart(2, "0")}`;
-              const prevDates = flightDatesInMonth(prevMonth);
-              setSelectedMonth(prevMonth);
-              if (prevDates.length > 0) {
-                setSelectedDate(prevDates[prevDates.length - 1]);
-              }
-            }}
-            onNextMonth={() => {
-              const [y, m] = selectedMonth.split("-").map(Number);
-              const next = new Date(y, m, 1);
-              const nextMonth = `${next.getFullYear()}-${String(next.getMonth() + 1).padStart(2, "0")}`;
-              const nextDates = flightDatesInMonth(nextMonth);
-              setSelectedMonth(nextMonth);
-              if (nextDates.length > 0) {
-                setSelectedDate(nextDates[0]);
-              }
-            }}
-          />
-
           <div className="ticketing-page-heading">
             <section className="section-header">
               <div className="section-eyebrow">
@@ -1264,6 +1233,37 @@ function App() {
               </button>
             </div>
           </div>
+
+          <MobileRouteDateBar
+            routes={ROUTES}
+            selectedRoute={selectedRoute}
+            selectedDate={selectedDate}
+            dates={flightDates}
+            bookingCounts={bookingCountsByDate}
+            occupiedSeats={occupiedSeats}
+            onRouteChange={setSelectedRoute}
+            onDateChange={setSelectedDate}
+            onPrevMonth={() => {
+              const [y, m] = selectedMonth.split("-").map(Number);
+              const prev = new Date(y, m - 2, 1);
+              const prevMonth = `${prev.getFullYear()}-${String(prev.getMonth() + 1).padStart(2, "0")}`;
+              const prevDates = flightDatesInMonth(prevMonth);
+              setSelectedMonth(prevMonth);
+              if (prevDates.length > 0) {
+                setSelectedDate(prevDates[prevDates.length - 1]);
+              }
+            }}
+            onNextMonth={() => {
+              const [y, m] = selectedMonth.split("-").map(Number);
+              const next = new Date(y, m, 1);
+              const nextMonth = `${next.getFullYear()}-${String(next.getMonth() + 1).padStart(2, "0")}`;
+              const nextDates = flightDatesInMonth(nextMonth);
+              setSelectedMonth(nextMonth);
+              if (nextDates.length > 0) {
+                setSelectedDate(nextDates[0]);
+              }
+            }}
+          />
 
           {dataError && (
             <div className="alert alert-error" role="alert">
