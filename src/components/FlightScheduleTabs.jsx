@@ -95,7 +95,9 @@ function FlightScheduleTabs({
         <div className="schedule-period-deck">
           <div className="schedule-deck-header">
             <span className="deck-tag">PERIODE OPERASIONAL</span>
-            <span className="deck-sub">{totalMonthPax} kursi terpesan bulan ini</span>
+            <span className="deck-sub">
+              {totalMonthPax} kursi terpesan bulan ini
+            </span>
           </div>
           <div className="schedule-period-controls">
             <label className="schedule-period-field">
@@ -122,7 +124,9 @@ function FlightScheduleTabs({
                 pattern="[0-9]{4}"
                 value={yearInput}
                 onChange={(event) => {
-                  const year = event.target.value.replace(/\D/g, "").slice(0, 4);
+                  const year = event.target.value
+                    .replace(/\D/g, "")
+                    .slice(0, 4);
                   setYearInput(year);
                   if (year.length === 4 && Number(year) >= 1900) {
                     onYearChange(year);
@@ -157,7 +161,7 @@ function FlightScheduleTabs({
       <div className="flight-date-section">
         <div className="flight-date-heading">
           <div className="flex items-center gap-2">
-            <strong>Kalender Keberangkatan — {monthLabel(selectedMonth)}</strong>
+            <strong>Tanggal — {monthLabel(selectedMonth)}</strong>
             <span className="schedule-freq-pill">SEN • RAB • SAB</span>
           </div>
           <span>Klik tanggal untuk memuat manifest dan peta kursi</span>

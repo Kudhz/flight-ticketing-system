@@ -67,7 +67,7 @@ export function BookingNotificationBell({
         className={`notif-bell-btn ${unreadCount > 0 ? "has-unread" : ""}`}
         onClick={() => setIsOpen((prev) => !prev)}
         aria-label={`Notifikasi pesanan masuk (${unreadCount} belum dibaca)`}
-        title="Notifikasi pesanan masuk dari WhatsApp / n8n"
+        title="Notifikasi pesanan masuk dari WA Otomatis"
       >
         {unreadCount > 0 ? (
           <BellRing className="notif-bell-icon ringing" />
@@ -89,11 +89,11 @@ export function BookingNotificationBell({
         >
           <div className="notif-dropdown-header">
             <div className="notif-dropdown-title">
-              <strong>Pesanan Masuk (n8n / WA)</strong>
+              <strong>Pesanan Masuk (WA Otomatis)</strong>
               <span>
                 {unreadCount > 0
                   ? `${unreadCount} pesanan baru belum dilihat`
-                  : "Memantau POST /api/bookings otomatis"}
+                  : "Memantau pesanan WA Otomatis secara langsung"}
               </span>
             </div>
             <div className="notif-header-actions">
@@ -154,8 +154,8 @@ export function BookingNotificationBell({
                 <Bell className="notif-empty-icon" />
                 <strong>Belum Ada Pesanan Baru</strong>
                 <span>
-                  Saat n8n mengirim data penumpang dari WhatsApp, notifikasi
-                  akan langsung muncul di sini secara otomatis.
+                  Saat WA Otomatis mengirim data penumpang baru, notifikasi akan
+                  langsung muncul di sini secara otomatis.
                 </span>
               </div>
             ) : (
@@ -166,7 +166,7 @@ export function BookingNotificationBell({
                 >
                   <div className="notif-card-top">
                     <span className="notif-source-pill">
-                      WHATSAPP • n8n ({item.passengers.length} PAX)
+                      WA OTOMATIS ({item.passengers.length} PAX)
                     </span>
                     <span className="notif-time">{timeLabel(item.createdAt)}</span>
                   </div>
@@ -235,7 +235,7 @@ export function BookingNotificationPopup({
       <div className="notif-live-header">
         <div className="notif-live-badge">
           <BellRing className="notif-live-icon" />
-          <span>PESANAN BARU WHATSAPP • n8n</span>
+          <span>PESANAN BARU • WA OTOMATIS</span>
         </div>
         <button
           type="button"

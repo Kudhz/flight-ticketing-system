@@ -6,6 +6,7 @@ const FLIGHT_DAYS = [1, 3, 6];
 const ROUTES = ['MNA-IAX', 'MNA-MDC'];
 const STATUSES = ['Menunggu verifikasi', 'Booked', 'Dibayar'];
 const VALID_PASSENGER_TYPES = ['adult', 'child', 'infant'];
+const VALID_BOOKING_SOURCES = ['n8n', 'web'];
 
 require_once __DIR__ . '/finance-auth.php';
 
@@ -60,6 +61,7 @@ function bookingForApi(array $row): array
         'route' => $row['route_code'],
         'date' => (string) $row['travel_date'],
         'status' => $row['status'],
+        'source' => ($row['booking_source'] ?? 'web') === 'n8n' ? 'n8n' : 'web',
         'createdAt' => substr($bookingAt, 0, 10),
         'bookingDate' => substr($bookingAt, 0, 10),
         'bookingAt' => $bookingAt,
@@ -297,7 +299,7 @@ function validateRouteAndDate(string $route, string $date): void
 function fetchBooking(PDO $database, int $id): ?array
 {
     $statement = $database->prepare(
-        'SELECT id, passenger_name, phone, passenger_type, booking_no, route_code, travel_date, status, booking_at
+        'SELECT id, passenger_name, phone, passenger_type, booking_no, route_code, travel_date, status, booking_source, booking_at
          FROM bookings WHERE id = :id'
     );
     $statement->execute(['id' => $id]);
@@ -481,7 +483,7 @@ try {
     if ($method === 'GET') {
         if (!isset($_GET['route']) && !isset($_GET['date'])) {
             $statement = $database->query(
-                'SELECT id, passenger_name, phone, passenger_type, booking_no, route_code, travel_date, status, booking_at
+                'SELECT id, passenger_name, phone, passenger_type, booking_no, route_code, travel_date, status, booking_source, booking_at
                  FROM bookings ORDER BY booking_at DESC, id DESC'
             );
             sendJson(200, array_map('bookingForApi', $statement->fetchAll()));
@@ -750,11 +752,13 @@ if ($method === 'POST') {
         ]);
     }
 
+    $source = strtolower(trim((string) ($body['source'] ?? ''))) === 'web' ? 'web' : 'n8n';
+
     $insert = $database->prepare(
         'INSERT INTO bookings
-            (passenger_name, phone, passenger_type, booking_no, route_code, travel_date, status, booking_at)
+            (passenger_name, phone, passenger_type, booking_no, route_code, travel_date, status, booking_source, booking_at)
          VALUES
-            (:name, :phone, :type, :booking_no, :route, :date, :status, CURRENT_TIMESTAMP)'
+            (:name, :phone, :type, :booking_no, :route, :date, :status, :source, CURRENT_TIMESTAMP)'
     );
 
     $createdBookings = [];
@@ -768,7 +772,8 @@ if ($method === 'POST') {
             'booking_no' => $availableNumbers[$index],
             'route' => $route,
             'date' => $date,
-            'status' => STATUSES[0]
+            'status' => STATUSES[0],
+            'source' => $source
         ]);
 
         $createdBookings[] = fetchBooking(
@@ -792,7 +797,7 @@ if ($method === 'POST') {
         $body = requestBody();
         $database->beginTransaction();
         $statement = $database->prepare(
-            'SELECT id, passenger_name, phone, passenger_type, booking_no, route_code, travel_date, status, booking_at
+            'SELECT id, passenger_name, phone, passenger_type, booking_no, route_code, travel_date, status, booking_source, booking_at
              FROM bookings WHERE id = :id FOR UPDATE'
         );
         $statement->execute(['id' => $id]);
@@ -807,8 +812,10 @@ if ($method === 'POST') {
         $phone = $booking['phone'];
         $type = $booking['type'];
         $route = $booking['route'];
+        $date = $booking['date'];
         $bookingNo = $booking['bookingNo'];
         $status = $booking['status'];
+        $source = $booking['source'];
 
         if (array_key_exists('name', $body)) {
             $name = trim((string) $body['name']);
@@ -836,10 +843,24 @@ if ($method === 'POST') {
                 throw new InvalidArgumentException('Rute penerbangan tidak valid.');
             }
         }
+        if (array_key_exists('date', $body)) {
+            $date = trim((string) $body['date']);
+            if (!validFlightDate($date)) {
+                throw new InvalidArgumentException('Penerbangan hanya tersedia Senin, Rabu, dan Sabtu.');
+            }
+        }
         if (array_key_exists('status', $body)) {
             $status = (string) $body['status'];
             if (!in_array($status, STATUSES, true)) {
                 throw new InvalidArgumentException('Status pemesanan tidak valid.');
+            }
+        }
+        if (array_key_exists('source', $body)) {
+            $source = strtolower(trim((string) $body['source']));
+            if (!in_array($source, VALID_BOOKING_SOURCES, true)) {
+                throw new InvalidArgumentException(
+                    'Sumber pemesanan hanya boleh: ' . implode(', ', VALID_BOOKING_SOURCES) . '.'
+                );
             }
         }
         if (
@@ -847,12 +868,14 @@ if ($method === 'POST') {
             && !array_key_exists('phone', $body)
             && !array_key_exists('type', $body)
             && !array_key_exists('route', $body)
+            && !array_key_exists('date', $body)
             && !array_key_exists('status', $body)
+            && !array_key_exists('source', $body)
         ) {
             throw new InvalidArgumentException('Tidak ada perubahan data pemesanan.');
         }
 
-        if ($route !== $booking['route']) {
+        if ($route !== $booking['route'] || $date !== $booking['date']) {
             $statement = $database->prepare(
                 'SELECT booking_no FROM bookings
                  WHERE route_code = :route AND travel_date = :date AND id <> :id
@@ -860,7 +883,7 @@ if ($method === 'POST') {
             );
             $statement->execute([
                 'route' => $route,
-                'date' => $booking['date'],
+                'date' => $date,
                 'id' => $id,
             ]);
             $usedNumbers = array_map('intval', $statement->fetchAll(PDO::FETCH_COLUMN));
@@ -868,7 +891,7 @@ if ($method === 'POST') {
 
             if ($availableNumbers === []) {
                 $database->rollBack();
-                sendJson(409, ['error' => 'Kapasitas pada rute tujuan sudah penuh.']);
+                sendJson(409, ['error' => 'Kapasitas pada rute dan tanggal tujuan sudah penuh.']);
             }
             if (!in_array($bookingNo, $availableNumbers, true)) {
                 $bookingNo = $availableNumbers[0];
@@ -878,7 +901,8 @@ if ($method === 'POST') {
         $statement = $database->prepare(
             'UPDATE bookings
              SET passenger_name = :name, phone = :phone, passenger_type = :type,
-                 route_code = :route, booking_no = :booking_no, status = :status
+                 route_code = :route, travel_date = :date, booking_no = :booking_no,
+                 status = :status, booking_source = :source
              WHERE id = :id'
         );
         $statement->execute([
@@ -886,8 +910,10 @@ if ($method === 'POST') {
             'phone' => $phone,
             'type' => $type,
             'route' => $route,
+            'date' => $date,
             'booking_no' => $bookingNo,
             'status' => $status,
+            'source' => $source,
             'id' => $id,
         ]);
         $database->commit();

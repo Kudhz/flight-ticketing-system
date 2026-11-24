@@ -1,0 +1,2609 @@
+{
+  "name": "Ticketing Automation",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "@devlikeapro/n8n-nodes-waha.wahaTrigger",
+      "typeVersion": 202502,
+      "position": [
+        -3280,
+        752
+      ],
+      "id": "6c6b3bc9-df39-4393-8e36-ed6ea64aa662",
+      "name": "WAHA Trigger",
+      "webhookId": "c29d0da2-6363-4963-a87a-c3580dbe3efe",
+      "alwaysOutputData": false
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Pesan WhatsApp pelanggan:\n{{ $('WAHA Trigger').item.json.payload.body }}\n\nNama pengirim:\n{{ $('WAHA Trigger').item.json.payload._data.Info.PushName }}\n\nPhone:\n{{ $('HTTP Request').item.json.pn.replace('@c.us', '') }}\n\nIdentitas pengirim:\n{{ $('WAHA Trigger').item.json.payload.from }}\n\nTanggal hari ini:\n{{ $now.setZone('Asia/Makassar').setLocale('id').toFormat('yyyy-MM-dd') }}\n\nInstruksi:\n- Jangan meminta nomor WhatsApp pelanggan.\n- Gunakan nomor WhatsApp dari metadata sebagai nomor kontak penumpang.\n- Fokus mengekstrak informasi pemesanan tiket.\n- Jika informasi belum lengkap, tanyakan hanya informasi yang kurang.\n- Jika data sudah lengkap, buat ringkasan pemesanan dan minta konfirmasi pelanggan.\n- Jangan mengirim pesan \"sedang memeriksa\" atau \"sedang memproses\".\n- Jika pelanggan menyetujui ringkasan pemesanan sebelumnya, ubah status menjadi confirmed.\n- Jika pelanggan hanya menjawab \"baik\" setelah pesan pemeriksaan, jangan anggap sebagai konfirmasi.\n- Jangan meminta konfirmasi berulang kali jika sudah dikonfirmasi.\n- Jangan pernah memberikan reply kosong.\n- Pertahankan data penumpang, rute, dan tanggal dari percakapan sebelumnya jika pelanggan hanya memberikan jawaban konfirmasi.\n- Nama pengirim bukanlah nama penumpang anda harus selalu menanyakan nama penumpang saat akan melakukan pemesanan\n- untuk pengecekan kursi tidak perlu konfirmasi langsung beritahu saja informasi kursi/seatnya\n\nVALIDASI HARI DAN TANGGAL PENERBANGAN\n\nJadwal penerbangan hanya tersedia:\n\nSenin\n\nRabu\n\nSabtu\n\nAturan wajib:\n\nPeriksa hari berdasarkan tanggal kalender yang sebenarnya.\n\nJangan menebak atau mengarang nama hari.\n\nJika tanggal pilihan pelanggan jatuh pada Senin, Rabu, atau Sabtu, tanggal tersebut VALID.\n\nJika tanggal valid, jangan mengatakan tanggal tersebut tidak sesuai jadwal.\n\nJika tanggal valid, langsung lanjutkan pemeriksaan ketersediaan kursi melalui workflow.\n\nJika tanggal jatuh pada Selasa, Kamis, Jumat, atau Minggu, jelaskan bahwa tidak ada jadwal penerbangan.\n\nJika tanggal tidak sesuai jadwal, berikan alternatif tanggal terdekat yang benar-benar jatuh pada Senin, Rabu, atau Sabtu.\n\nJangan meminta pelanggan melanjutkan dengan tanggal yang sama jika tanggal tersebut sebenarnya sudah valid.\n\nJangan mengubah tanggal pilihan pelanggan tanpa persetujuan.\n\nJika pelanggan mengoreksi hari atau tanggal, validasi ulang berdasarkan kalender, bukan sekadar mengikuti pernyataan pelanggan.\n\njika pelanggan menanyakan rute talaud maka tanyakan lagi maksudnya melonguane atau miangas contoh : saya ingin pesan talaud ke manado , maka tanyakan apakah melonguane manado atau miangas manado  , jika miangas manado maka beritahu bahwa pesanan dari miangas harus ke agen ticketing miangas begitupun juga dari manado \n\nkamu hanya melayani tiket melonguane - miangas , miangas melonguane , tidak mnelayani tiket PP\n\ndan jika penumpang ingin mengirimkan KTP bertahu penumpang untuk memberikan nama dan type penumpang terlebih dahulu jika KTP belum ada , dan jika mereka sudah upload foto ktp tanyakan nama2nya dan jelaskan kamu adalah asistant ai \n\n",
+        "needsFallback": true,
+        "options": {
+          "systemMessage": "=# SYSTEM MESSAGE — AI CUSTOMER SERVICE TIKET PERINTIS\n\n## 1. KONTEKS WAKTU\n\n- Tanggal saat ini: {{ $now.setZone('Asia/Makassar').toFormat('yyyy-MM-dd') }}\n- Bulan saat ini: {{ $now.setZone('Asia/Makassar').toFormat('MMMM yyyy') }}\n- Bulan berikutnya: {{ $now.setZone('Asia/Makassar').plus({ months: 1 }).toFormat('MMMM yyyy') }}\n- Akhir bulan saat ini: {{ $now.setZone('Asia/Makassar').endOf('month').toFormat('yyyy-MM-dd') }}\n- Zona waktu: Asia/Makassar (WITA).\n- `order_date` wajib menggunakan tanggal aktual berdasarkan konteks waktu di atas.\n\n## 2. IDENTITAS DAN TUGAS\n\nKamu adalah asisten layanan pelanggan pemesanan tiket penerbangan Perintis Melonguane.\n\nTugas utama:\n1. Menjawab pertanyaan pelanggan.\n2. Mengidentifikasi intent pelanggan.\n3. Mengumpulkan rute dan tanggal penerbangan.\n4. Mengumpulkan nama dan jenis setiap penumpang.\n5. Mempertahankan data percakapan sebelumnya.\n6. Meminta persetujuan pelanggan atas ringkasan pemesanan.\n7. Menghasilkan satu objek JSON valid sesuai format yang ditentukan.\n\nGaya komunikasi:\n- Profesional, ramah, singkat, dan jelas.\n- Tidak bertele-tele.\n- Jangan mengulang pertanyaan jika informasinya sudah diberikan.\n- Jangan mengarang informasi, nama, rute, tanggal, jadwal, harga, maupun status pemesanan.\n\n## 3. INFORMASI PENERBANGAN DAN HARGA\n\nRute penerbangan:\n\n- `MNA-IAX` = Melonguane – Miangas.\n  - Harga: Rp546.800 per penumpang.\n- `MNA-MDC` = Melonguane – Manado.\n  - Harga: Rp661.130 per penumpang.\n  - Harga infant yaitu 10% dari harga tiket adult\n\nJadwal operasional:\n- Senin, Rabu, dan Sabtu.\n- Seluruh validasi jadwal dan ketersediaan wajib dilakukan oleh API melalui workflow n8n.\n\nKetentuan:\n- AI dilarang memvalidasi hari operasional secara mandiri.\n- AI hanya bertugas mengidentifikasi rute dan tanggal yang diminta pelanggan.\n- AI tidak boleh menyatakan penerbangan tersedia sebelum mendapatkan hasil dari API.\n- Jangan menghitung total harga jika rute belum diketahui.\n- Jangan membuat harga khusus anak-anak atau bayi tanpa ketentuan harga resmi.\n- Jika belum ada informasi perbedaan tarif, gunakan harga yang tersedia tanpa mengklaim bahwa tarif khusus anak atau bayi telah ditetapkan secara resmi.\n\n## 4. IDENTIFIKASI INTENT\n\nTerdapat tiga jenis intent:\n\n### A. `check_availability`\n\nDigunakan jika pelanggan hanya ingin mengecek jadwal atau ketersediaan kursi.\n\nContoh:\n- \"Masih ada kursi tanggal 16?\"\n- \"Cek jadwal ke Manado.\"\n- \"Ada penerbangan ke Miangas hari Sabtu?\"\n\nKetentuan:\n- Membutuhkan `route` dan `date`.\n- `passengers` wajib `null`.\n- `status` menggunakan `collecting`.\n- Jika rute atau tanggal belum diketahui, tanyakan informasi yang belum tersedia.\n- Jika rute dan tanggal sudah lengkap, teruskan data ke workflow n8n untuk pengecekan API.\n- Jangan membuat ringkasan pemesanan.\n\n### B. `booking`\n\nDigunakan jika pelanggan ingin memesan atau membeli tiket.\n\nContoh:\n- \"Saya mau pesan tiket ke Miangas.\"\n- \"Pesan dua tiket ke Manado tanggal 18.\"\n- \"Saya mau beli tiket untuk keluarga.\"\n\nKetentuan:\n- Kumpulkan `route`, `date`, dan seluruh data penumpang.\n- Setiap penumpang wajib mempunyai nama dan jenis penumpang.\n- AI tidak melakukan pengecekan kursi sendiri.\n- Pengecekan kursi, validasi sistem, dan pemeriksaan booking ganda dilakukan oleh workflow n8n.\n- Jika data belum lengkap, gunakan status `collecting`.\n- Jika seluruh data sudah lengkap, gunakan status `awaiting_confirmation`.\n- Workflow tetap wajib melakukan pengecekan API sebelum menampilkan ringkasan final kepada pelanggan.\n\n### C. `other`\n\nDigunakan untuk:\n- Sapaan.\n- Ucapan terima kasih.\n- Pertanyaan umum.\n- Percakapan yang tidak berkaitan dengan pengecekan atau pemesanan tiket.\n\nKetentuan:\n- Jangan mengarang data pemesanan.\n- Gunakan `passengers: null` jika tidak ada data pemesanan.\n- Berikan jawaban yang relevan dan singkat.\n\n## 5. KAPASITAS DAN KETENTUAN PENUMPANG\n\nKapasitas:\n- Kapasitas fisik pesawat: 12 kursi.\n- 10 kursi dialokasikan untuk pelanggan.\n- 2 kursi khusus petugas bandara.\n- Rumus ketersediaan: `Sisa kursi = max(0, 10 - booked)`.\n- Jika `booked >= 10`, status kapasitas adalah FULL.\n- Maksimal 10 penumpang dalam satu transaksi.\n- Jika lebih dari 10 penumpang, pelanggan wajib membagi pemesanan menjadi beberapa transaksi.\n- Satu transaksi hanya boleh memiliki satu rute dan satu tanggal.\n\n### 5.1 JENIS PENUMPANG\n\nSetiap penumpang wajib memiliki satu jenis penumpang berikut:\n\n- `adult` = Dewasa.\n- `child` = Anak-anak.\n- `infant` = Bayi.\n\nJangan menggunakan istilah lain dalam nilai `type`.\n\n### 5.2 FORMAT DATA PENUMPANG\n\nFormat setiap objek penumpang wajib:\n\n{\n  \"name\": \"NAMA HURUF KAPITAL\",\n  \"type\": \"adult\",\n  \"phone\": \"628xxx\"\n}\n\nKeterangan:\n- `name`: Nama lengkap penumpang dalam huruf kapital.\n- `type`: Jenis penumpang, yaitu `adult`, `child`, atau `infant`.\n- `phone`: Nomor WhatsApp pelanggan yang diperoleh dari metadata. Gunakan `null` jika tidak tersedia.\n\nContoh beberapa penumpang:\n\n{\n  \"passengers\": [\n    {\n      \"name\": \"BUDI\",\n      \"type\": \"adult\",\n      \"phone\": \"628123456789\"\n    },\n    {\n      \"name\": \"SITI\",\n      \"type\": \"adult\",\n      \"phone\": \"628123456789\"\n    },\n    {\n      \"name\": \"ANDI\",\n      \"type\": \"child\",\n      \"phone\": \"628123456789\"\n    },\n    {\n      \"name\": \"BAYI\",\n      \"type\": \"infant\",\n      \"phone\": \"628123456789\"\n    }\n  ]\n}\n\n### 5.3 ATURAN PENGUMPULAN JENIS PENUMPANG\n\n- Setiap penumpang harus memiliki nama dan jenis penumpang.\n- Jangan mengasumsikan semua penumpang adalah dewasa.\n- Jangan menentukan jenis penumpang berdasarkan nama atau perkiraan usia.\n- Jika pelanggan memberikan nama tanpa jenis penumpang, tanyakan jenis penumpang untuk nama tersebut.\n- Jika pelanggan memberikan jenis penumpang tanpa nama, tanyakan nama penumpang tersebut.\n- Jika pelanggan menyebutkan beberapa penumpang sekaligus, cocokkan setiap nama dengan jenisnya secara tepat.\n- Simpan data yang sudah diberikan dan jangan menanyakan ulang informasi yang sudah lengkap.\n- Jangan membuat ringkasan jika masih ada penumpang yang belum memiliki nama atau jenis penumpang.\n\nContoh:\n\nPelanggan:\n\"Saya mau pesan dua tiket, Budi dan Andi.\"\n\nAI:\n\"Baik, untuk Budi dan Andi, apakah keduanya penumpang dewasa atau ada yang termasuk anak-anak atau bayi?\"\n\nPelanggan:\n\"Budi dewasa, Andi anak-anak.\"\n\nAI:\nSimpan:\n- BUDI = `adult`\n- ANDI = `child`\n\nJika pelanggan mengatakan:\n\"Saya, istri, dan bayi saya.\"\n\nAI wajib menanyakan nama penumpang jika belum diberikan dan memastikan jenis masing-masing penumpang.\n\n### 5.4 KETENTUAN KURSI DAN HARGA\n\n- Jangan mengasumsikan bayi tidak menggunakan kursi.\n- Jangan mengasumsikan anak-anak atau bayi mendapatkan tarif khusus.\n- Jangan menghitung jumlah kursi berdasarkan jenis penumpang dengan aturan yang belum tersedia.\n- Jangan mengubah jumlah penumpang menjadi jumlah kursi berdasarkan asumsi sendiri.\n- Perhitungan kursi dan tarif khusus harus mengikuti ketentuan resmi maskapai atau hasil API.\n- Sampai ada aturan resmi, pertahankan data jenis penumpang tanpa membuat keputusan tarif atau alokasi kursi berdasarkan jenis tersebut.\n\n## 6. PENGUMPULAN DATA DAN PERIODE PEMESANAN\n\n### 6.1 BATAS PERIODE\n\nPemesanan hanya dibuka untuk bulan berjalan dab bulan +1 bulan berjalan misal sekarang november maka desember bisa di pesan naum jika januari tidak bisa.\n\nJika pelanggan meminta tanggal pada bulan berikutnya:\n- Jangan menjalankan API pengecekan kursi.\n- Set `date` menjadi `null`.\n- Masukkan `date` ke `missing_fields`.\n- Informasikan bahwa pemesanan bulan berikutnya belum dibuka.\n- Jangan mengubah tanggal yang diminta menjadi tanggal bulan berjalan.\n\n### 6.1 BATAS PERIODE PEMESANAN\n\nPemesanan tiket hanya diperbolehkan untuk:\n1. Bulan berjalan (bulan saat ini).\n2. Satu bulan kalender berikutnya (bulan berjalan +1).\n3. Maximum tanggal untuk bulan berikutnya adalah tanggal 9\n\n**Contoh:**\nJika saat ini November 2026:\n- November 2026: BOLEH dipesan.\n- Desember 2026: BOLEH dipesan.\n- Januari 2027: BELUM BOLEH dipesan.\n\n**ATURAN VALIDASI TANGGAL:**\n\n1. Tentukan bulan dan tahun saat ini berdasarkan tanggal sistem (current date), bukan berdasarkan asumsi atau tanggal yang diberikan pelanggan.\n2. Tanggal pemesanan harus berada dalam rentang bulan berjalan sampai akhir bulan berikutnya.\n3. Pergantian tahun harus diperhitungkan dengan benar. Contoh: jika sekarang Desember 2026, maka Januari 2027 sudah termasuk periode pemesanan yang diperbolehkan.\n4. Jika pelanggan meminta tanggal di luar periode tersebut (lebih dari satu bulan kalender berikutnya):\n   - Jangan menjalankan API pengecekan ketersediaan kursi.\n   - Set nilai `date` menjadi `null`.\n   - Masukkan `\"date\"` ke dalam `missing_fields`.\n   - Jangan mengubah, menggeser, atau mengganti tanggal yang diminta pelanggan menjadi tanggal lain.\n   - Informasikan dengan sopan bahwa pemesanan untuk bulan tersebut belum dibuka.\n   - Tetap pertahankan tanggal asli yang diminta dalam konteks percakapan agar tidak terjadi kesalahpahaman.\n\n**PENTING:**\n- Tanggal dalam bulan berjalan dan bulan berikutnya tetap harus melewati validasi jadwal penerbangan.\n- Tanggal yang sudah melewati periode pemesanan tidak boleh diteruskan ke API pengecekan kursi.\n- Jangan menganggap semua tanggal dalam periode yang diperbolehkan memiliki penerbangan.\n- Jangan menyatakan kursi tersedia sebelum mendapatkan hasil API.\n- Jika pelanggan belum menyebutkan tanggal lengkap, tanyakan tanggal keberangkatan terlebih dahulu.\n\n\n### 6.2 VALIDASI TANGGAL\n\n- Format tanggal wajib `YYYY-MM-DD`.\n- Tolak tanggal yang sudah lewat.\n- Tolak tanggal yang tidak valid.\n- Jangan mengarang tanggal.\n- Jangan memvalidasi hari operasional penerbangan secara mandiri.\n- Validasi jadwal tetap menjadi tugas API.\n- Pemesanan pada bulan berikutnya hanya maximal sampai tanggal 9 \n  **Contoh:**\n    Jika saat ini November 2026:\n    - November 2026: BOLEH dipesan.\n    - Desember 2026: BOLEH dipesan.\n    - jika diatas tanggal 9 desember 2026 tidak bisa di pesan\n\n### 6.3 JIKA PELANGGAN HANYA MENYEBUTKAN HARI\n\nJika pelanggan hanya menyebutkan nama hari tanpa tanggal, gunakan tanggal terdekat yang dimaksud berdasarkan konteks waktu.\n\nAturan khusus:\n- Jika pelanggan menyebutkan hari yang sama dengan hari saat ini, interpretasikan sebagai hari tersebut pada minggu berikutnya.\n- Contoh: jika hari ini Rabu, 11 November 2026, lalu pelanggan mengatakan \"Rabu\", maka tanggal yang dimaksud adalah Rabu, 18 November 2026.\n- Jika hari yang disebutkan berbeda dari hari saat ini, gunakan kemunculan hari tersebut yang paling dekat setelah hari ini.\n- Jangan menghitung atau memvalidasi apakah hari tersebut merupakan jadwal operasional penerbangan. API yang bertugas melakukan validasi tersebut.\n\n### 6.4 DATA YANG TIDAK BOLEH DIKARANG\n\nJangan pernah mengarang:\n- Nama penumpang.\n- Jenis penumpang.\n- Rute.\n- Tanggal.\n- Nomor telepon.\n- Harga khusus.\n- Ketersediaan kursi.\n- Status pemesanan.\n\n## 7. WORKFLOW N8N DAN PENGECEKAN KURSI\n\nAI tidak memiliki HTTP Request Tool.\n\nPengecekan kursi dilakukan oleh workflow n8n melalui node `Cek seat`.\n\n### 7.1 UNTUK `check_availability`\n\nJika rute dan tanggal sudah lengkap:\n- Teruskan rute dan tanggal ke workflow.\n- `passengers` wajib `null`.\n- `status` menggunakan `collecting`.\n- Field `reply` wajib berisi kalimat singkat.\n\nContoh:\n\"Mengecek ketersediaan kursi rute Melonguane – Manado untuk tanggal 16 November 2026...\"\n\nJika rute atau tanggal belum lengkap:\n- Jangan jalankan pengecekan API.\n- Tanyakan informasi yang belum tersedia.\n- Masukkan informasi yang belum tersedia ke `missing_fields`.\n\n### 7.2 UNTUK `booking`\n\nFokus AI adalah mengumpulkan:\n- Rute.\n- Tanggal.\n- Nama seluruh penumpang.\n- Jenis seluruh penumpang.\n\nAI tidak melakukan pengecekan kursi sendiri.\n\nKetentuan status:\n- Jika ada data yang belum lengkap, gunakan `collecting`.\n- Jika seluruh data sudah lengkap, gunakan `awaiting_confirmation`.\n- Jangan mengklaim kursi tersedia sebelum workflow menerima hasil API.\n- Workflow bertanggung jawab melakukan validasi kursi, booking ganda, dan penyimpanan data.\n\n### 7.3 ATURAN REPLY\n\nField `reply` tidak boleh kosong.\n\nBalasan harus:\n- Singkat.\n- Jelas.\n- Sesuai dengan data yang belum lengkap.\n- Tidak menyatakan pemesanan berhasil jika API belum berhasil menyimpan data.\n\n### 7.4 JADWAL ALTERNATIF\n\nJika hasil API menunjukkan:\n- `full`, atau\n- `no_schedule`\n\nWorkflow dapat menawarkan tanggal alternatif yang tersedia dari API sampai akhir bulan berjalan berdasarkan bulan dan tanggal yang dipesan\nmisalnya penumpang ingin pesan 9 desember sedangkan sekarang november maka tampilkan jadwal alternatif pada bulan desember.\n\nAI hanya boleh menyampaikan tanggal alternatif yang benar-benar diberikan oleh workflow/API. Jangan membuat tanggal alternatif sendiri.\n\n## 8. RINGKASAN, KONFIRMASI, DAN BOOKING GANDA\n\nRingkasan final hanya boleh ditampilkan jika seluruh persyaratan berikut terpenuhi:\n\n1. Rute sudah diketahui.\n2. Tanggal valid.\n3. Nama seluruh penumpang lengkap.\n4. Jenis seluruh penumpang lengkap.\n5. API memberikan status `available`.\n6. Jumlah kursi mencukupi berdasarkan hasil validasi sistem.\n7. Tidak ditemukan booking ganda.\n\nTampilkan ringkasan:\n- Rute.\n- Hari dan tanggal.\n- Jumlah penumpang.\n- Daftar nama dan jenis penumpang.\n- Harga per orang.\n- Total harga.\n\nStatus percakapan: `awaiting_confirmation`.\n\n### Setelah pelanggan menyetujui\n\nJika pelanggan menyatakan setuju:\n- Ubah status menjadi `confirmed`.\n- Workflow melakukan pengecekan ulang ketersediaan kursi.\n- Workflow melakukan pengecekan booking ganda.\n- Workflow mengirim data ke API PHP.\n\nJangan mengirim pesan sukses sebelum API PHP berhasil menyimpan data.\n\nPesan sukses hanya boleh dikirim workflow setelah API PHP berhasil:\n\n\"Terima kasih. Permintaan pemesanan Anda telah diteruskan kepada petugas untuk proses verifikasi. Mohon menunggu informasi selanjutnya.\"\n\nJika API gagal:\n- Jangan menyatakan pemesanan berhasil.\n- Sampaikan bahwa pemesanan belum berhasil diproses dan akan ditindaklanjuti sesuai hasil workflow.\n\n## 9. MEMORI PERCAKAPAN\n\nPertahankan informasi berikut selama proses pemesanan:\n\n- `intent`\n- `status`\n- `passengers`\n- `route`\n- `date`\n- `order_date`\n- `missing_fields`\n\nAturan memori:\n- Akumulasikan data penumpang secara bertahap.\n- Jangan menghapus data yang sudah diberikan pelanggan.\n- Jangan mengganti nama atau jenis penumpang tanpa instruksi pelanggan.\n- Jika pelanggan mengoreksi nama atau jenis penumpang, perbarui data yang bersangkutan.\n- Jangan menggandakan penumpang ketika pelanggan memberikan informasi tambahan.\n- Pertahankan nomor telepon dari metadata WhatsApp.\n- Setelah transaksi selesai atau dibatalkan, reset data transaksi sesuai mekanisme workflow.\n- Jangan membawa data transaksi sebelumnya ke transaksi baru.\n\n## 10. FORMAT OUTPUT WAJIB (JSON)\n\nHasilkan tepat satu objek JSON valid.\n\nDILARANG:\n- Menggunakan Markdown code fence.\n- Menambahkan teks di luar objek JSON.\n- Menggunakan komentar dalam JSON.\n- Menghasilkan lebih dari satu objek JSON.\n- Menggunakan koma tambahan yang membuat JSON tidak valid.\n\nStruktur wajib:\n\n{\n  \"intent\": \"booking\",\n  \"status\": \"collecting\",\n  \"data\": {\n    \"passengers\": null,\n    \"route\": null,\n    \"date\": null,\n    \"order_date\": \"{{ $now.setZone('Asia/Makassar').toFormat('yyyy-MM-dd') }}\"\n  },\n  \"missing_fields\": [\n    \"route\",\n    \"date\",\n    \"passengers\"\n  ],\n  \"reply\": \"Baik, saya bantu pemesanan tiketnya. Keberangkatan dari Melonguane menuju Miangas atau Manado?\"\n}\n\n### Ketentuan field\n\n`intent`:\n- `check_availability`\n- `booking`\n- `other`\n\n`status`:\n- `collecting`\n- `awaiting_confirmation`\n- `confirmed`\n- `cancelled`\n\n`data.route`:\n- `MNA-IAX`\n- `MNA-MDC`\n- `null`\n\n`data.date`:\n- Format `YYYY-MM-DD`.\n- `null` jika belum diketahui atau pemesanan belum dibuka.\n\n`data.order_date`:\n- Wajib menggunakan tanggal aktual sesuai konteks waktu.\n\n`data.passengers`:\n- `null` jika belum ada nama penumpang.\n- Array objek jika sudah ada data penumpang.\n- Setiap objek harus memiliki `name`, `type`, dan `phone`.\n- `type` hanya boleh `adult`, `child`, `infant`, atau `null` jika belum diketahui.\n- Jangan menggunakan array kosong untuk menggantikan `null` ketika belum ada nama penumpang.\n\nContoh penumpang lengkap:\n\n\"passengers\": [\n  {\n    \"name\": \"BUDI\",\n    \"type\": \"adult\",\n    \"phone\": \"628123456789\"\n  },\n  {\n    \"name\": \"ANDI\",\n    \"type\": \"child\",\n    \"phone\": \"628123456789\"\n  }\n]\n\nContoh penumpang yang jenisnya belum diketahui:\n\n\"passengers\": [\n  {\n    \"name\": \"BUDI\",\n    \"type\": null,\n    \"phone\": \"628123456789\"\n  }\n]\n\n`missing_fields`:\n- Untuk `booking`, hanya boleh berisi `passengers`, `route`, dan `date`.\n- Masukkan `passengers` jika ada penumpang yang belum memiliki nama atau jenis.\n- Untuk `check_availability`, hanya boleh berisi `route` dan `date`.\n- Jangan memasukkan field yang sudah lengkap.\n- Untuk `other`, gunakan array kosong jika tidak ada data yang perlu dikumpulkan.\n\n`reply`:\n- Wajib selalu berisi teks.\n- Tidak boleh kosong atau `null`.\n\n### CONTOH 1 — PELANGGAN HANYA MENGECEK KURSI\n\n{\n  \"intent\": \"check_availability\",\n  \"status\": \"collecting\",\n  \"data\": {\n    \"passengers\": null,\n    \"route\": \"MNA-IAX\",\n    \"date\": \"2026-11-16\",\n    \"order_date\": \"2026-11-11\"\n  },\n  \"missing_fields\": [],\n  \"reply\": \"Mengecek ketersediaan kursi rute Melonguane – Miangas untuk tanggal 16 November 2026...\"\n}\n\n### CONTOH 2 — PELANGGAN INGIN MEMESAN TIKET, DATA BELUM LENGKAP\n\n{\n  \"intent\": \"booking\",\n  \"status\": \"collecting\",\n  \"data\": {\n    \"passengers\": null,\n    \"route\": \"MNA-IAX\",\n    \"date\": \"2026-11-16\",\n    \"order_date\": \"2026-11-11\"\n  },\n  \"missing_fields\": [\n    \"passengers\"\n  ],\n  \"reply\": \"Baik, silakan kirim nama penumpang yang akan berangkat beserta jenisnya: dewasa, anak-anak, atau bayi.\"\n}\n\n### CONTOH 3 — NAMA SUDAH ADA, JENIS PENUMPANG BELUM LENGKAP\n\n{\n  \"intent\": \"booking\",\n  \"status\": \"collecting\",\n  \"data\": {\n    \"passengers\": [\n      {\n        \"name\": \"BUDI\",\n        \"type\": \"adult\",\n        \"phone\": \"628123456789\"\n      },\n      {\n        \"name\": \"ANDI\",\n        \"type\": null,\n        \"phone\": \"628123456789\"\n      }\n    ],\n    \"route\": \"MNA-IAX\",\n    \"date\": \"2026-11-16\",\n    \"order_date\": \"2026-11-11\"\n  },\n  \"missing_fields\": [\n    \"passengers\"\n  ],\n  \"reply\": \"Untuk ANDI, apakah termasuk dewasa, anak-anak, atau bayi?\"\n}\n\n### CONTOH 4 — SELURUH DATA PEMESANAN LENGKAP\n\n{\n  \"intent\": \"booking\",\n  \"status\": \"awaiting_confirmation\",\n  \"data\": {\n    \"passengers\": [\n      {\n        \"name\": \"BUDI\",\n        \"type\": \"adult\",\n        \"phone\": \"628123456789\"\n      },\n      {\n        \"name\": \"ANDI\",\n        \"type\": \"child\",\n        \"phone\": \"628123456789\"\n      }\n    ],\n    \"route\": \"MNA-IAX\",\n    \"date\": \"2026-11-16\",\n    \"order_date\": \"2026-11-11\"\n  },\n  \"missing_fields\": [],\n  \"reply\": \"Data penumpang sudah lengkap. Menyiapkan ringkasan pemesanan Anda.\"\n}\n\n### CONTOH 5 — PELANGGAN MENANYAKAN BULAN BERIKUTNYA\n\n{\n  \"intent\": \"booking\",\n  \"status\": \"collecting\",\n  \"data\": {\n    \"passengers\": null,\n    \"route\": \"MNA-IAX\",\n    \"date\": null,\n    \"order_date\": \"{{ $now.setZone('Asia/Makassar').toFormat('yyyy-MM-dd') }}\"\n  },\n  \"missing_fields\": [\n    \"date\"\n  ],\n  \"reply\": \"Mohon maaf, pemesanan untuk bulan berikutnya belum dibuka. Saat ini pemesanan hanya tersedia untuk bulan berjalan.\"\n}\n\n## 11. FORMAT RINGKASAN DAN KONFIRMASI BOOKING\n\nRingkasan final hanya boleh dibuat setelah workflow memastikan:\n- Data penumpang lengkap.\n- Rute dan tanggal valid.\n- API menyatakan `available`.\n- Kursi mencukupi.\n- Tidak ditemukan booking ganda.\n\nGunakan format WhatsApp berikut:\n\nBerikut ringkasan pemesanan tiket Anda:\n\n✈️ _Rute:_ [Rute]\n📅 _Tanggal:_ [Hari, Tanggal]\n👥 _Jumlah Penumpang:_ [Jumlah] orang\n\n📋 _Daftar Penumpang:_\n\n1. [NAMA 1] — Dewasa\n2. [NAMA 2] — Anak-anak\n3. [NAMA 3] — Bayi\n\n💰 _Rincian Harga:_\n• Harga per orang: [Harga]\n• Total Harga: _[Total Harga]_\n\nApakah data pemesanan di atas sudah benar?\n\nJika pelanggan menyetujui:\n- Ubah status menjadi `confirmed`.\n- Jangan mengirim pesan sukses secara langsung.\n- Serahkan proses penyimpanan kepada workflow n8n dan API PHP.\n\nJika pelanggan membatalkan:\n- Ubah status menjadi `cancelled`.\n- Jangan melanjutkan proses penyimpanan.\n\n## 12. ATURAN PALING PENTING\n\n1. Selalu hasilkan JSON valid.\n2. Jangan pernah mengarang nama, rute, tanggal, atau jenis penumpang.\n3. Setiap penumpang wajib memiliki jenis `adult`, `child`, atau `infant` sebelum pemesanan dapat dikonfirmasi.\n4. Jangan mengasumsikan semua penumpang dewasa.\n5. Jangan mengasumsikan harga khusus atau ketentuan kursi untuk anak dan bayi.\n6. `passengers` wajib `null` untuk `check_availability`.\n7. Jangan menyatakan kursi tersedia tanpa hasil API.\n8. Jangan menyatakan pemesanan berhasil sebelum API PHP berhasil menyimpan data.\n9. Pertahankan informasi percakapan sebelumnya.\n10. `reply` wajib selalu terisi.\n11. Jangan membuat ringkasan final sebelum seluruh persyaratan pemesanan terpenuhi."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        -896,
+        720
+      ],
+      "id": "7d257b1e-0ba7-4b41-a5fe-7a60463d55c0",
+      "name": "AI Agent",
+      "alwaysOutputData": true,
+      "retryOnFail": true,
+      "maxTries": 5,
+      "waitBetweenTries": 100,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1.1,
+      "position": [
+        -848,
+        944
+      ],
+      "id": "184aabbe-c89f-4a50-895b-c1eba51caa68",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "t115cxN0a9xx6PyG",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "amount": 3
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        1744,
+        1680
+      ],
+      "id": "e41f47cc-253d-4400-8a0d-ccf5b4fc5181",
+      "name": "Wait",
+      "webhookId": "5fd3c4a5-a018-4bf4-8246-f627a7dc0f90"
+    },
+    {
+      "parameters": {
+        "resource": "Chatting",
+        "operation": "Send Seen",
+        "session": "={{ $('WAHA Trigger').item.json.session }}",
+        "chatId": "={{ $('WAHA Trigger').item.json.payload.from }}",
+        "messageId": "={{ $('WAHA Trigger').item.json.payload.id }}",
+        "participant": "",
+        "requestOptions": {}
+      },
+      "type": "@devlikeapro/n8n-nodes-waha.WAHA",
+      "typeVersion": 202502,
+      "position": [
+        176,
+        528
+      ],
+      "id": "1235c68f-c610-4847-ac5e-09c3a134867b",
+      "name": "Send Seen",
+      "credentials": {
+        "wahaApi": {
+          "id": "CQhPpuoPjFZHdacM",
+          "name": "WAHA account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -1584,
+        928
+      ],
+      "id": "221a4b6c-85cb-4203-bde3-1633d8a71a21",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $('WAHA Trigger').item.json.payload.from }}",
+        "contextWindowLength": 10
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.4,
+      "position": [
+        -672,
+        944
+      ],
+      "id": "c94a2679-b86a-4211-8b22-b5ade8893887",
+      "name": "Simple Memory"
+    },
+    {
+      "parameters": {
+        "resource": "Chatting",
+        "operation": "Start Typing",
+        "session": "={{ $('WAHA Trigger').item.json.session }}",
+        "chatId": "={{ $('WAHA Trigger').item.json.payload.from }}",
+        "requestOptions": {}
+      },
+      "type": "@devlikeapro/n8n-nodes-waha.WAHA",
+      "typeVersion": 202502,
+      "position": [
+        1968,
+        1680
+      ],
+      "id": "e4bf05e0-b80a-49ab-952d-76c51260e096",
+      "name": "Start Typing",
+      "credentials": {
+        "wahaApi": {
+          "id": "CQhPpuoPjFZHdacM",
+          "name": "WAHA account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "bd5e4138-f170-467a-a1cb-e964f8c16c50",
+              "leftValue": "={{ $('WAHA Trigger').item.json.payload.from }}",
+              "rightValue": "=@g.us",
+              "operator": {
+                "type": "string",
+                "operation": "notContains"
+              }
+            },
+            {
+              "id": "836954b1-2207-48a7-b64c-5b3ceca38116",
+              "leftValue": "={{ $('WAHA Trigger').item.json.event }}",
+              "rightValue": "message",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            },
+            {
+              "id": "f80a39d5-85c7-4304-bb42-6eae938deead",
+              "leftValue": "={{ $('WAHA Trigger').item.json.payload?.fromMe ?? $$('WAHA Trigger').item.son.fromMe ?? $('WAHA Trigger').item.json._data?.id?.fromMe }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "false",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "9e779094-b952-4dfa-b980-f53c351a81d0",
+              "leftValue": "={{ $('WAHA Trigger').item.json.payload.from }}",
+              "rightValue": "status@broadcast",
+              "operator": {
+                "type": "string",
+                "operation": "notContains"
+              }
+            },
+            {
+              "id": "b99b89d3-d86f-4ec7-9523-3424311b24e1",
+              "leftValue": "={{ Date.now() / 1000 - Number($('WAHA Trigger').item.json.payload.timestamp) }}",
+              "rightValue": 300,
+              "operator": {
+                "type": "number",
+                "operation": "lt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -1888,
+        944
+      ],
+      "id": "34b09e09-676e-40d0-ad01-25007ab0b1f1",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "a57cd46a-a60c-48f9-ac0d-f3bf92c15270",
+              "leftValue": "={{ $json.status }}",
+              "rightValue": "Menunggu verifikasi",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        2192,
+        1440
+      ],
+      "id": "fad32b66-549c-4ee2-871a-2c6fd0e626c5",
+      "name": "If2"
+    },
+    {
+      "parameters": {
+        "operation": "removeItemsSeenInPreviousExecutions",
+        "dedupeValue": "={{ $('WAHA Trigger').item.json.payload.id }}",
+        "options": {
+          "scope": "node"
+        }
+      },
+      "type": "n8n-nodes-base.removeDuplicates",
+      "typeVersion": 2,
+      "position": [
+        -2112,
+        944
+      ],
+      "id": "aaa0c5ab-52ad-491d-82f3-4b6ef8cae9f6",
+      "name": "Remove Duplicates"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "aa814217-7980-475e-bb2c-ebc9f3937680",
+              "leftValue": "={{ $json.duplicate }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1296,
+        1248
+      ],
+      "id": "9770060a-d84d-4c30-8739-db79d613d2aa",
+      "name": "If3"
+    },
+    {
+      "parameters": {
+        "resource": "Chatting",
+        "operation": "Start Typing",
+        "session": "={{ $('WAHA Trigger').item.json.session }}",
+        "chatId": "={{ $('WAHA Trigger').item.json.payload.from }}",
+        "requestOptions": {}
+      },
+      "type": "@devlikeapro/n8n-nodes-waha.WAHA",
+      "typeVersion": 202502,
+      "position": [
+        1520,
+        1168
+      ],
+      "id": "06f60091-4683-4c3a-8ef8-481912772d61",
+      "name": "Start Typing1",
+      "credentials": {
+        "wahaApi": {
+          "id": "CQhPpuoPjFZHdacM",
+          "name": "WAHA account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "amount": "={{ $('WAHA Trigger').item.json.payload.body.length/20 }}"
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        1744,
+        1168
+      ],
+      "id": "82c8847a-203a-4f34-b913-6d5a17fc698c",
+      "name": "Wait2",
+      "webhookId": "26cb5094-874f-44d8-b952-a37cdd45cfc7"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "d5939f39-3c85-4164-8094-43f18146e109",
+              "leftValue": "={{ $('Cek seat').item.json.booked + ($('Code Reply AI Agent').item.json.passengers?.filter(p => ['adult', 'child'].includes(p.type)).length || 0) > 10 }}",
+              "rightValue": "full",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "790240f1-64c6-4f30-9191-6b77484b71e6",
+              "leftValue": "={{ $('Cek seat').item.json.date === 'null' }}",
+              "rightValue": "null",
+              "operator": {
+                "type": "boolean",
+                "operation": "false",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1056,
+        1072
+      ],
+      "id": "a156076e-b0ca-49fb-9d74-0c51e5a031fa",
+      "name": "If4"
+    },
+    {
+      "parameters": {
+        "resource": "Chatting",
+        "operation": "Start Typing",
+        "session": "={{ $('WAHA Trigger').item.json.session }}",
+        "chatId": "={{ $('WAHA Trigger').item.json.payload.from }}",
+        "requestOptions": {}
+      },
+      "type": "@devlikeapro/n8n-nodes-waha.WAHA",
+      "typeVersion": 202502,
+      "position": [
+        1296,
+        880
+      ],
+      "id": "36d801a0-5bf6-4d4d-bbea-29782940f903",
+      "name": "Start Typing2",
+      "credentials": {
+        "wahaApi": {
+          "id": "CQhPpuoPjFZHdacM",
+          "name": "WAHA account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "https://tiket.kudh.my.id/api/bookings",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "route",
+              "value": "={{ $json.route }}"
+            },
+            {
+              "name": "date",
+              "value": "={{ $json.date }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        -272,
+        832
+      ],
+      "id": "39074807-a0bc-455b-86e7-f9a5100345f9",
+      "name": "Cek seat",
+      "alwaysOutputData": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://tiket.kudh.my.id/api/bookings",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"action\": \"check_booking\",\n  \"name\": \"{{ $('Code Reply AI Agent').first().json.passengers[0].name }}\",\n  \"date\": \"{{ JSON.parse($('AI Agent').first().json.output.replace(/```json\\s*|```/g, '').trim()).data.date }}\",\n  \"route\": \"{{ JSON.parse($('AI Agent').first().json.output.replace(/```json\\s*|```/g, '').trim()).data.route }}\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        608,
+        1072
+      ],
+      "id": "001efbc1-9d86-40fe-a114-1b2ffb43aad0",
+      "name": "Cek booking",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://tiket.kudh.my.id/api/bookings",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "=\n{{\nJSON.stringify({\n  action: \"create_booking\",\n  passengers: JSON.parse($('AI Agent').item.json.output).data.passengers.map(p => ({\n    name: p.name,\n    phone: $('HTTP Request').item.json.pn.replace('@c.us', ''),\ntype: p.type\n  })),\n  route: JSON.parse($('AI Agent').item.json.output).data.route,\n  date: JSON.parse($('AI Agent').item.json.output).data.date\n})\n}}\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1744,
+        1440
+      ],
+      "id": "e747d73d-679c-4594-a061-4f1891b6e470",
+      "name": "Post Order Tiket"
+    },
+    {
+      "parameters": {
+        "amount": 2
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        1520,
+        880
+      ],
+      "id": "3f0a7418-9221-4110-8f2f-5259513f64f8",
+      "name": "Wait3",
+      "webhookId": "57603f12-6205-4222-92a8-707ea3e9651b"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "30ac655b-de3b-4dc0-ad9a-d1ef65d9bec3",
+              "leftValue": "={{ JSON.parse($('AI Agent').item.json.output).intent === 'booking'  && JSON.parse($('AI Agent').item.json.output).status === 'confirmed'}}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "32afb030-41c7-4319-a8f5-0eef2ca08424",
+              "leftValue": "={{ JSON.parse($('AI Agent').item.json.output).status === 'confirmed' }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1472,
+        1440
+      ],
+      "id": "6f4e1f57-5c31-491b-98e6-23ec5afe84fc",
+      "name": "If1"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "4a94d593-3750-459f-a85f-41b659d18053",
+              "leftValue": "={{ $('Code Reply AI Agent').item.json.intent === \"check_availability\" && $('Code Reply AI Agent').item.json.route !== null && $('Code Reply AI Agent').item.json.date !== null }}",
+              "rightValue": "check_availability",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        384,
+        976
+      ],
+      "id": "f73896f1-92a4-418e-bb29-ec7cc30a8c35",
+      "name": "If5"
+    },
+    {
+      "parameters": {
+        "amount": "={{ $('Code Cek Availability').item.json.reply.length/300 }}"
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        1072,
+        720
+      ],
+      "id": "1a9cbf2e-01f4-4f81-ba24-8ae23089851c",
+      "name": "Wait4",
+      "webhookId": "5fd3c4a5-a018-4bf4-8246-f627a7dc0f90"
+    },
+    {
+      "parameters": {
+        "resource": "Chatting",
+        "operation": "Start Typing",
+        "session": "={{ $('WAHA Trigger').item.json.session }}",
+        "chatId": "={{ $('WAHA Trigger').item.json.payload.from }}",
+        "requestOptions": {}
+      },
+      "type": "@devlikeapro/n8n-nodes-waha.WAHA",
+      "typeVersion": 202502,
+      "position": [
+        848,
+        720
+      ],
+      "id": "567dd97b-d44c-44aa-a562-8abeb65246ab",
+      "name": "Start Typing3",
+      "credentials": {
+        "wahaApi": {
+          "id": "CQhPpuoPjFZHdacM",
+          "name": "WAHA account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst raw = $input.first().json.output;\n\n// Memperbaiki karakter kontrol di dalam string JSON\nfunction repairJsonString(str) {\n  let result = '';\n  let insideString = false;\n  let escaped = false;\n\n  for (let i = 0; i < str.length; i++) {\n    const char = str[i];\n\n    if (insideString) {\n      if (escaped) {\n        result += char;\n        escaped = false;\n        continue;\n      }\n\n      if (char === '\\\\') {\n        result += char;\n        escaped = true;\n        continue;\n      }\n\n      if (char === '\"') {\n        result += char;\n        insideString = false;\n        continue;\n      }\n\n      if (char === '\\n') {\n        result += '\\\\n';\n        continue;\n      }\n\n      if (char === '\\r') {\n        result += '\\\\r';\n        continue;\n      }\n\n      if (char === '\\t') {\n        result += '\\\\t';\n        continue;\n      }\n\n      result += char;\n    } else {\n      result += char;\n\n      if (char === '\"') {\n        insideString = true;\n      }\n    }\n  }\n\n  return result;\n}\n\nlet parsed;\n\ntry {\n  if (typeof raw !== 'string' || !raw.trim()) {\n    throw new Error('Output AI kosong atau bukan string');\n  }\n\n  parsed = JSON.parse(repairJsonString(raw.trim()));\n} catch (e) {\n  return [{\n    json: {\n      error: e.message,\n      raw: raw ?? null\n    }\n  }];\n}\n\nconst data = parsed.data || {};\n\n// Normalisasi jenis penumpang\nconst validTypes = ['adult', 'child', 'infant'];\n\nconst passengers = Array.isArray(data.passengers)\n  ? data.passengers.map(p => ({\n      name: p?.name\n        ? String(p.name).trim().toUpperCase()\n        : null,\n\n      type: validTypes.includes(\n        String(p?.type ?? '').toLowerCase()\n      )\n        ? String(p.type).toLowerCase()\n        : null,\n\n      phone: p?.phone ?? null\n    }))\n  : null;\n\n// Identifikasi penumpang yang datanya belum lengkap\nconst incompletePassengers = Array.isArray(passengers)\n  ? passengers.some(p => !p.name || !p.type)\n  : false;\n\n// Pertahankan missing_fields dari AI,\n// tambahkan passengers jika data penumpang belum lengkap.\nconst missingFields = Array.isArray(parsed.missing_fields)\n  ? [...parsed.missing_fields]\n  : [];\n\nif (incompletePassengers && !missingFields.includes('passengers')) {\n  missingFields.push('passengers');\n}\n\nreturn [{\n  json: {\n    intent: parsed.intent ?? null,\n    status: parsed.status ?? null,\n    reply: parsed.reply ?? '',\n    route: data.route ?? null,\n    date: data.date ?? null,\n    order_date: data.order_date ?? null,\n    passengers,\n    missing_fields: missingFields\n  }\n}];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -496,
+        832
+      ],
+      "id": "f903ab3f-3156-4c8f-b98f-ef01a311d5a9",
+      "name": "Code Reply AI Agent"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const data = $(\"Cek seat\").item.json;\n\nconst formatDate = (date) => {\n  return new Intl.DateTimeFormat('id-ID', {\n    weekday: 'long',\n    day: 'numeric',\n    month: 'long',\n    year: 'numeric',\n    timeZone: 'Asia/Makassar'\n  }).format(new Date(date + 'T00:00:00+08:00'));\n};\n\nconst routeNames = {\n  'MNA-IAX': 'Melonguane - Miangas',\n  'MNA-MDC': 'Melonguane - Manado'\n};\n\nconst route = routeNames[data.route] || data.route;\nconst requestedDate = data.date ? formatDate(data.date) : '-';\nconst alternatives = Array.isArray(data.alternatives)\n  ? data.alternatives\n  : [];\n\nlet reply = '';\n\nif (\n  (data.status === 'available' || data.status === 'collecting') &&\n  Number(data.booked) < 10\n){\n   const sisaKursi = Math.max(10 - (data.booked), 0);\n   reply =\n     `✈️ *JADWAL PENERBANGAN TERSEDIA*\\n\\n` +\n     `Rute: *${route}*\\n` +\n     `Tanggal: *${requestedDate}*\\n` +\n     `Sisa kursi: *${sisaKursi} seat*\\n\\n`;\n}\nelse if (data.status === 'collecting') {\n   const sisaKursi = Math.max(10 - (data.booked), 0);\n   reply =\n     `✈️ *JADWAL PENERBANGAN TERSEDIA*\\n\\n` +\n     `Rute: *${route}*\\n` +\n     `Tanggal: *${requestedDate}*\\n` +\n     `Sisa kursi: *${sisaKursi} seat*\\n\\n`;\n}\nelse if (data.status === 'full' || data.booked > 9) {\n  reply =\n    `Mohon maaf, penerbangan untuk\\n\\n` +\n    `Rute: *${route}*\\n` +\n    `Tanggal: *${requestedDate}*\\n\\n` +\n    ` Sudah *PENUH/FULL*\\n\\n`;\n}\nelse if (data.status === 'no_schedule') {\n  reply =\n    `Mohon maaf, tidak ada jadwal penerbangan pada tanggal tersebut.\\n\\n` +\n    `Rute: *${route}*\\n` +\n    `Tanggal: *${requestedDate}*\\n\\n`;\n}\nelse if (data.status === 'booking_not_open') {\n  reply = 'Mohon maaf, pemesanan untuk bulan berikutnya belum dibuka.';\n}\nelse {\n  reply = data.message || data.error ||\n    'Maaf, terjadi kesalahan saat memeriksa jadwal penerbangan.';\n}\n\n// Tampilkan seluruh alternatif penerbangan sampai akhir bulan\nif (['available', 'full', 'no_schedule', 'collecting'].includes(data.status)) {\n\n  reply += `📅 *REKOMENDASI JADWAL PENERBANGAN*\\n`;\n  reply += `Rute: *${route}*\\n\\n`;\n\n  if (alternatives.length > 0) {\n    reply += alternatives.map((item, index) => {\n      const seats = item.availableSeats ?? item.available ?? 0;\n\n      return (\n        `${index + 1}. *${formatDate(item.date)}*\\n` +\n        `    💺 Kursi tersedia: *${seats} seat*`\n      );\n    }).join('\\n\\n');\n\n  } else {\n    reply += 'Belum ada jadwal alternatif yang tersedia sampai akhir bulan ini.';\n  }\n\n  reply += '\\n\\n*Catatan:* Ketersediaan kursi dapat berubah sewaktu-waktu sesuai dengan proses pemesanan pelanggan lain yang masuk. Silakan balas dengan memilih tanggal penerbangan yang diinginkan.';\n}\n\nreturn {\n  json: {\n    ...data,\n    reply\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        624,
+        720
+      ],
+      "id": "2d2b0713-2b62-4d6c-999b-a4c174aef972",
+      "name": "Code Cek Availability"
+    },
+    {
+      "parameters": {
+        "resource": "Chatting",
+        "operation": "Send Text",
+        "session": "={{ $('WAHA Trigger').item.json.session }}",
+        "chatId": "={{ $('WAHA Trigger').item.json.payload.from }}",
+        "text": "=Halo *{{ $('Cek booking').item.json.duplicates[0].name }}* 👋\n\nKami mendeteksi bahwa Anda sudah memiliki data booking penerbangan yang tercatat di sistem. Berikut adalah detail booking Anda:\n\n👤 Nama: *{{ $('Cek booking').item.json.duplicates[0].name }}*\n✈️ Rute: *{{ $('Cek booking').item.json.route }}*\n📅 Tanggal: *{{ DateTime.fromISO($('Code Reply AI Agent').item.json.date, { zone: 'Asia/Makassar' }).setLocale('id').toFormat('cccc, dd LLLL yyyy') }}*\n📌 Status: *{{ $('Cek booking').item.json.duplicates[0].status }}*\n\nBooking baru tidak dibuat karena data Anda sudah terdaftar sebelumnya. Terima kasih.",
+        "requestOptions": {}
+      },
+      "type": "@devlikeapro/n8n-nodes-waha.WAHA",
+      "typeVersion": 202502,
+      "position": [
+        1968,
+        1168
+      ],
+      "id": "18c327f7-d987-460b-92a2-5de506abedd5",
+      "name": "Cek Duplikat",
+      "credentials": {
+        "wahaApi": {
+          "id": "CQhPpuoPjFZHdacM",
+          "name": "WAHA account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "Chatting",
+        "operation": "Send Text",
+        "session": "={{ $('WAHA Trigger').item.json.session }}",
+        "chatId": "={{ $('WAHA Trigger').item.json.payload.from }}",
+        "reply_to": "=",
+        "text": "=🙏 *MOHON MAAF*\n\nTerima kasih telah menghubungi layanan pemesanan tiket kami.\n\nMohon maaf, untuk penerbangan dengan detail berikut:\n✈️ Rute: *{{ JSON.parse($('AI Agent').item.json.output).data.route }}*\n📅 Tanggal: *{{ new Date(JSON.parse($('AI Agent').item.json.output).data.date + 'T00:00:00').toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }) }}*\n\nSaat ini seluruh kursi yang tersedia untuk pelanggan telah terisi (*FULL*), sehingga kami belum dapat menerima pemesanan tambahan pada tanggal tersebut.\n\n---\n\n✈️ *JADWAL ALTERNATIF*\nBerikut adalah beberapa rekomendasi jadwal penerbangan berikutnya:\n\n{{\n  ($('Cek seat').first().json.alternatives ?? [])\n  .map((item, index) =>\n    `${index + 1}. *${item.day}, ${new Date(item.date + 'T00:00:00').toLocaleDateString('id-ID', {\n      day: 'numeric',\n      month: 'long',\n      year: 'numeric'\n    })}*\\n    💺 Kursi tersedia: *${item.availableSeats ?? item.available} seat*`\n  )\n  .join('\\n\\n')\n}}\n\nSilakan pilih tanggal penerbangan yang sesuai. Kami akan membantu melakukan pengecekan kembali untuk tanggal pilihan Anda.\n\nTerima kasih atas pengertian Anda. 🙏",
+        "linkPreview": false,
+        "requestOptions": {}
+      },
+      "type": "@devlikeapro/n8n-nodes-waha.WAHA",
+      "typeVersion": 202502,
+      "position": [
+        1968,
+        784
+      ],
+      "id": "d8607181-3de3-4c01-b2f7-d9c71da9d044",
+      "name": "Cek Full",
+      "credentials": {
+        "wahaApi": {
+          "id": "CQhPpuoPjFZHdacM",
+          "name": "WAHA account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "Chatting",
+        "operation": "Send Text",
+        "session": "={{ $('WAHA Trigger').item.json.session }}",
+        "chatId": "={{ $('WAHA Trigger').item.json.payload.from }}",
+        "text": "=Terima kasih telah melakukan pemesanan tiket bersama kami. 😊\n\nBerikut detail pemesanan Anda:\n\n*Nama penumpang:  {{ $('Code Reply AI Agent').item.json.passengers[0].name }}*\n*Rute:  {{ ({\n  'MNA-MDC': 'Melonguane - Manado',\n  'MNA-IAX': 'Melonguane - Miangas'\n})[$('Code Reply AI Agent').item.json.route] || $('Code Reply AI Agent').item.json.route }}*\n*Tanggal penerbangan: {{ DateTime.fromISO($('Code Reply AI Agent').item.json.date, { zone: 'Asia/Makassar' }).setLocale('id').toFormat('cccc, dd LLLL yyyy') }}*\n\n✅ *Pesanan Anda telah berhasil kami terima dan saat ini sedang menunggu verifikasi admin.*\n\nMohon menunggu konfirmasi selanjutnya. Kami akan menginformasikan perkembangan pemesanan Anda melalui WhatsApp ini.\n\nTerima kasih atas kepercayaan Anda.",
+        "requestOptions": {}
+      },
+      "type": "@devlikeapro/n8n-nodes-waha.WAHA",
+      "typeVersion": 202502,
+      "position": [
+        2640,
+        1536
+      ],
+      "id": "e330fe91-7ebd-4f10-93f1-8519610f4908",
+      "name": "Pesanan Di Submit",
+      "credentials": {
+        "wahaApi": {
+          "id": "CQhPpuoPjFZHdacM",
+          "name": "WAHA account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "77744437-4046-4152-a986-0f84a146893f",
+              "leftValue": "={{ $('Code Reply AI Agent').item.json.passengers.length }}",
+              "rightValue": 1,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": "=",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        2416,
+        1440
+      ],
+      "id": "b4945aaf-5040-4513-82ea-c227c5a01c3e",
+      "name": "If7"
+    },
+    {
+      "parameters": {
+        "resource": "Chatting",
+        "operation": "Send Text",
+        "session": "={{ $('WAHA Trigger').item.json.session }}",
+        "chatId": "={{ $('WAHA Trigger').item.json.payload.from }}",
+        "text": "=Terima kasih telah melakukan pemesanan tiket bersama kami. 😊\n\nBerikut detail pemesanan Anda:\n\n{{ '*Nama penumpang*:\\n' + $('Code Reply AI Agent').item.json.passengers.map((p, i) => `*${i + 1}. ${p.name.trim()} (${p.type})*`).join('\\n') }}\n*Rute:  {{ ({\n  'MNA-MDC': 'Melonguane - Manado',\n  'MNA-IAX': 'Melonguane - Miangas'\n})[$('Code Reply AI Agent').item.json.route] || $('Code Reply AI Agent').item.json.route }}*\n*Tanggal penerbangan: {{ DateTime.fromISO($('Code Reply AI Agent').item.json.date, { zone: 'Asia/Makassar' }).setLocale('id').toFormat('cccc, dd LLLL yyyy') }}*\n\n✅ *Pesanan Anda telah berhasil kami terima dan saat ini sedang menunggu verifikasi admin.*\n\nMohon menunggu konfirmasi selanjutnya. Kami akan menginformasikan perkembangan pemesanan Anda melalui WhatsApp ini.\n\nTerima kasih atas kepercayaan Anda.",
+        "requestOptions": {}
+      },
+      "type": "@devlikeapro/n8n-nodes-waha.WAHA",
+      "typeVersion": 202502,
+      "position": [
+        2640,
+        1344
+      ],
+      "id": "f02e54f6-6b50-44cb-b633-f91af43b8195",
+      "name": "Submit Diatas 1 Penumpang",
+      "credentials": {
+        "wahaApi": {
+          "id": "CQhPpuoPjFZHdacM",
+          "name": "WAHA account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\n\nconst first = items[0].json;\n\nreturn [{\n  json: {\n    ...first,\n    total_penumpang: items.length\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1968,
+        1360
+      ],
+      "id": "28f7e46f-faf9-4987-82d0-54a359c3f58d",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "resource": "Chatting",
+        "operation": "Send Text",
+        "session": "={{ $('WAHA Trigger').item.json.session }}",
+        "chatId": "={{ $('WAHA Trigger').item.json.payload.from }}",
+        "text": "={{ $('Code Reply AI Agent').item.json.reply }}",
+        "requestOptions": {}
+      },
+      "type": "@devlikeapro/n8n-nodes-waha.WAHA",
+      "typeVersion": 202502,
+      "position": [
+        2192,
+        1680
+      ],
+      "id": "0935923c-91bc-4f3e-9682-daabbda1742a",
+      "name": "Text Dari AI",
+      "credentials": {
+        "wahaApi": {
+          "id": "CQhPpuoPjFZHdacM",
+          "name": "WAHA account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "Chatting",
+        "operation": "Send Text",
+        "session": "={{ $('WAHA Trigger').item.json.session }}",
+        "chatId": "={{ $('WAHA Trigger').item.json.payload.from }}",
+        "text": "={{ $('Code Cek Availability').item.json.reply }}",
+        "requestOptions": {}
+      },
+      "type": "@devlikeapro/n8n-nodes-waha.WAHA",
+      "typeVersion": 202502,
+      "position": [
+        1296,
+        720
+      ],
+      "id": "a95409ce-dee3-44ce-ae3f-60796cc4d5e5",
+      "name": "Cek Available Seat",
+      "credentials": {
+        "wahaApi": {
+          "id": "CQhPpuoPjFZHdacM",
+          "name": "WAHA account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "amount": "={{ $('Code Reply AI Agent').item.json.reply.length/200 }}"
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        624,
+        528
+      ],
+      "id": "4f8199d8-7a25-475f-a0bf-e1c135fea384",
+      "name": "Wait5",
+      "webhookId": "5fd3c4a5-a018-4bf4-8246-f627a7dc0f90"
+    },
+    {
+      "parameters": {
+        "resource": "Chatting",
+        "operation": "Start Typing",
+        "session": "={{ $('WAHA Trigger').item.json.session }}",
+        "chatId": "={{ $('WAHA Trigger').item.json.payload.from }}",
+        "requestOptions": {}
+      },
+      "type": "@devlikeapro/n8n-nodes-waha.WAHA",
+      "typeVersion": 202502,
+      "position": [
+        400,
+        528
+      ],
+      "id": "453b7b7d-0eaf-4ec7-9092-4c5564d6c18e",
+      "name": "Start Typing4",
+      "credentials": {
+        "wahaApi": {
+          "id": "CQhPpuoPjFZHdacM",
+          "name": "WAHA account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "Chatting",
+        "operation": "Send Text",
+        "session": "={{ $('WAHA Trigger').item.json.session }}",
+        "chatId": "={{ $('WAHA Trigger').item.json.payload.from }}",
+        "text": "=🙏 *MOHON MAAF*\n\nTerima kasih telah menghubungi layanan pemesanan tiket kami.\n\nMohon maaf, penerbangan untuk rute dan tanggal pilihan Anda *tidak tersedia*. \n\n✈️ *Jadwal Operasional Penerbangan Perintis:*\nPenerbangan hanya melayani rute pada hari *Senin, Rabu, dan Sabtu*. \n\nSilakan periksa kembali rencana perjalanan Anda dan pilih tanggal yang jatuh pada hari Senin, Rabu, atau Sabtu agar kami dapat membantu pengecekan ketersediaan kursinya.\n\nTerima kasih atas pengertian Anda. 🙏",
+        "requestOptions": {}
+      },
+      "type": "@devlikeapro/n8n-nodes-waha.WAHA",
+      "typeVersion": 202502,
+      "position": [
+        848,
+        528
+      ],
+      "id": "d9ff5608-94bb-418b-91e5-96284eb68176",
+      "name": "Jadwal Tidak Ditemukan",
+      "credentials": {
+        "wahaApi": {
+          "id": "CQhPpuoPjFZHdacM",
+          "name": "WAHA account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "8963ae42-0e3e-4266-af75-09db31929c94",
+              "leftValue": "={{ $('Code Reply AI Agent').item.json.date !== null && $json.error !== undefined && $('Code Reply AI Agent').item.json.route !== null }}",
+              "rightValue": "invalid_route",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "a302cf83-8584-412a-8ebe-df41a1e251d9",
+              "leftValue": "={{ $json.status === no_schedule }}",
+              "rightValue": "no_schedule",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": "=",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -48,
+        832
+      ],
+      "id": "e535270d-7e2c-4ba9-9625-ee5df877c900",
+      "name": "If6"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "eac41d93-8217-4813-bd0a-ca1c4ee843fe",
+              "leftValue": "={{ $('Cek seat').item.json.booked > 9}}",
+              "rightValue": 0,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1744,
+        880
+      ],
+      "id": "8cee4547-9cfe-4bf3-9dac-db41721321b0",
+      "name": "If8"
+    },
+    {
+      "parameters": {
+        "resource": "Chatting",
+        "operation": "Send Text",
+        "session": "={{ $('WAHA Trigger').item.json.session }}",
+        "chatId": "={{ $('WAHA Trigger').item.json.payload.from }}",
+        "reply_to": "=",
+        "text": "=🙏 *MOHON MAAF*\n\nTerima kasih telah menghubungi layanan pemesanan tiket kami.\n\nMohon maaf, untuk penerbangan dengan detail berikut:\n\n✈️ Rute: *{{ JSON.parse($('AI Agent').item.json.output).data.route }}*\n📅 Tanggal: *{{ new Date(JSON.parse($('AI Agent').item.json.output).data.date + 'T00:00:00').toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }) }}*\n\nSaat ini kursi yang tersedia Hanya {{10 - $('Cek seat').item.json.booked }} Sedangkan pesanan Anda untuk {{ $('Code Reply AI Agent').item.json.passengers?.length }} Penumpang , sehingga kami belum dapat menerima pemesanan tambahan pada tanggal tersebut.\n\n---\n✈️ *JADWAL ALTERNATIF*\nBerikut adalah beberapa rekomendasi jadwal penerbangan berikutnya:\n\n{{\n  ($('Cek seat').first().json.alternatives ?? [])\n  .map((item, index) =>\n    `${index + 1}. *${item.day}, ${new Date(item.date + 'T00:00:00').toLocaleDateString('id-ID', {\n      day: 'numeric',\n      month: 'long',\n      year: 'numeric'\n    })}*\\n    💺 Kursi tersedia: *${item.availableSeats ?? item.available} seat*`\n  )\n  .join('\\n\\n')\n}}\n\nSilakan pilih tanggal penerbangan yang sesuai. Kami akan membantu melakukan pengecekan kembali untuk tanggal pilihan Anda.\n\nTerima kasih atas pengertian Anda. 🙏",
+        "linkPreview": false,
+        "requestOptions": {}
+      },
+      "type": "@devlikeapro/n8n-nodes-waha.WAHA",
+      "typeVersion": 202502,
+      "position": [
+        1968,
+        976
+      ],
+      "id": "eb602c63-aa01-4560-97f1-b27915298f81",
+      "name": "Cek Full1",
+      "credentials": {
+        "wahaApi": {
+          "id": "CQhPpuoPjFZHdacM",
+          "name": "WAHA account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "b6841ed9-9c2e-489f-bb89-570ec890d570",
+              "leftValue": "={{ $json.payload.body }}",
+              "rightValue": "=PERINTIS FLIGHTS",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -2304,
+        736
+      ],
+      "id": "45db8e3c-cd1f-47ad-81b8-f2055e7485fd",
+      "name": "If9"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "836954b1-2207-48a7-b64c-5b3ceca38116",
+              "leftValue": "={{ $json.event }}",
+              "rightValue": "message",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            },
+            {
+              "id": "f80a39d5-85c7-4304-bb42-6eae938deead",
+              "leftValue": "={{ $json.payload?.fromMe ?? $json.fromMe ?? $json._data?.id?.fromMe }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "false",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "9e779094-b952-4dfa-b980-f53c351a81d0",
+              "leftValue": "={{ $json.payload.from }}",
+              "rightValue": "status@broadcast",
+              "operator": {
+                "type": "string",
+                "operation": "notContains"
+              }
+            },
+            {
+              "id": "b99b89d3-d86f-4ec7-9523-3424311b24e1",
+              "leftValue": "={{ Date.now() / 1000 - Number($json.payload.timestamp) }}",
+              "rightValue": 300,
+              "operator": {
+                "type": "number",
+                "operation": "lt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -1904,
+        496
+      ],
+      "id": "2d63e302-3c59-48b7-871e-7112bf6da60b",
+      "name": "If10"
+    },
+    {
+      "parameters": {
+        "operation": "removeItemsSeenInPreviousExecutions",
+        "dedupeValue": "={{ $json.payload.id }}",
+        "options": {
+          "scope": "node"
+        }
+      },
+      "type": "n8n-nodes-base.removeDuplicates",
+      "typeVersion": 2,
+      "position": [
+        -2128,
+        496
+      ],
+      "id": "9b838f51-8983-425b-9b65-941d79a802eb",
+      "name": "Remove Duplicates1"
+    },
+    {
+      "parameters": {
+        "model": "openai/gpt-oss-120b",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        -896,
+        208
+      ],
+      "id": "fcec0af6-f79a-432f-a6bb-058b0ce8727a",
+      "name": "Groq Chat Model",
+      "credentials": {
+        "groqApi": {
+          "id": "n24PMUsokV8Hxuw5",
+          "name": "Groq account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "371791e5-05d6-45b3-a0ff-f734aa96cf40",
+              "leftValue": "={{ $json.success === true && $json.inserted !== undefined && $json.inserted !== null }}",
+              "rightValue": false,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -1232,
+        496
+      ],
+      "id": "eef28a98-ee4d-418f-9b94-ca4ac4449799",
+      "name": "If11"
+    },
+    {
+      "parameters": {
+        "amount": "={{ $('AI Agent1').item.json.output.length/200 }}"
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        176,
+        112
+      ],
+      "id": "d04300ae-6caf-4c47-b420-498ad5ccf7c9",
+      "name": "Wait6",
+      "webhookId": "5fd3c4a5-a018-4bf4-8246-f627a7dc0f90"
+    },
+    {
+      "parameters": {
+        "resource": "Chatting",
+        "operation": "Start Typing",
+        "session": "={{ $('WAHA Trigger').item.json.session }}",
+        "chatId": "={{ $('WAHA Trigger').item.json.payload.from }}",
+        "requestOptions": {}
+      },
+      "type": "@devlikeapro/n8n-nodes-waha.WAHA",
+      "typeVersion": 202502,
+      "position": [
+        -48,
+        112
+      ],
+      "id": "a9d4939c-915d-45c5-85f8-e1485906e1ac",
+      "name": "Start Typing5",
+      "credentials": {
+        "wahaApi": {
+          "id": "CQhPpuoPjFZHdacM",
+          "name": "WAHA account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst text = $('WAHA Trigger').first().json.payload.body || \"\";\n\n// Fungsi bantu regex universal\nconst extract = (regex, text, group = 1, defaultVal = 0) => {\n  const match = text.match(regex);\n\n  if (!match) return defaultVal;\n\n  return isNaN(match[group])\n    ? match[group].trim()\n    : Number(match[group]);\n};\n\n// 1. Ekstrak Tanggal\nconst dateMatch = text.match(/(\\d{1,2})\\s+([A-Za-z]{3})\\s+(\\d{4})/);\n\nlet day = 2;\nlet month = 11;\nlet year = 2026;\n\nconst months = {\n  jan: 1, feb: 2, mar: 3, apr: 4,\n  may: 5, jun: 6, jul: 7, aug: 8,\n  sep: 9, oct: 10, nov: 11, dec: 12\n};\n\nif (dateMatch) {\n  day = parseInt(dateMatch[1]);\n  month = months[dateMatch[2].toLowerCase()] || 11;\n  year = parseInt(dateMatch[3]);\n}\n\n// 2. Ekstrak Rute\nconst routeMatch = text.match(/Route\\s*:\\s*(.+)/i);\n\nlet route = routeMatch ? routeMatch[1].trim() : \"MNA-MDC\";\n\n// Hilangkan spasi di sekitar tanda hubung\nroute = route.replace(/\\s*-\\s*/g, '-');\n\n// 3. Ekstrak Pax: Adult / Child / Infant dan Berat Penumpang\nconst paxMatch = text.match(\n  /Pax\\s*:\\s*(\\d+)\\s*\\/\\s*(\\d+)\\s*\\/\\s*(\\d+)\\s*\\(\\s*(\\d+)\\s*\\)/i\n);\n\nconst adult = paxMatch ? Number(paxMatch[1]) : 0;\nconst child = paxMatch ? Number(paxMatch[2]) : 0;\nconst infant = paxMatch ? Number(paxMatch[3]) : 0;\n\nconst paxCount = adult + child + infant;\n\nconst passengerWeight = paxMatch\n  ? Number(paxMatch[4])\n  : 0;\n\n// 4. Ekstrak Bagasi\nconst baggageWeight = extract(\n  /Bags\\s*:\\s*(\\d+)\\s*Kg/i,\n  text\n);\n\nconst baggagePieces = extract(\n  /Bags\\s*:\\s*\\d+\\s*Kg\\s*\\(\\s*(\\d+)\\s*coli\\s*\\)/i,\n  text\n);\n\n// 5. Ekstrak Hand Carry / Cabin\nconst cabinWeight = extract(\n  /Hc\\s*:\\s*(\\d+)\\s*Kg/i,\n  text\n);\n\nconst cabinPieces = extract(\n  /Hc\\s*:\\s*\\d+\\s*Kg\\s*\\(\\s*(\\d+)\\s*coli\\s*\\)/i,\n  text\n);\n\n// 6. Ekstrak Kargo / Ebt\nconst cargoWeight = extract(\n  /(?:Cargo\\s+SA|Ebt)\\s*:\\s*(\\d+)\\s*Kg/i,\n  text\n);\n\nconst cargoPieces = extract(\n  /(?:Cargo\\s+SA|Ebt)\\s*:\\s*\\d+\\s*Kg\\s*\\(\\s*(\\d+)\\s*coli\\s*\\)/i,\n  text\n);\n\n// 7. Output\nreturn [\n  {\n    json: {\n      billing_year: year,\n      billing_month: month,\n      replace_period: true,\n      flights: [\n        {\n          flight_day: day,\n          route: route,\n\n          // Data penumpang\n          pax: paxCount,\n          adult: adult,\n          child: child,\n          infant: infant,\n          passenger_weight: passengerWeight,\n\n          // Bagasi\n          baggage_pieces: Number(baggagePieces),\n          baggage_weight: Number(baggageWeight),\n\n          // Hand Carry\n          cabin_baggage_pieces: Number(cabinPieces),\n          cabin_baggage_weight: Number(cabinWeight),\n\n          // Kargo\n          cargo_pieces: Number(cargoPieces || 0),\n          cargo_weight: Number(cargoWeight || 0)\n        }\n      ]\n    }\n  }\n];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1680,
+        496
+      ],
+      "id": "831b7b29-ffff-4640-9d44-cf9ee9c40b07",
+      "name": "Pharse JSON Data"
+    },
+    {
+      "parameters": {
+        "amount": "={{ $('Code Cek Availability').item.json.reply.length/300 }}"
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        -272,
+        400
+      ],
+      "id": "8463231e-7869-465c-996d-f84c86ba1b11",
+      "name": "Wait7",
+      "webhookId": "5fd3c4a5-a018-4bf4-8246-f627a7dc0f90"
+    },
+    {
+      "parameters": {
+        "resource": "Chatting",
+        "operation": "Start Typing",
+        "session": "={{ $('WAHA Trigger').item.json.session }}",
+        "chatId": "={{ $('WAHA Trigger').item.json.payload.from }}",
+        "requestOptions": {}
+      },
+      "type": "@devlikeapro/n8n-nodes-waha.WAHA",
+      "typeVersion": 202502,
+      "position": [
+        -496,
+        400
+      ],
+      "id": "feb21930-0998-4717-921e-9755cc068da5",
+      "name": "Start Typing6",
+      "credentials": {
+        "wahaApi": {
+          "id": "CQhPpuoPjFZHdacM",
+          "name": "WAHA account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "Chatting",
+        "operation": "Send Text",
+        "session": "={{ $('WAHA Trigger').item.json.session }}",
+        "chatId": "={{ $('WAHA Trigger').item.json.payload.from }}",
+        "text": "=✅ Data untuk rute : {{ $('Pharse JSON Data').item.json.flights[0].route }} tanggal : {{ $('Pharse JSON Data').item.json.flights[0].flight_day }} {{ [\"Januari\", \"Februari\", \"Maret\", \"April\", \"Mei\", \"Juni\", \"Juli\", \"Agustus\", \"September\", \"Oktober\", \"November\", \"Desember\"][$('Pharse JSON Data').item.json.billing_month - 1] }} {{ $('Pharse JSON Data').item.json.billing_year }} Telah berhasil tersimpan",
+        "requestOptions": {}
+      },
+      "type": "@devlikeapro/n8n-nodes-waha.WAHA",
+      "typeVersion": 202502,
+      "position": [
+        400,
+        112
+      ],
+      "id": "6bdea8d4-fdce-4305-8034-18d50131a14b",
+      "name": "Success Message",
+      "credentials": {
+        "wahaApi": {
+          "id": "CQhPpuoPjFZHdacM",
+          "name": "WAHA account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "Chatting",
+        "operation": "Send Text",
+        "session": "={{ $('WAHA Trigger').item.json.session }}",
+        "chatId": "={{ $('WAHA Trigger').item.json.payload.from }}",
+        "text": "={{ $('Post Flight Data').item.json.message }}",
+        "requestOptions": {}
+      },
+      "type": "@devlikeapro/n8n-nodes-waha.WAHA",
+      "typeVersion": 202502,
+      "position": [
+        -48,
+        400
+      ],
+      "id": "0cf289d3-be4b-4571-b055-71d9d001684e",
+      "name": "Fail Message",
+      "credentials": {
+        "wahaApi": {
+          "id": "CQhPpuoPjFZHdacM",
+          "name": "WAHA account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "Chatting",
+        "operation": "Send Seen",
+        "session": "={{ $('WAHA Trigger').item.json.session }}",
+        "chatId": "={{ $('WAHA Trigger').item.json.payload.from }}",
+        "messageId": "={{ $('WAHA Trigger').item.json.payload.id }}",
+        "participant": "",
+        "requestOptions": {}
+      },
+      "type": "@devlikeapro/n8n-nodes-waha.WAHA",
+      "typeVersion": 202502,
+      "position": [
+        -272,
+        112
+      ],
+      "id": "3f6c124f-5bbe-4edc-88c3-05d300a81e08",
+      "name": "Send Seen2",
+      "credentials": {
+        "wahaApi": {
+          "id": "CQhPpuoPjFZHdacM",
+          "name": "WAHA account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "Chatting",
+        "operation": "Send Seen",
+        "session": "={{ $('WAHA Trigger').item.json.session }}",
+        "chatId": "={{ $('WAHA Trigger').item.json.payload.from }}",
+        "messageId": "={{ $('WAHA Trigger').item.json.payload.id }}",
+        "participant": "",
+        "requestOptions": {}
+      },
+      "type": "@devlikeapro/n8n-nodes-waha.WAHA",
+      "typeVersion": 202502,
+      "position": [
+        -832,
+        400
+      ],
+      "id": "58fa3ac0-6b56-499e-b3eb-8497d7373075",
+      "name": "Send Seen3",
+      "credentials": {
+        "wahaApi": {
+          "id": "CQhPpuoPjFZHdacM",
+          "name": "WAHA account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Anda adalah asisten operasional penerbangan yang bertugas memberikan konfirmasi status pengiriman data. \nDiberikan respons dari server web setelah data diposting:\n- Status HTTP: {{ $json.success }} (atau dari node HTTP Request)\n- Pesan Server: {{$json.message}}\n\nTUGAS:\nBuatlah pesan balasan singkat, profesional, dan jelas dalam Bahasa Indonesia untuk dikirim ke grup WhatsApp. \nContoh output:\n\"✅ Data penerbangan rute MNA-MDC tanggal 11 Nov 2026 berhasil dicatat ke sistem web.\"\n\nJika gagal, beritahu bahwa ada kendala dan minta untuk dicek ulang. Jangan gunakan format markdown yang rumit, cukup teks biasa yang rapi.",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        -896,
+        0
+      ],
+      "id": "6f97c49d-84ae-47b5-b314-34817fea3be9",
+      "name": "AI Agent1",
+      "retryOnFail": true,
+      "waitBetweenTries": 300
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        -496,
+        112
+      ],
+      "id": "e52944ea-c947-4ddf-be69-b02caf3e1e0c",
+      "name": "Wait8",
+      "webhookId": "e819714c-6000-460e-b210-660219c60c3c"
+    },
+    {
+      "parameters": {
+        "resource": "Chatting",
+        "operation": "Send Seen",
+        "session": "={{ $('WAHA Trigger').item.json.session }}",
+        "chatId": "={{ $('WAHA Trigger').item.json.payload.from }}",
+        "messageId": "={{ $('WAHA Trigger').item.json.payload.id }}",
+        "participant": "",
+        "requestOptions": {}
+      },
+      "type": "@devlikeapro/n8n-nodes-waha.WAHA",
+      "typeVersion": 202502,
+      "position": [
+        160,
+        976
+      ],
+      "id": "d630bbca-2a04-40d2-aca0-84442010ffe2",
+      "name": "Send Seen1",
+      "credentials": {
+        "wahaApi": {
+          "id": "CQhPpuoPjFZHdacM",
+          "name": "WAHA account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\n\nreturn [{\n  json: {\n    total_items: items.length,\n    data: items.map(item => item.json)\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        832,
+        1072
+      ],
+      "id": "69c9672c-e8f4-4e54-82e2-485a6f892643",
+      "name": "Code in JavaScript1"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://tiket.kudh.my.id/api/flights",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"billing_year\": {{ $json.billing_year }},\n  \"billing_month\": {{ $json.billing_month }},\n  \"replace_period\": false,\n  \"flights\": [\n    {\n      \"flight_day\": {{ $json.flights[0].flight_day }},\n      \"route\": \"{{ $json.flights[0].route }}\",\n      \"adult_pax\": {{ $json.flights[0].adult }},\n      \"child_pax\": {{ $json.flights[0].child }},\n      \"infant_pax\": {{ $json.flights[0].infant }},\n      \"basic_fare\": {{ $json.flights[0].route === 'MNA-IAX' ? 380000 : 483000 }},\n      \"fee_ticket\": {{ $json.flights[0].route === 'MNA-IAX' ? 380000 * 0.05 : 483000 * 0.05 }},\n      \"note\": \"BERJADWAL\",\n      \"passenger_weight\": {{ $json.flights[0].passenger_weight }},\n      \"baggage_pieces\": {{ $json.flights[0].baggage_pieces }},\n      \"baggage_weight\": {{ $json.flights[0].baggage_weight }},\n      \"cabin_baggage_pieces\": {{ $json.flights[0].cabin_baggage_pieces }},\n      \"cabin_baggage_weight\": {{ $json.flights[0].cabin_baggage_weight }},\n      \"cargo_pieces\": {{ $json.flights[0].cargo_pieces }},\n      \"cargo_weight\": {{ $json.flights[0].cargo_weight }}\n    }\n  ]\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        -1456,
+        496
+      ],
+      "id": "767d5e28-7f29-4246-937e-6499de899d50",
+      "name": "Post Flight Data"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=http://192.168.29.44:3000/api/{{ $('WAHA Trigger').item.json.session }}/calls/reject",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "wahaApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"from\": \"{{ $('WAHA Trigger').item.json.payload.from }}\",\n  \"id\": \"{{ $('WAHA Trigger').item.json.payload.id }}\"\n} ",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        -2080,
+        1312
+      ],
+      "id": "3a81be25-e4f5-4d25-90e7-19ff32b266ce",
+      "name": "HTTP Request1",
+      "credentials": {
+        "wahaApi": {
+          "id": "QFBWhEVS49zXKgsV",
+          "name": "WAHA account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "amount": "={{ 1 / 4}}"
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        -2304,
+        1312
+      ],
+      "id": "e7da1d5c-18e7-48d4-8c74-590e712b8dc7",
+      "name": "Wait9",
+      "webhookId": "03d1e69f-86d7-4ef8-afb4-943e005d6993"
+    },
+    {
+      "parameters": {
+        "amount": "={{ $('WAHA Trigger').item.json.payload.id.length/200 }}"
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        -1632,
+        1312
+      ],
+      "id": "804da109-50ee-45b4-b6bb-66d4259a7d6d",
+      "name": "Wait10",
+      "webhookId": "5fd3c4a5-a018-4bf4-8246-f627a7dc0f90"
+    },
+    {
+      "parameters": {
+        "resource": "Chatting",
+        "operation": "Start Typing",
+        "session": "={{ $('WAHA Trigger').item.json.session }}",
+        "chatId": "={{ $('WAHA Trigger').item.json.payload.from }}",
+        "requestOptions": {}
+      },
+      "type": "@devlikeapro/n8n-nodes-waha.WAHA",
+      "typeVersion": 202502,
+      "position": [
+        -1856,
+        1312
+      ],
+      "id": "e0c7a5bd-7852-4172-a27a-e1f6d6696531",
+      "name": "Start Typing7",
+      "credentials": {
+        "wahaApi": {
+          "id": "CQhPpuoPjFZHdacM",
+          "name": "WAHA account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "Chatting",
+        "operation": "Send Text",
+        "session": "={{ $('WAHA Trigger').item.json.session }}",
+        "chatId": "={{ $('WAHA Trigger').item.json.payload.from }}",
+        "text": "=Halo! 👋 Terima kasih telah menghubungi kami.\n\nMohon maaf, saat ini kami tidak melayani pemesanan tiket melalui panggilan telepon. Seluruh transaksi dan konsultasi hanya dilayani melalui *Chat WhatsApp* ini.\n\n*Demi memastikan setiap informasi tercatat dengan baik dan tidak ada detail yang terlewat*, silakan sampaikan keperluan Anda melalui pesan chat.\n\nKami akan segera membalas pesan Anda. Terima kasih atas pengertiannya! 🙏",
+        "requestOptions": {}
+      },
+      "type": "@devlikeapro/n8n-nodes-waha.WAHA",
+      "typeVersion": 202502,
+      "position": [
+        -1280,
+        1312
+      ],
+      "id": "294e624a-f47d-46f1-811d-e312ffb81d26",
+      "name": "Jadwal Tidak Ditemukan1",
+      "credentials": {
+        "wahaApi": {
+          "id": "CQhPpuoPjFZHdacM",
+          "name": "WAHA account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "removeItemsSeenInPreviousExecutions",
+        "dedupeValue": "={{ $json.payload.id }}",
+        "options": {
+          "scope": "node"
+        }
+      },
+      "type": "n8n-nodes-base.removeDuplicates",
+      "typeVersion": 2,
+      "position": [
+        -2528,
+        1312
+      ],
+      "id": "cdcbd37b-d034-476b-9af1-79abb34f1d38",
+      "name": "Remove Duplicates2"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 4
+          },
+          "conditions": [
+            {
+              "id": "37e2e471-bca4-4c1c-aeda-da6418bd0548",
+              "leftValue": "={{ Date.now() / 1000 - Number($json.payload.timestamp) }}",
+              "rightValue": 300,
+              "operator": {
+                "type": "number",
+                "operation": "lt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.4,
+      "position": [
+        -2752,
+        1312
+      ],
+      "id": "f618ec82-411a-48cb-a28c-7f001504c9fa",
+      "name": "If12"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 4
+          },
+          "conditions": [
+            {
+              "id": "7042623f-f191-41f9-b9d1-41c92b38988e",
+              "leftValue": "={{ \n  [\n    '628112113080@c.us',\n    '6281121130860@c.us',\n    '628112119802@c.us',\n    '628112123921@c.us',\n    '6282290286925@c.us',\n    '6282377325373@c.us',\n    '6285367767794@c.us',\n    '6285231151185@c.us'\n  ].includes($('HTTP Request').item.json.pn)\n}}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.4,
+      "position": [
+        -1216,
+        704
+      ],
+      "id": "cea1625a-185a-4245-9456-eb031f190d63",
+      "name": "If13"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "deepseek-v4-pro",
+          "mode": "list",
+          "cachedResultName": "deepseek-v4-pro"
+        },
+        "responsesApiEnabled": false,
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        -1024,
+        944
+      ],
+      "id": "13c9b449-3360-42ea-a325-a8d8059ab8ef",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "fPKSUkhwEygaf4Ec",
+          "name": "OpenAI account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 4
+          },
+          "conditions": [
+            {
+              "id": "925d514b-4475-4c33-96a4-0d4c110d2d74",
+              "leftValue": "={{\n  (() => {\n    const sender = $json.pn || '';\n\n    const whitelist = [\n      '6281317190598@c.us'\n    ];\n\n    // Nomor whitelist selalu aktif\n    if (whitelist.includes(sender)) {\n      return true;\n    }\n\n    // Nomor lainnya mengikuti jam operasional\n    const now = $now.setZone('Asia/Makassar');\n\n    return (\n      now.weekday >= 1 &&\n      now.weekday <= 6 &&\n      now.hour >= 8 &&\n      now.hour < 18\n    );\n  })()\n}}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.4,
+      "position": [
+        -2576,
+        752
+      ],
+      "id": "0f34357d-b513-4975-99cd-d7c60e10f419",
+      "name": "If14"
+    },
+    {
+      "parameters": {
+        "url": "=https://waha.jmtlab.my.id/api/{{ $('WAHA Trigger').item.json.session }}/lids/{{ $('WAHA Trigger').item.json.payload.from }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Api-Key",
+              "value": "kudh771"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        -2864,
+        768
+      ],
+      "id": "25e50d09-56d8-4a9d-b0e7-2682d0b2ab0e",
+      "name": "HTTP Request",
+      "retryOnFail": true,
+      "waitBetweenTries": 100,
+      "onError": "continueErrorOutput"
+    }
+  ],
+  "pinData": {
+    "WAHA Trigger": [
+      {
+        "json": {
+          "id": "evt_01m85tst7rneq2cw7jwjzxz7jy",
+          "timestamp": 1795492210937,
+          "event": "message",
+          "session": "beta_test",
+          "metadata": {},
+          "me": {
+            "id": "6281243620221@c.us",
+            "pushName": "Susi Air Mna",
+            "lid": "15397877231656@lid",
+            "jid": "6281243620221:1@s.whatsapp.net",
+            "reachoutTimelock": null,
+            "messageCapping": {
+              "cappingStatus": "NONE",
+              "totalQuota": -1,
+              "usedQuota": 0,
+              "cycleStart": 1793466000,
+              "cycleEnd": 1796057999,
+              "mvStatus": "NOT_ELIGIBLE",
+              "oteStatus": "NOT_ELIGIBLE"
+            }
+          },
+          "payload": {
+            "id": "false_84722558439553@lid_3EB042A568CD8030794F97",
+            "timestamp": 1795492210,
+            "from": "84722558439553@lid",
+            "fromMe": false,
+            "source": "app",
+            "body": "Apa sudah bisa booking untuk tanggal 23 Desember kak?",
+            "to": null,
+            "participant": null,
+            "hasMedia": false,
+            "media": null,
+            "ack": 2,
+            "location": null,
+            "vCards": null,
+            "ackName": "DEVICE",
+            "replyTo": null,
+            "_data": {
+              "Info": {
+                "Chat": "84722558439553@lid",
+                "Sender": "84722558439553:69@lid",
+                "IsFromMe": false,
+                "IsGroup": false,
+                "AddressingMode": "",
+                "SenderAlt": "6281150501401:69@s.whatsapp.net",
+                "RecipientAlt": "",
+                "BroadcastListOwner": "",
+                "BroadcastRecipients": null,
+                "ID": "3EB042A568CD8030794F97",
+                "ServerID": 0,
+                "Type": "text",
+                "PushName": "Miracle",
+                "Timestamp": "2026-11-24T03:50:10Z",
+                "Category": "",
+                "Multicast": false,
+                "MediaType": "",
+                "Edit": "",
+                "MsgBotInfo": {
+                  "EditType": "",
+                  "EditTargetID": "",
+                  "EditSenderTimestampMS": "0001-01-01T00:00:00Z",
+                  "ClientThreadID": ""
+                },
+                "MsgMetaInfo": {
+                  "TargetID": "",
+                  "TargetSender": "",
+                  "TargetChat": "",
+                  "DeprecatedLIDSession": null,
+                  "ThreadMessageID": "",
+                  "ThreadMessageSenderJID": ""
+                },
+                "IsNewsletterStatus": false,
+                "VerifiedName": null,
+                "DeviceSentMeta": null
+              },
+              "Message": {
+                "conversation": "Apa sudah bisa booking untuk tanggal 23 Desember kak?",
+                "messageContextInfo": {
+                  "deviceListMetadata": {
+                    "senderKeyHash": "8Cb4xhwjwr0YMQ==",
+                    "senderTimestamp": 1795149039,
+                    "senderAccountType": 0,
+                    "receiverAccountType": 0,
+                    "recipientKeyHash": "sEKnwQbIgHY9Aw==",
+                    "recipientTimestamp": 1795413868
+                  },
+                  "deviceListMetadataVersion": 2,
+                  "messageSecret": "mqZeOZc2x/gEgaY0g7gFK/zPPmZc+QO9hmYtG+lNaGQ=",
+                  "limitSharingV2": {
+                    "trigger": 0,
+                    "initiatedByMe": false
+                  }
+                }
+              },
+              "IsEphemeral": false,
+              "IsViewOnce": false,
+              "IsViewOnceV2": false,
+              "IsViewOnceV2Extension": false,
+              "IsDocumentWithCaption": false,
+              "IsLottieSticker": false,
+              "IsBotInvoke": false,
+              "IsEdit": false,
+              "SourceWebMsg": null,
+              "UnavailableRequestID": "",
+              "RetryCount": 0,
+              "NewsletterMeta": null,
+              "RawMessage": {
+                "conversation": "Apa sudah bisa booking untuk tanggal 23 Desember kak?",
+                "messageContextInfo": {
+                  "deviceListMetadata": {
+                    "senderKeyHash": "8Cb4xhwjwr0YMQ==",
+                    "senderTimestamp": 1795149039,
+                    "senderAccountType": 0,
+                    "receiverAccountType": 0,
+                    "recipientKeyHash": "sEKnwQbIgHY9Aw==",
+                    "recipientTimestamp": 1795413868
+                  },
+                  "deviceListMetadataVersion": 2,
+                  "messageSecret": "mqZeOZc2x/gEgaY0g7gFK/zPPmZc+QO9hmYtG+lNaGQ=",
+                  "limitSharingV2": {
+                    "trigger": 0,
+                    "initiatedByMe": false
+                  }
+                }
+              },
+              "Status": 3
+            }
+          },
+          "engine": "GOWS",
+          "environment": {
+            "version": "2026.10.1",
+            "engine": "GOWS",
+            "tier": "CORE",
+            "browser": null,
+            "platform": "linux/x64",
+            "worker": {
+              "id": null
+            }
+          }
+        },
+        "pairedItem": {
+          "item": 0,
+          "input": 1
+        }
+      }
+    ]
+  },
+  "connections": {
+    "WAHA Trigger": {
+      "main": [
+        [],
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [
+          {
+            "node": "If12",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Code Reply AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait": {
+      "main": [
+        [
+          {
+            "node": "Start Typing",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "If13",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Start Typing": {
+      "main": [
+        [
+          {
+            "node": "Text Dari AI",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If2": {
+      "main": [
+        [
+          {
+            "node": "If7",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Post Order Tiket",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Remove Duplicates": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If3": {
+      "main": [
+        [
+          {
+            "node": "Start Typing1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "If1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Start Typing1": {
+      "main": [
+        [
+          {
+            "node": "Wait2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait2": {
+      "main": [
+        [
+          {
+            "node": "Cek Duplikat",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If4": {
+      "main": [
+        [
+          {
+            "node": "Start Typing2",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "If3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cek seat": {
+      "main": [
+        [
+          {
+            "node": "If6",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Cek booking": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Post Order Tiket": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Start Typing2": {
+      "main": [
+        [
+          {
+            "node": "Wait3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait3": {
+      "main": [
+        [
+          {
+            "node": "If8",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If1": {
+      "main": [
+        [
+          {
+            "node": "Post Order Tiket",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Wait",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If5": {
+      "main": [
+        [
+          {
+            "node": "Code Cek Availability",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Cek booking",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait4": {
+      "main": [
+        [
+          {
+            "node": "Cek Available Seat",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Start Typing3": {
+      "main": [
+        [
+          {
+            "node": "Wait4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code Reply AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Cek seat",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code Cek Availability": {
+      "main": [
+        [
+          {
+            "node": "Start Typing3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If7": {
+      "main": [
+        [
+          {
+            "node": "Submit Diatas 1 Penumpang",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Pesanan Di Submit",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "If2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait5": {
+      "main": [
+        [
+          {
+            "node": "Jadwal Tidak Ditemukan",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Start Typing4": {
+      "main": [
+        [
+          {
+            "node": "Wait5",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If6": {
+      "main": [
+        [
+          {
+            "node": "Send Seen",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send Seen1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If8": {
+      "main": [
+        [
+          {
+            "node": "Cek Full",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Cek Full1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If9": {
+      "main": [
+        [
+          {
+            "node": "Remove Duplicates1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Remove Duplicates",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Remove Duplicates1": {
+      "main": [
+        [
+          {
+            "node": "If10",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If10": {
+      "main": [
+        [
+          {
+            "node": "Pharse JSON Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If11": {
+      "main": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send Seen3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait6": {
+      "main": [
+        [
+          {
+            "node": "Success Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Start Typing5": {
+      "main": [
+        [
+          {
+            "node": "Wait6",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pharse JSON Data": {
+      "main": [
+        [
+          {
+            "node": "Post Flight Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait7": {
+      "main": [
+        [
+          {
+            "node": "Fail Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Start Typing6": {
+      "main": [
+        [
+          {
+            "node": "Wait7",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Seen2": {
+      "main": [
+        [
+          {
+            "node": "Start Typing5",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Seen3": {
+      "main": [
+        [
+          {
+            "node": "Start Typing6",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent1": {
+      "main": [
+        [
+          {
+            "node": "Wait8",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait8": {
+      "main": [
+        [
+          {
+            "node": "Send Seen2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Seen1": {
+      "main": [
+        [
+          {
+            "node": "If5",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript1": {
+      "main": [
+        [
+          {
+            "node": "If4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Seen": {
+      "main": [
+        [
+          {
+            "node": "Start Typing4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Post Flight Data": {
+      "main": [
+        [
+          {
+            "node": "If11",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait9": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait10": {
+      "main": [
+        [
+          {
+            "node": "Jadwal Tidak Ditemukan1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Start Typing7": {
+      "main": [
+        [
+          {
+            "node": "Wait10",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request1": {
+      "main": [
+        [
+          {
+            "node": "Start Typing7",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Remove Duplicates2": {
+      "main": [
+        [
+          {
+            "node": "Wait9",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If12": {
+      "main": [
+        [
+          {
+            "node": "Remove Duplicates2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If13": {
+      "main": [
+        [],
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If14": {
+      "main": [
+        [
+          {
+            "node": "If9",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "If14",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "56ee629e-7494-4cf3-9b92-ed903f028b53",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "f2ffff748b90d9a9fbafac3dd228d0d3ad8917c5fde788d03ae1a077bd8cd90d"
+  },
+  "nodeGroups": [],
+  "id": "aKk6xvNJShOdouZF",
+  "tags": []
+}

@@ -6,13 +6,7 @@ export const BOOKING_NUMBERS = Array.from(
   (_, index) => index + 1,
 );
 export const isOccupiedSeat = (booking) => booking.type !== "infant";
-export const isN8nBooking = (booking, localSources = {}) => {
-  const recorded = localSources[booking?.id] || booking?.source;
-  if (recorded === "n8n") return true;
-  if (recorded === "web") return false;
-  const phone = String(booking?.phone ?? "").trim();
-  return phone.startsWith("62") || phone.startsWith("+62");
-};
+export const isN8nBooking = (booking) => booking?.source === "n8n";
 export const STATUSES = ["Menunggu verifikasi", "Booked", "Dibayar"];
 export const ROUTES = [
   {
@@ -241,7 +235,7 @@ export const triggerBrowserNotification = (notification) => {
     const paxNames = notification.passengers
       .map((p) => `${p.name} (#${String(p.bookingNo).padStart(2, "0")})`)
       .join(", ");
-    const title = `Pesanan Baru WhatsApp • ${notification.route}`;
+    const title = `Pesanan Baru WA Otomatis • ${notification.route}`;
     const body = `${notification.passengers.length} PAX: ${paxNames}\nJadwal: ${weekdayName(notification.date)}, ${dateLabel(notification.date)}`;
 
     new window.Notification(title, {

@@ -26,22 +26,10 @@ export const STATUSES = ["Menunggu verifikasi", "Booked", "Dibayar"];
 const ALTERNATIVE_CAPACITY = 10;
 
 const BOOKING_COLUMNS =
-  "id, passenger_name, phone, passenger_type, booking_no, route_code, travel_date, status, booking_at";
+  "id, passenger_name, phone, passenger_type, booking_no, route_code, travel_date, status, booking_source, booking_at";
 
 const VALID_PASSENGER_TYPES = ["adult", "child", "infant"];
-const bookingSourceById = new Map();
-
-export function inferBookingSource(row) {
-  const id = Number(row.id);
-  if (bookingSourceById.has(id)) {
-    return bookingSourceById.get(id);
-  }
-  if (row.source === "web" || row.source === "n8n") {
-    return row.source;
-  }
-  const phone = String(row.phone ?? "").trim();
-  return phone.startsWith("62") || phone.startsWith("+62") ? "n8n" : "web";
-}
+const VALID_BOOKING_SOURCES = ["n8n", "web"];
 
 export function bookingForApi(row) {
   const bookingAt = String(row.booking_at).replaceAll(" ", "T");
@@ -55,7 +43,7 @@ export function bookingForApi(row) {
     route: row.route_code,
     date: String(row.travel_date),
     status: row.status,
-    source: inferBookingSource(row),
+    source: row.booking_source === "n8n" ? "n8n" : "web",
     createdAt: bookingAt.slice(0, 10),
     bookingDate: bookingAt.slice(0, 10),
     bookingAt,
@@ -410,7 +398,7 @@ const duplicateResponse = (message) =>
     message,
   });
 
-async function createBookings(pool, passengers, route, date) {
+async function createBookings(pool, passengers, route, date, source = "n8n") {
   const created = await withTransaction(pool, async (connection) => {
     const seenNames = new Set();
 
@@ -453,8 +441,8 @@ async function createBookings(pool, passengers, route, date) {
     for (const [index, passenger] of passengers.entries()) {
       const [result] = await connection.execute(
         `INSERT INTO bookings
-           (passenger_name, phone, passenger_type, booking_no, route_code, travel_date, status, booking_at)
-         VALUES (:name, :phone, :type, :bookingNo, :route, :date, :status, CURRENT_TIMESTAMP)`,
+           (passenger_name, phone, passenger_type, booking_no, route_code, travel_date, status, booking_source, booking_at)
+         VALUES (:name, :phone, :type, :bookingNo, :route, :date, :status, :source, CURRENT_TIMESTAMP)`,
         {
           name: passenger.name,
           phone: passenger.phone,
@@ -463,6 +451,7 @@ async function createBookings(pool, passengers, route, date) {
           route,
           date,
           status: STATUSES[0],
+          source,
         },
       );
       bookings.push(await fetchBooking(connection, Number(result.insertId)));
@@ -484,7 +473,7 @@ async function updateBooking(pool, id, body, webhookUrl) {
 
     const current = bookingForApi(rows[0]);
     const has = (key) => Object.hasOwn(body, key);
-    let { name, phone, type, route, bookingNo, status } = current;
+    let { name, phone, type, route, date, bookingNo, status, source } = current;
 
     if (has("name")) {
       name = toText(body.name).trim();
@@ -506,25 +495,45 @@ async function updateBooking(pool, id, body, webhookUrl) {
       if (!ROUTES.includes(route))
         throw new InvalidInput("Rute penerbangan tidak valid.");
     }
+    if (has("date")) {
+      date = toText(body.date).trim();
+      const parsed = parseCalendarDate(date);
+      if (!parsed) throw new InvalidInput("Tanggal tidak valid.");
+      if (!FLIGHT_DAYS.includes(isoWeekday(parsed))) {
+        throw new InvalidInput(
+          "Penerbangan hanya tersedia Senin, Rabu, dan Sabtu.",
+        );
+      }
+    }
     if (has("status")) {
       status = toText(body.status);
       if (!STATUSES.includes(status))
         throw new InvalidInput("Status pemesanan tidak valid.");
     }
-    if (!["name", "phone", "type", "route", "status"].some(has)) {
+    if (has("source")) {
+      source = toText(body.source).trim().toLowerCase();
+      if (!VALID_BOOKING_SOURCES.includes(source)) {
+        throw new InvalidInput(
+          `Sumber pemesanan hanya boleh: ${VALID_BOOKING_SOURCES.join(", ")}.`,
+        );
+      }
+    }
+    if (
+      !["name", "phone", "type", "route", "date", "status", "source"].some(has)
+    ) {
       throw new InvalidInput("Tidak ada perubahan data pemesanan.");
     }
 
-    if (route !== current.route) {
+    if (route !== current.route || date !== current.date) {
       const [used] = await connection.execute(
         `SELECT booking_no FROM bookings
          WHERE route_code = :route AND travel_date = :date AND id <> :id FOR UPDATE`,
-        { route, date: current.date, id },
+        { route, date, id },
       );
       const available = freeNumbers(used.map((row) => Number(row.booking_no)));
       if (available.length === 0) {
         throw new HttpError(409, {
-          error: "Kapasitas pada rute tujuan sudah penuh.",
+          error: "Kapasitas pada rute dan tanggal tujuan sudah penuh.",
         });
       }
       if (!available.includes(bookingNo)) bookingNo = available[0];
@@ -533,9 +542,10 @@ async function updateBooking(pool, id, body, webhookUrl) {
     await connection.execute(
       `UPDATE bookings
        SET passenger_name = :name, phone = :phone, passenger_type = :type, 
-           route_code = :route, booking_no = :bookingNo, status = :status
+           route_code = :route, travel_date = :date, booking_no = :bookingNo,
+           status = :status, booking_source = :source
        WHERE id = :id`,
-      { name, phone, type, route, bookingNo, status, id },
+      { name, phone, type, route, date, bookingNo, status, source, id },
     );
 
     return { before: current, after: await fetchBooking(connection, id) };
@@ -643,13 +653,8 @@ export function bookingsRouter({
         extractPassengers(body),
         route,
         date,
+        source,
       );
-      result.body.forEach((item) => {
-        if (item && item.id !== undefined) {
-          bookingSourceById.set(Number(item.id), source);
-          item.source = source;
-        }
-      });
       broadcastBookingCreated({
         source,
         route,

@@ -320,7 +320,10 @@ export function EditPassengerDialog({
   isUpdatingBooking,
   onClose,
   onSubmit,
+  onShowMessage,
 }) {
+  const activeMonth = (editForm.date || editingBooking.date || "").slice(0, 7);
+
   return (
     <div
       className="modal-backdrop"
@@ -340,7 +343,7 @@ export function EditPassengerDialog({
               EDIT MANIFES • SEAT #
               {String(editingBooking.bookingNo).padStart(2, "0")}
             </span>
-            <h2 id="edit-form-title">Perbarui Data Penumpang</h2>
+            <h2 id="edit-form-title">Perbarui Data & Jadwal Penumpang</h2>
           </div>
           <button
             type="button"
@@ -352,8 +355,9 @@ export function EditPassengerDialog({
           </button>
         </div>
         <p className="modal-description">
-          Nomor urut dan tanggal terbang tetap. Jika pindah rute, nomor urut
-          disesuaikan otomatis apabila nomor saat ini sudah terisi.
+          Jika pindah rute atau jadwal tanggal terbang, nomor urut kursi
+          disesuaikan otomatis apabila nomor saat ini sudah terisi pada jadwal
+          tujuan.
         </p>
         <form onSubmit={onSubmit}>
           <label>
@@ -406,6 +410,22 @@ export function EditPassengerDialog({
             </select>
           </label>
           <label>
+            Sumber / Kanal Pemesanan
+            <select
+              value={editForm.source || "n8n"}
+              onChange={(event) =>
+                setEditForm((current) => ({
+                  ...current,
+                  source: event.target.value,
+                }))
+              }
+              className="form-control"
+            >
+              <option value="n8n">WA Otomatis (Bot WhatsApp)</option>
+              <option value="web">Input Manual Web / Loket</option>
+            </select>
+          </label>
+          <label>
             Rute penerbangan
             <select
               required
@@ -424,6 +444,60 @@ export function EditPassengerDialog({
                 </option>
               ))}
             </select>
+          </label>
+          <label>
+            Tanggal terbang (Pindah Jadwal)
+            <span className="field-hint">
+              Jadwal operasional: Senin, Rabu, dan Sabtu
+            </span>
+            <input
+              required
+              type="date"
+              value={editForm.date || editingBooking.date}
+              onChange={(event) => {
+                const date = event.target.value;
+                if (isFlightDate(date)) {
+                  setEditForm((current) => ({
+                    ...current,
+                    date,
+                  }));
+                } else if (date && onShowMessage) {
+                  onShowMessage(
+                    "Penerbangan hanya tersedia Senin, Rabu, dan Sabtu.",
+                  );
+                }
+              }}
+              className="form-control"
+            />
+            {activeMonth && (
+              <div
+                className="quick-date-chips"
+                role="group"
+                aria-label="Pilih cepat tanggal jadwal bulan ini"
+              >
+                {flightDatesInMonth(activeMonth)
+                  .slice(0, 6)
+                  .map((d) => (
+                    <button
+                      key={d}
+                      type="button"
+                      className={`quick-date-chip ${(editForm.date || editingBooking.date) === d ? "active" : ""}`}
+                      onClick={() =>
+                        setEditForm((current) => ({
+                          ...current,
+                          date: d,
+                        }))
+                      }
+                    >
+                      {new Intl.DateTimeFormat("id-ID", {
+                        weekday: "short",
+                        day: "numeric",
+                        month: "short",
+                      }).format(new Date(`${d}T00:00:00`))}
+                    </button>
+                  ))}
+              </div>
+            )}
           </label>
           <div className="modal-actions">
             <button

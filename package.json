@@ -10,6 +10,7 @@
     "build:php": "vite build",
     "lint": "oxlint",
     "preview": "vite preview",
+    "upload": "npm run build && bash deploy.sh",
     "deploy": "npm run build && git add . && git commit -m \"deploy build\" && git push origin main"
   },
   "dependencies": {

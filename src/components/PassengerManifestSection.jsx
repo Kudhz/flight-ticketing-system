@@ -1,5 +1,10 @@
 import { RefreshCw } from "lucide-react";
-import { STATUSES, dateLabel, timeLabel } from "../utils/bookingUtils";
+import {
+  STATUSES,
+  dateLabel,
+  isN8nBooking,
+  timeLabel,
+} from "../utils/bookingUtils";
 
 function PassengerManifestSection({
   routeInfo,
@@ -21,6 +26,9 @@ function PassengerManifestSection({
   onOpenEditForm,
   onRequestDelete,
 }) {
+  const n8nCount = currentBookings.filter(isN8nBooking).length;
+  const webCount = currentBookings.length - n8nCount;
+
   return (
     <section className="bookings-section">
       <div className="manifest-heading-row">
@@ -85,6 +93,24 @@ function PassengerManifestSection({
               </button>
             );
           })}
+          <button
+            type="button"
+            className={`filter-btn ${filter === "SOURCE_N8N" ? "active" : ""}`}
+            onClick={() => onFilterChange("SOURCE_N8N")}
+            title="Filter penumpang yang memesan lewat WA Otomatis"
+          >
+            WA Otomatis
+            <span>{n8nCount}</span>
+          </button>
+          <button
+            type="button"
+            className={`filter-btn ${filter === "SOURCE_WEB" ? "active" : ""}`}
+            onClick={() => onFilterChange("SOURCE_WEB")}
+            title="Filter penumpang yang diinput manual lewat Web Dashboard"
+          >
+            Manual Web
+            <span>{webCount}</span>
+          </button>
         </div>
         <label className="search-box">
           <span className="search-icon">⌕</span>
@@ -120,6 +146,7 @@ function PassengerManifestSection({
             <tr>
               <th>SEAT / NO</th>
               <th>IDENTITAS PENUMPANG</th>
+              <th>SUMBER PESANAN</th>
               <th>KONTAK WHATSAPP</th>
               <th>STATUS TIKET</th>
               <th>WAKTU RESERVASI</th>
@@ -133,6 +160,7 @@ function PassengerManifestSection({
                   .trim()
                   .charAt(0)
                   .toUpperCase() || "P";
+              const isFromN8n = isN8nBooking(booking);
               return (
                 <tr key={booking.id}>
                   <td data-label="No. Kursi">
@@ -169,6 +197,14 @@ function PassengerManifestSection({
                         </span>
                       </div>
                     </div>
+                  </td>
+                  <td data-label="Sumber Pesanan">
+                    <span
+                      className={`booking-source-pill ${isFromN8n ? "source-n8n" : "source-web"}`}
+                    >
+                      <i className="source-dot" aria-hidden="true" />
+                      {isFromN8n ? "WA Otomatis" : "Manual Web"}
+                    </span>
                   </td>
                   <td data-label="Kontak">
                     <a
@@ -267,7 +303,7 @@ function PassengerManifestSection({
             })}
             {filteredBookings.length === 0 && (
               <tr className="empty-row">
-                <td className="empty-state" colSpan="6">
+                <td className="empty-state" colSpan="7">
                   <div className="empty-state-content">
                     <span className="empty-state-icon" aria-hidden="true">
                       <svg

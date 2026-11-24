@@ -82,22 +82,27 @@ function App() {
     phone: "",
     type: "adult",
     route: DEFAULT_ROUTE,
+    date: DEFAULT_DATE,
+    source: "n8n",
   });
   const [toast, setToast] = useState("");
-  const [notifications, setNotifications] = useState([]);
+  const [notifications, setNotifications] = useState(() => {
+    try {
+      const saved = window.localStorage.getItem(
+        "seatflow-n8n-notifications-v2",
+      );
+      const parsed = saved ? JSON.parse(saved) : [];
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  });
   const [activeNotifPopup, setActiveNotifPopup] = useState(null);
   const [notifSoundEnabled, setNotifSoundEnabled] = useState(
     () => window.localStorage.getItem("seatflow-notif-sound") !== "off",
   );
-  const [bookingSources, setBookingSources] = useState(() => {
-    try {
-      const saved = window.localStorage.getItem("seatflow-booking-sources");
-      return saved ? JSON.parse(saved) : {};
-    } catch {
-      return {};
-    }
-  });
   const knownBookingIdsRef = useRef(new Set());
+  const hasPersistedKnownIdsRef = useRef(false);
   const hasInitialBookingsLoadedRef = useRef(false);
   const isSavingBookingRef = useRef(false);
   const notifSoundEnabledRef = useRef(notifSoundEnabled);
@@ -109,6 +114,43 @@ function App() {
   });
 
   useEffect(() => {
+    try {
+      const savedIds = window.localStorage.getItem(
+        "seatflow-known-booking-ids-v2",
+      );
+      const parsedIds = savedIds ? JSON.parse(savedIds) : null;
+      if (Array.isArray(parsedIds) && parsedIds.length > 0) {
+        knownBookingIdsRef.current = new Set(parsedIds.map(Number));
+        hasPersistedKnownIdsRef.current = true;
+      }
+    } catch {
+      knownBookingIdsRef.current = new Set();
+    }
+  }, []);
+
+  const persistKnownBookingIds = useCallback(() => {
+    try {
+      window.localStorage.setItem(
+        "seatflow-known-booking-ids-v2",
+        JSON.stringify(Array.from(knownBookingIdsRef.current)),
+      );
+    } catch {
+      // Abaikan jika localStorage penuh
+    }
+  }, []);
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(
+        "seatflow-n8n-notifications-v2",
+        JSON.stringify(notifications),
+      );
+    } catch {
+      // Abaikan jika localStorage penuh
+    }
+  }, [notifications]);
+
+  useEffect(() => {
     notifSoundEnabledRef.current = notifSoundEnabled;
     window.localStorage.setItem(
       "seatflow-notif-sound",
@@ -116,49 +158,51 @@ function App() {
     );
   }, [notifSoundEnabled]);
 
-  useEffect(() => {
-    try {
-      window.localStorage.setItem(
-        "seatflow-booking-sources",
-        JSON.stringify(bookingSources),
-      );
-    } catch {
-      // Abaikan jika localStorage penuh
-    }
-  }, [bookingSources]);
-
   const handleIncomingExternalBookings = useCallback(
-    (incomingBookings, source = "n8n") => {
+    (
+      incomingBookings,
+      source = "n8n",
+      options = { showPopup: true, markRead: false },
+    ) => {
       if (!Array.isArray(incomingBookings) || incomingBookings.length === 0) {
         return;
       }
-      setBookingSources((current) => {
-        const next = { ...current };
-        incomingBookings.forEach((item) => {
-          if (item?.id !== undefined) next[item.id] = source;
-        });
-        return next;
-      });
       const createdNotifs = createBookingNotifications(
         incomingBookings,
         source,
-      );
+      ).map((notif) => ({
+        ...notif,
+        read: options.markRead === true,
+      }));
       if (createdNotifs.length === 0) return;
 
-      setNotifications((current) => [...createdNotifs, ...current].slice(0, 30));
-      setActiveNotifPopup(createdNotifs[0]);
+      setNotifications((current) => {
+        const existingPaxIds = new Set(
+          current.flatMap((n) => (n.passengers || []).map((p) => Number(p.id))),
+        );
+        const uniqueNotifs = createdNotifs.filter((n) =>
+          n.passengers.some((p) => !existingPaxIds.has(Number(p.id))),
+        );
+        return uniqueNotifs.length > 0
+          ? [...uniqueNotifs, ...current].slice(0, 30)
+          : current;
+      });
 
-      if (popupTimeoutRef.current) {
-        window.clearTimeout(popupTimeoutRef.current);
-      }
-      popupTimeoutRef.current = window.setTimeout(() => {
-        setActiveNotifPopup(null);
-      }, 9000);
+      if (options.showPopup) {
+        setActiveNotifPopup(createdNotifs[0]);
 
-      if (notifSoundEnabledRef.current) {
-        playNotificationChime();
+        if (popupTimeoutRef.current) {
+          window.clearTimeout(popupTimeoutRef.current);
+        }
+        popupTimeoutRef.current = window.setTimeout(() => {
+          setActiveNotifPopup(null);
+        }, 9000);
+
+        if (notifSoundEnabledRef.current) {
+          playNotificationChime();
+        }
+        createdNotifs.forEach((notif) => triggerBrowserNotification(notif));
       }
-      createdNotifs.forEach((notif) => triggerBrowserNotification(notif));
     },
     [],
   );
@@ -172,9 +216,62 @@ function App() {
       try {
         const loadedBookings = await fetchBookings();
         if (isCurrent) {
-          knownBookingIdsRef.current = new Set(
-            loadedBookings.map((booking) => Number(booking.id)),
-          );
+          if (hasPersistedKnownIdsRef.current) {
+            const arrivedWhileOffline = loadedBookings.filter(
+              (booking) =>
+                !knownBookingIdsRef.current.has(Number(booking.id)) &&
+                isN8nBooking(booking),
+            );
+            loadedBookings.forEach((booking) => {
+              knownBookingIdsRef.current.add(Number(booking.id));
+            });
+            persistKnownBookingIds();
+
+            if (arrivedWhileOffline.length > 0) {
+              handleIncomingExternalBookings(arrivedWhileOffline, "n8n", {
+                showPopup: true,
+                markRead: false,
+              });
+            }
+          } else {
+            loadedBookings.forEach((booking) => {
+              knownBookingIdsRef.current.add(Number(booking.id));
+            });
+            hasPersistedKnownIdsRef.current = true;
+            persistKnownBookingIds();
+          }
+
+          // Isi riwayat lonceng notifikasi awal hanya dengan pesanan yang berstatus WA Otomatis di MySQL
+          let currentSavedNotifs = [];
+          try {
+            currentSavedNotifs = JSON.parse(
+              window.localStorage.getItem("seatflow-n8n-notifications-v2") ||
+                "[]",
+            );
+          } catch {
+            currentSavedNotifs = [];
+          }
+          if (
+            (!Array.isArray(currentSavedNotifs) ||
+              currentSavedNotifs.length === 0) &&
+            loadedBookings.length > 0
+          ) {
+            const recentN8n = [...loadedBookings]
+              .filter(isN8nBooking)
+              .sort(
+                (a, b) =>
+                  (b.bookingAt || "").localeCompare(a.bookingAt || "") ||
+                  Number(b.id) - Number(a.id),
+              )
+              .slice(0, 10);
+            if (recentN8n.length > 0) {
+              handleIncomingExternalBookings(recentN8n, "n8n", {
+                showPopup: false,
+                markRead: true,
+              });
+            }
+          }
+
           hasInitialBookingsLoadedRef.current = true;
           setBookings(loadedBookings);
         }
@@ -193,11 +290,52 @@ function App() {
     return () => {
       isCurrent = false;
     };
-  }, []);
+  }, [handleIncomingExternalBookings, persistKnownBookingIds]);
 
   useEffect(() => {
     let isCurrent = true;
     let eventSource = null;
+
+    async function checkLatestBookings() {
+      if (
+        !isCurrent ||
+        !hasInitialBookingsLoadedRef.current ||
+        isSavingBookingRef.current
+      ) {
+        return;
+      }
+      try {
+        const latestBookings = await fetchBookings();
+        if (!isCurrent || isSavingBookingRef.current) return;
+
+        const newExternalBookings = latestBookings.filter(
+          (booking) =>
+            !knownBookingIdsRef.current.has(Number(booking.id)) &&
+            isN8nBooking(booking),
+        );
+
+        if (
+          newExternalBookings.length > 0 ||
+          latestBookings.length !== knownBookingIdsRef.current.size
+        ) {
+          latestBookings.forEach((booking) => {
+            knownBookingIdsRef.current.add(Number(booking.id));
+          });
+          persistKnownBookingIds();
+        }
+
+        setBookings(latestBookings);
+
+        if (newExternalBookings.length > 0) {
+          handleIncomingExternalBookings(newExternalBookings, "n8n", {
+            showPopup: true,
+            markRead: false,
+          });
+        }
+      } catch {
+        // Abaikan error jaringan sementara saat background polling
+      }
+    }
 
     if (BOOKINGS_STREAM_ENDPOINT && typeof window.EventSource === "function") {
       try {
@@ -217,6 +355,7 @@ function App() {
             incoming.forEach((booking) => {
               knownBookingIdsRef.current.add(Number(booking.id));
             });
+            persistKnownBookingIds();
 
             if (unseenBookings.length > 0) {
               setBookings((current) => {
@@ -234,6 +373,7 @@ function App() {
               handleIncomingExternalBookings(
                 unseenBookings,
                 payload.source || "n8n",
+                { showPopup: true },
               );
             }
           } catch {
@@ -245,44 +385,29 @@ function App() {
       }
     }
 
-    const pollInterval = window.setInterval(async () => {
-      if (
-        !isCurrent ||
-        !hasInitialBookingsLoadedRef.current ||
-        isSavingBookingRef.current
-      ) {
-        return;
+    const pollInterval = window.setInterval(checkLatestBookings, 4000);
+    const handleWindowFocus = () => {
+      void checkLatestBookings();
+    };
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        void checkLatestBookings();
       }
-      try {
-        const latestBookings = await fetchBookings();
-        if (!isCurrent || isSavingBookingRef.current) return;
+    };
 
-        const newExternalBookings = latestBookings.filter(
-          (booking) => !knownBookingIdsRef.current.has(Number(booking.id)),
-        );
-
-        latestBookings.forEach((booking) => {
-          knownBookingIdsRef.current.add(Number(booking.id));
-        });
-
-        setBookings(latestBookings);
-
-        if (newExternalBookings.length > 0) {
-          handleIncomingExternalBookings(newExternalBookings, "n8n");
-        }
-      } catch {
-        // Abaikan error jaringan sementara saat background polling
-      }
-    }, 8000);
+    window.addEventListener("focus", handleWindowFocus);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
 
     return () => {
       isCurrent = false;
       window.clearInterval(pollInterval);
+      window.removeEventListener("focus", handleWindowFocus);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
       if (eventSource) {
         eventSource.close();
       }
     };
-  }, [handleIncomingExternalBookings]);
+  }, [handleIncomingExternalBookings, persistKnownBookingIds]);
 
   useEffect(() => {
     let isCurrent = true;
@@ -385,14 +510,80 @@ function App() {
   const paidCount = currentBookings.filter(
     (b) => b.status === STATUSES[2],
   ).length;
-  const n8nCurrentCount = currentBookings.filter((b) =>
-    isN8nBooking(b, bookingSources),
-  ).length;
-  const webCurrentCount = currentBookings.length - n8nCurrentCount;
-  const n8nTotalCount = useMemo(
-    () => bookings.filter((b) => isN8nBooking(b, bookingSources)).length,
-    [bookings, bookingSources],
-  );
+
+  const n8nTelemetry = useMemo(() => {
+    const currentN8n = currentBookings.filter(isN8nBooking);
+    const currentWebCount = currentBookings.length - currentN8n.length;
+    const currentSharePct = currentBookings.length
+      ? Math.round((currentN8n.length / currentBookings.length) * 100)
+      : 0;
+    const currentUniqueContacts = new Set(
+      currentN8n.map((b) => String(b.phone || "").trim()).filter(Boolean),
+    ).size;
+    const currentWaiting = currentN8n.filter(
+      (b) => b.status === STATUSES[0],
+    ).length;
+    const currentBooked = currentN8n.filter(
+      (b) => b.status === STATUSES[1],
+    ).length;
+    const currentPaid = currentN8n.filter(
+      (b) => b.status === STATUSES[2],
+    ).length;
+
+    const allN8n = bookings.filter(isN8nBooking);
+    const totalUniqueContacts = new Set(
+      allN8n.map((b) => String(b.phone || "").trim()).filter(Boolean),
+    ).size;
+    const totalWaitingN8n = allN8n.filter(
+      (b) => b.status === STATUSES[0],
+    ).length;
+    const totalBookedN8n = allN8n.filter(
+      (b) => b.status === STATUSES[1],
+    ).length;
+    const totalPaidN8n = allN8n.filter((b) => b.status === STATUSES[2]).length;
+    const totalAutomationRate = bookings.length
+      ? Math.round((allN8n.length / bookings.length) * 100)
+      : 0;
+
+    const monthBookings = bookings.filter((b) =>
+      b.date?.startsWith(`${selectedMonth}-`),
+    );
+    const monthN8n = monthBookings.filter(isN8nBooking);
+    const monthMdcCount = monthN8n.filter((b) => b.route === "MNA-MDC").length;
+    const monthIaxCount = monthN8n.filter((b) => b.route === "MNA-IAX").length;
+
+    const allN8nBookings = [...allN8n].sort(
+      (a, b) =>
+        (b.date || "").localeCompare(a.date || "") ||
+        (b.bookingAt || "").localeCompare(a.bookingAt || "") ||
+        Number(b.id) - Number(a.id),
+    );
+    const currentN8nBookings = [...currentN8n].sort(
+      (a, b) => Number(a.bookingNo) - Number(b.bookingNo),
+    );
+
+    return {
+      currentN8nCount: currentN8n.length,
+      currentWebCount,
+      currentSharePct,
+      currentUniqueContacts,
+      currentWaiting,
+      currentBooked,
+      currentPaid,
+      monthN8nCount: monthN8n.length,
+      monthMdcCount,
+      monthIaxCount,
+      totalN8nCount: allN8n.length,
+      totalWebCount: bookings.length - allN8n.length,
+      totalUniqueContacts,
+      totalWaitingN8n,
+      totalBookedN8n,
+      totalPaidN8n,
+      totalAutomationRate,
+      allN8nBookings,
+      currentN8nBookings,
+    };
+  }, [bookings, currentBookings, selectedMonth]);
 
   const dualSectorStats = useMemo(
     () =>
@@ -474,11 +665,19 @@ function App() {
   );
   const filteredBookings = currentBookings
     .filter((booking) => {
+      const isFromN8n = isN8nBooking(booking);
+      const sourceText = isFromN8n
+        ? "wa otomatis whatsapp otomatis n8n bot"
+        : "manual web loket";
       const matchesSearch =
-        `${booking.name} ${booking.phone} ${booking.route} ${booking.bookingNo}`
+        `${booking.name} ${booking.phone} ${booking.route} ${booking.bookingNo} ${sourceText}`
           .toLowerCase()
           .includes(search.toLowerCase());
-      const matchesFilter = filter === "Semua" || booking.status === filter;
+      const matchesFilter =
+        filter === "Semua" ||
+        (filter === "SOURCE_N8N" && isFromN8n) ||
+        (filter === "SOURCE_WEB" && !isFromN8n) ||
+        booking.status === filter;
       return matchesSearch && matchesFilter;
     })
     .sort((first, second) => {
@@ -638,12 +837,16 @@ function App() {
       const loadedBookings = await fetchBookings();
       const newExternalBookings = hasInitialBookingsLoadedRef.current
         ? loadedBookings.filter(
-            (booking) => !knownBookingIdsRef.current.has(Number(booking.id)),
+            (booking) =>
+              !knownBookingIdsRef.current.has(Number(booking.id)) &&
+              isN8nBooking(booking),
           )
         : [];
       loadedBookings.forEach((booking) => {
         knownBookingIdsRef.current.add(Number(booking.id));
       });
+      hasPersistedKnownIdsRef.current = true;
+      persistKnownBookingIds();
       hasInitialBookingsLoadedRef.current = true;
       setBookings(loadedBookings);
       if (newExternalBookings.length > 0) {
@@ -742,13 +945,7 @@ function App() {
       createdBookings.forEach((item) => {
         knownBookingIdsRef.current.add(Number(item.id));
       });
-      setBookingSources((current) => {
-        const next = { ...current };
-        createdBookings.forEach((item) => {
-          if (item?.id !== undefined) next[item.id] = "web";
-        });
-        return next;
-      });
+      persistKnownBookingIds();
 
       setBookings((current) => {
         const existingIds = new Set(current.map((item) => Number(item.id)));
@@ -797,6 +994,8 @@ function App() {
       phone: booking.phone,
       type: booking.type || "adult",
       route: booking.route,
+      date: booking.date,
+      source: isN8nBooking(booking) ? "n8n" : "web",
     });
   }
 
@@ -806,8 +1005,14 @@ function App() {
 
     const name = normalizePassengerName(editForm.name);
     const phone = editForm.phone.trim();
+    const targetDate = editForm.date || editingBooking.date;
+    const targetSource = editForm.source === "web" ? "web" : "n8n";
     if (!name || !phone) {
       showMessage("Nama dan nomor WhatsApp wajib diisi.");
+      return;
+    }
+    if (!isFlightDate(targetDate)) {
+      showMessage("Penerbangan hanya tersedia Senin, Rabu, dan Sabtu.");
       return;
     }
 
@@ -823,6 +1028,8 @@ function App() {
             phone,
             type: editForm.type,
             route: editForm.route,
+            date: targetDate,
+            source: targetSource,
           }),
         },
       );
@@ -831,8 +1038,13 @@ function App() {
           booking.id === updatedBooking.id ? updatedBooking : booking,
         ),
       );
+      const isDateChanged = updatedBooking.date !== editingBooking.date;
       setEditingBooking(null);
-      showMessage("Data penumpang berhasil diperbarui.");
+      showMessage(
+        isDateChanged
+          ? `Jadwal penumpang dipindahkan ke ${dateLabel(updatedBooking.date)}.`
+          : "Data penumpang berhasil diperbarui.",
+      );
     } catch (error) {
       setDataError(error.message);
     } finally {
@@ -1023,11 +1235,16 @@ function App() {
               waitingCount={waitingCount}
               bookedCount={bookedCount}
               paidCount={paidCount}
-              n8nCurrentCount={n8nCurrentCount}
-              webCurrentCount={webCurrentCount}
-              n8nTotalCount={n8nTotalCount}
+              n8nTelemetry={n8nTelemetry}
               dualSectorStats={dualSectorStats}
               onSelectRoute={setSelectedRoute}
+              onSelectSchedule={(route, date) => {
+                if (route) setSelectedRoute(route);
+                if (date) {
+                  setSelectedMonth(date.slice(0, 7));
+                  setSelectedDate(date);
+                }
+              }}
             />
           )}
 
@@ -1112,6 +1329,7 @@ function App() {
           isUpdatingBooking={isUpdatingBooking}
           onClose={() => setEditingBooking(null)}
           onSubmit={saveBookingChanges}
+          onShowMessage={showMessage}
         />
       )}
 

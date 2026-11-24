@@ -1,7 +1,9 @@
+import { useState } from "react";
 import {
   BOOKING_LIMIT,
   STATUSES,
   dateLabel,
+  isN8nBooking,
   weekdayName,
 } from "../utils/bookingUtils";
 
@@ -17,12 +19,18 @@ export function OverviewMetricsAndTelemetry({
   waitingCount,
   bookedCount,
   paidCount,
-  n8nCurrentCount,
-  webCurrentCount,
-  n8nTotalCount,
+  n8nTelemetry,
   dualSectorStats,
   onSelectRoute,
+  onSelectSchedule,
 }) {
+  const [n8nScope, setN8nScope] = useState("all");
+  const displayedN8nBookings = (
+    n8nScope === "current"
+      ? n8nTelemetry.currentN8nBookings
+      : n8nTelemetry.allN8nBookings
+  ).filter(isN8nBooking);
+
   return (
     <>
       <section className="metric-grid" aria-label="Ringkasan pemesanan">
@@ -202,71 +210,134 @@ export function OverviewMetricsAndTelemetry({
           </div>
         </div>
 
-        <div className="telemetry-card">
+        <div className="telemetry-card n8n-telemetry-card">
           <div className="telemetry-card-head">
             <div>
-              <span className="section-kicker">OTOMASI n8n & WHATSAPP</span>
-              <h3>Ringkasan Pemesanan via n8n ({routeInfo.value})</h3>
+              <span className="section-kicker">
+                WA OTOMATIS • WHATSAPP AI AGENT
+              </span>
+              <h3>Ringkasan Pemesanan via WA Otomatis</h3>
             </div>
-            <span className="telemetry-pill">{n8nCurrentCount} via n8n</span>
+            <span className="telemetry-pill n8n-live-pill">
+              <i className="n8n-pulse-dot" aria-hidden="true" />
+              {n8nTelemetry.totalN8nCount} PAX WA Otomatis
+            </span>
           </div>
 
-          <div className="distribution-block">
-            <div className="distribution-header">
-              <strong>Proporsi Pemesanan n8n vs Input Web</strong>
-              <span>
-                {currentBookings.length
-                  ? `${Math.round((n8nCurrentCount / currentBookings.length) * 100)}% Otomasi n8n`
-                  : "Belum ada data"}
-              </span>
+          <div className="pax-demographic-chips">
+            <div className="pax-demo-chip">
+              <span>JADWAL INI ({routeInfo.value})</span>
+              <strong>{n8nTelemetry.currentN8nCount} PAX</strong>
             </div>
-            <div className="stacked-bar" aria-hidden="true">
-              <div
-                className="stacked-segment paid"
-                style={{
-                  width: `${currentBookings.length ? (n8nCurrentCount / currentBookings.length) * 100 : 0}%`,
-                }}
-                title={`Via n8n / WhatsApp: ${n8nCurrentCount} PAX`}
-              />
-              <div
-                className="stacked-segment booked"
-                style={{
-                  width: `${currentBookings.length ? (webCurrentCount / currentBookings.length) * 100 : 0}%`,
-                }}
-                title={`Input Manual Web: ${webCurrentCount} PAX`}
-              />
+            <div className="pax-demo-chip">
+              <span>MNA-MDC (BULAN INI)</span>
+              <strong>{n8nTelemetry.monthMdcCount} PAX</strong>
             </div>
-            <div className="distribution-legend">
-              <span>
-                <i className="dist-dot paid" /> Via n8n / WhatsApp (
-                {n8nCurrentCount} PAX)
-              </span>
-              <span>
-                <i className="dist-dot booked" /> Input Manual Web (
-                {webCurrentCount} PAX)
-              </span>
+            <div className="pax-demo-chip">
+              <span>MNA-IAX (BULAN INI)</span>
+              <strong>{n8nTelemetry.monthIaxCount} PAX</strong>
             </div>
           </div>
 
-          <div className="distribution-block">
-            <div className="distribution-header">
-              <strong>Total Trafik Pemesanan Otomasi n8n</strong>
-              <span>Jadwal Aktif & Keseluruhan</span>
+          <div className="n8n-recent-block">
+            <div className="n8n-list-toolbar">
+              <strong>Daftar Penumpang WA Otomatis</strong>
+              <div className="n8n-scope-tabs" role="tablist">
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={n8nScope === "all"}
+                  className={`n8n-scope-btn ${n8nScope === "all" ? "active" : ""}`}
+                  onClick={() => setN8nScope("all")}
+                >
+                  Semua ({n8nTelemetry.allN8nBookings.length})
+                </button>
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={n8nScope === "current"}
+                  className={`n8n-scope-btn ${n8nScope === "current" ? "active" : ""}`}
+                  onClick={() => setN8nScope("current")}
+                >
+                  Jadwal Ini ({n8nTelemetry.currentN8nBookings.length})
+                </button>
+              </div>
             </div>
-            <div className="pax-demographic-chips">
-              <div className="pax-demo-chip">
-                <span>VIA n8n (JADWAL INI)</span>
-                <strong>{n8nCurrentCount}</strong>
+
+            {displayedN8nBookings.length === 0 ? (
+              <div className="n8n-recent-empty">
+                {n8nScope === "current"
+                  ? `Belum ada penumpang WA Otomatis untuk rute ${routeInfo.value} tanggal ${dateLabel(selectedDate)}.`
+                  : "Belum ada data penumpang yang memesan melalui WA Otomatis."}
               </div>
-              <div className="pax-demo-chip">
-                <span>MANUAL WEB</span>
-                <strong>{webCurrentCount}</strong>
+            ) : (
+              <div className="n8n-booking-table-wrap">
+                <div className="n8n-booking-thead" aria-hidden="true">
+                  <span>NAMA PENUMPANG</span>
+                  <span>RUTE</span>
+                  <span>TANGGAL TERBANG</span>
+                </div>
+                <div className="n8n-recent-list">
+                  {displayedN8nBookings.map((item) => {
+                    const isActiveSchedule =
+                      item.route === selectedRoute &&
+                      item.date === selectedDate;
+                    return (
+                      <button
+                        key={item.id}
+                        type="button"
+                        className={`n8n-booking-row ${isActiveSchedule ? "is-current" : ""}`}
+                        onClick={() => onSelectSchedule(item.route, item.date)}
+                        title={`Klik untuk membuka jadwal ${item.route} • ${dateLabel(item.date)}`}
+                      >
+                        <div className="n8n-col-passenger">
+                          <span className="n8n-recent-seat">
+                            #{String(item.bookingNo).padStart(2, "0")}
+                          </span>
+                          <div className="n8n-passenger-text">
+                            <strong>
+                              {item.name}
+                              {item.type === "child" && (
+                                <em className="n8n-pax-tag child">ANAK</em>
+                              )}
+                              {item.type === "infant" && (
+                                <em className="n8n-pax-tag infant">INF</em>
+                              )}
+                            </strong>
+                            <small>WA: {item.phone}</small>
+                          </div>
+                        </div>
+
+                        <div className="n8n-col-route">
+                          <span className="notif-route-tag">{item.route}</span>
+                        </div>
+
+                        <div className="n8n-col-date">
+                          <strong>
+                            {weekdayName(item.date)}, {dateLabel(item.date)}
+                          </strong>
+                          <span
+                            className={`n8n-status-chip ${
+                              item.status === STATUSES[2]
+                                ? "paid"
+                                : item.status === STATUSES[1]
+                                  ? "booked"
+                                  : "waiting"
+                            }`}
+                          >
+                            {item.status === "Menunggu verifikasi"
+                              ? "Menunggu"
+                              : item.status === "Booked"
+                                ? "Dipesan"
+                                : item.status}
+                          </span>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
-              <div className="pax-demo-chip">
-                <span>TOTAL n8n (SEMUA)</span>
-                <strong>{n8nTotalCount}</strong>
-              </div>
-            </div>
+            )}
           </div>
         </div>
       </section>
@@ -398,6 +469,13 @@ export function OverviewDatesAndLiveManifest({
                           INF
                         </span>
                       )}
+                      <span
+                        className={`booking-source-badge ${
+                          isN8nBooking(booking) ? "source-n8n" : "source-web"
+                        }`}
+                      >
+                        {isN8nBooking(booking) ? "WA OTOMATIS" : "MANUAL WEB"}
+                      </span>
                     </strong>
                     <span>{booking.phone}</span>
                   </div>

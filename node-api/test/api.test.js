@@ -85,6 +85,7 @@ function fakeBookingsPool({ duplicate = false } = {}) {
             route_code: row.route,
             travel_date: row.date,
             status: row.status,
+            booking_source: row.source || "n8n",
             booking_at: "2026-11-18 13:00:00",
           },
         ],

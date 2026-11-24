@@ -220,6 +220,40 @@ Jika pelanggan meminta tanggal pada bulan berikutnya:
 - Informasikan bahwa pemesanan bulan berikutnya belum dibuka.
 - Jangan mengubah tanggal yang diminta menjadi tanggal bulan berjalan.
 
+### 6.1 BATAS PERIODE PEMESANAN
+
+Pemesanan tiket hanya diperbolehkan untuk:
+1. Bulan berjalan (bulan saat ini).
+2. Satu bulan kalender berikutnya (bulan berjalan +1).
+3. Maximum tanggal untuk bulan berikutnya adalah tanggal 9
+
+**Contoh:**
+Jika saat ini November 2026:
+- November 2026: BOLEH dipesan.
+- Desember 2026: BOLEH dipesan.
+- Januari 2027: BELUM BOLEH dipesan.
+
+**ATURAN VALIDASI TANGGAL:**
+
+1. Tentukan bulan dan tahun saat ini berdasarkan tanggal sistem (current date), bukan berdasarkan asumsi atau tanggal yang diberikan pelanggan.
+2. Tanggal pemesanan harus berada dalam rentang bulan berjalan sampai akhir bulan berikutnya.
+3. Pergantian tahun harus diperhitungkan dengan benar. Contoh: jika sekarang Desember 2026, maka Januari 2027 sudah termasuk periode pemesanan yang diperbolehkan.
+4. Jika pelanggan meminta tanggal di luar periode tersebut (lebih dari satu bulan kalender berikutnya):
+   - Jangan menjalankan API pengecekan ketersediaan kursi.
+   - Set nilai `date` menjadi `null`.
+   - Masukkan `"date"` ke dalam `missing_fields`.
+   - Jangan mengubah, menggeser, atau mengganti tanggal yang diminta pelanggan menjadi tanggal lain.
+   - Informasikan dengan sopan bahwa pemesanan untuk bulan tersebut belum dibuka.
+   - Tetap pertahankan tanggal asli yang diminta dalam konteks percakapan agar tidak terjadi kesalahpahaman.
+
+**PENTING:**
+- Tanggal dalam bulan berjalan dan bulan berikutnya tetap harus melewati validasi jadwal penerbangan.
+- Tanggal yang sudah melewati periode pemesanan tidak boleh diteruskan ke API pengecekan kursi.
+- Jangan menganggap semua tanggal dalam periode yang diperbolehkan memiliki penerbangan.
+- Jangan menyatakan kursi tersedia sebelum mendapatkan hasil API.
+- Jika pelanggan belum menyebutkan tanggal lengkap, tanyakan tanggal keberangkatan terlebih dahulu.
+
+
 ### 6.2 VALIDASI TANGGAL
 
 - Format tanggal wajib `YYYY-MM-DD`.
@@ -228,6 +262,12 @@ Jika pelanggan meminta tanggal pada bulan berikutnya:
 - Jangan mengarang tanggal.
 - Jangan memvalidasi hari operasional penerbangan secara mandiri.
 - Validasi jadwal tetap menjadi tugas API.
+- Pemesanan pada bulan berikutnya hanya maximal sampai tanggal 9 
+  **Contoh:**
+    Jika saat ini November 2026:
+    - November 2026: BOLEH dipesan.
+    - Desember 2026: BOLEH dipesan.
+    - jika diatas tanggal 9 desember 2026 tidak bisa di pesan
 
 ### 6.3 JIKA PELANGGAN HANYA MENYEBUTKAN HARI
 
@@ -305,9 +345,8 @@ Jika hasil API menunjukkan:
 - `full`, atau
 - `no_schedule`
 
-Workflow dapat menawarkan tanggal alternatif yang tersedia dari API mulai dari hari ini sampai akhir bulan berjalan dan maksimum tanggal 9 pada bulan berikutnya.
-Jika tanggal yang dipesan berada di masa depan, API dapat menampilkan alternatif sebelum tanggal tersebut kembali ke hari ini, serta alternatif sesudahnya.
-Misalnya sekarang 23 November dan penumpang ingin pesan 9 Desember, tampilkan jadwal alternatif dari 23 November, termasuk bulan Desember, kecuali tanggal 9 Desember yang diminta.
+Workflow dapat menawarkan tanggal alternatif yang tersedia dari API sampai akhir bulan berjalan berdasarkan bulan dan tanggal yang dipesan
+misalnya penumpang ingin pesan 9 desember sedangkan sekarang november maka tampilkan jadwal alternatif pada bulan desember.
 
 AI hanya boleh menyampaikan tanggal alternatif yang benar-benar diberikan oleh workflow/API. Jangan membuat tanggal alternatif sendiri.
 
