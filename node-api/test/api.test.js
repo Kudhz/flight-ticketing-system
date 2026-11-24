@@ -73,19 +73,39 @@ function fakeBookingsPool({ duplicate = false } = {}) {
       inserted.push(params);
       return [{ insertId: inserted.length }];
     }
+    if (/UPDATE bookings/.test(sql)) {
+      const row = inserted[params.id - 1];
+      if (row) {
+        row.name = params.name;
+        row.phone = params.phone;
+        row.type = params.type;
+        row.route = params.route;
+        row.date = params.date;
+        row.bookingNo = params.bookingNo;
+        row.status = params.status;
+        row.source = params.source;
+        if ("checkedIn" in params) {
+          row.checked_in = params.checkedIn;
+        }
+      }
+      return [{ affectedRows: row ? 1 : 0 }];
+    }
     if (/FROM bookings WHERE id = :id/.test(sql)) {
       const row = inserted[params.id - 1];
+      if (!row) return [[]];
       return [
         [
           {
             id: params.id,
             passenger_name: row.name,
             phone: row.phone,
+            passenger_type: row.type || "adult",
             booking_no: row.bookingNo,
             route_code: row.route,
             travel_date: row.date,
             status: row.status,
             booking_source: row.source || "n8n",
+            checked_in: row.checked_in ?? 0,
             booking_at: "2026-11-18 13:00:00",
           },
         ],
@@ -333,6 +353,35 @@ test("GET /api/bookings menghitung sisa kursi", async (t) => {
 
   const noSchedule = await (await fetch(`${url}/api/bookings?route=MNA-IAX&date=2026-11-19`)).json();
   assert.equal(noSchedule.status, "no_schedule");
+});
+
+test("PATCH /api/bookings mendukung ceklis check-in penumpang", async (t) => {
+  const bookingsPool = fakeBookingsPool();
+  const { url, close } = await startServer({ bookingsPool });
+  t.after(close);
+
+  const createRes = await fetch(
+    `${url}/api/bookings`,
+    json({ route: "MNA-IAX", date: "2026-11-21", name: "Ani", phone: "0811" }),
+  );
+  const [created] = await createRes.json();
+  assert.equal(created.checkedIn, false);
+
+  const patchIn = await fetch(`${url}/api/bookings?id=${created.id}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ checkedIn: true }),
+  });
+  assert.equal(patchIn.status, 200);
+  assert.equal((await patchIn.json()).checkedIn, true);
+
+  const patchOut = await fetch(`${url}/api/bookings?id=${created.id}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ checkedIn: false }),
+  });
+  assert.equal(patchOut.status, 200);
+  assert.equal((await patchOut.json()).checkedIn, false);
 });
 
 test("API flights menyembunyikan data keuangan untuk pengguna belum login", async (t) => {

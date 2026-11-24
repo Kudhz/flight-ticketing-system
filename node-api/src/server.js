@@ -5,6 +5,11 @@ import { createPool } from "./db.js";
 const config = loadConfig();
 const bookingsPool = createPool(config.bookingsDb);
 const flightsPool = createPool(config.flightsDb);
+bookingsPool
+  .execute(
+    "ALTER TABLE bookings ADD COLUMN checked_in TINYINT(1) NOT NULL DEFAULT 0",
+  )
+  .catch(() => {});
 const app = createApp({ config, bookingsPool, flightsPool });
 
 if (!config.finance.username || !config.finance.password) {

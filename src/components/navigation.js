@@ -1,13 +1,22 @@
 export const NAV_GROUPS = [
   {
-    label: "RESERVASI",
+    label: "OPERASIONAL",
     items: [
-      { id: "overview", label: "Overview", icon: "dashboard" },
       {
-        id: "bookings",
-        label: "Data Penumpang",
+        id: "overview",
+        label: "Reservasi & Manifes",
         icon: "passengers",
         countKey: "bookings",
+      },
+      {
+        id: "passengerList",
+        label: "List Penumpang",
+        icon: "list",
+      },
+      {
+        id: "checkIn",
+        label: "Check-in Penumpang",
+        icon: "checklist",
       },
       { id: "flightHistory", label: "Riwayat Penerbangan", icon: "calendar" },
     ],

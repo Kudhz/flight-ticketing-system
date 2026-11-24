@@ -1,14 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { RefreshCw } from "lucide-react";
 import AppSidebar from "./components/AppSidebar";
-import FlightScheduleTabs, {
-  MobileRouteDateBar,
-} from "./components/FlightScheduleTabs";
+import FlightScheduleTabs from "./components/FlightScheduleTabs";
 import FlightDataPages from "./components/FlightDataPages";
 import FlightDispatchBanner from "./components/FlightDispatchBanner";
-import {
-  OverviewDatesAndLiveManifest,
-  OverviewMetricsAndTelemetry,
-} from "./components/OverviewDashboard";
+import { WaOtomatisSummaryCard } from "./components/OverviewDashboard";
+import PassengerListPage from "./components/PassengerListPage";
 import PassengerManifestSection from "./components/PassengerManifestSection";
 import {
   DeleteConfirmDialog,
@@ -37,6 +34,7 @@ import {
   fetchBookings,
   financeAuthUrl,
   flightDatesInMonth,
+  isBookingCheckedIn,
   isFlightDate,
   isN8nBooking,
   isOccupiedSeat,
@@ -72,7 +70,6 @@ function App() {
   const [selectedDate, setSelectedDate] = useState(DEFAULT_DATE);
   const [selectedMonth, setSelectedMonth] = useState(DEFAULT_DATE.slice(0, 7));
   const [search, setSearch] = useState("");
-  const [filter, setFilter] = useState("Semua");
   const [showForm, setShowForm] = useState(false);
   const [editingBooking, setEditingBooking] = useState(null);
   const [deletingBooking, setDeletingBooking] = useState(null);
@@ -88,6 +85,17 @@ function App() {
     source: "n8n",
   });
   const [toast, setToast] = useState("");
+  const [checkedInOverrides, setCheckedInOverrides] = useState(() => {
+    try {
+      const saved = window.localStorage.getItem("seatflow-checked-in-v1");
+      const parsed = saved ? JSON.parse(saved) : {};
+      return parsed && typeof parsed === "object" && !Array.isArray(parsed)
+        ? parsed
+        : {};
+    } catch {
+      return {};
+    }
+  });
   const [notifications, setNotifications] = useState(() => {
     try {
       const saved = window.localStorage.getItem(
@@ -447,8 +455,8 @@ function App() {
     function handleKeyDown(event) {
       if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
         event.preventDefault();
-        if (activePage !== "bookings") {
-          setActivePage("bookings");
+        if (activePage !== "overview") {
+          setActivePage("overview");
         }
         window.setTimeout(() => {
           searchInputRef.current?.focus();
@@ -498,10 +506,6 @@ function App() {
   );
   // Infant tidak memakai kursi; anak dan dewasa dihitung terisi.
   const occupiedSeats = currentBookings.filter(isOccupiedSeat).length;
-  const adultCount = currentBookings.filter(
-    (b) => !b.type || b.type === "adult",
-  ).length;
-  const childCount = currentBookings.filter((b) => b.type === "child").length;
   const infantCount = currentBookings.filter((b) => b.type === "infant").length;
   const waitingCount = currentBookings.filter(
     (b) => b.status === STATUSES[0],
@@ -587,36 +591,6 @@ function App() {
     };
   }, [bookings, currentBookings, selectedMonth]);
 
-  const dualSectorStats = useMemo(
-    () =>
-      ROUTES.map((route) => {
-        const sectorBookings = bookings.filter(
-          (b) => b.route === route.value && b.date === selectedDate,
-        );
-        const seatsUsed = sectorBookings.filter(isOccupiedSeat).length;
-        const infants = sectorBookings.filter(
-          (b) => b.type === "infant",
-        ).length;
-        const paid = sectorBookings.filter(
-          (b) => b.status === STATUSES[2],
-        ).length;
-        const waiting = sectorBookings.filter(
-          (b) => b.status === STATUSES[0],
-        ).length;
-        return {
-          ...route,
-          totalPax: sectorBookings.length,
-          seatsUsed,
-          seatsLeft: Math.max(BOOKING_LIMIT - seatsUsed, 0),
-          infants,
-          paid,
-          waiting,
-          pct: Math.min(Math.round((seatsUsed / BOOKING_LIMIT) * 100), 100),
-        };
-      }),
-    [bookings, selectedDate],
-  );
-
   const bookingCountsByDate = bookings.reduce((counts, booking) => {
     if (
       booking.route === selectedRoute &&
@@ -654,30 +628,6 @@ function App() {
   }, [bookings, selectedMonth, selectedRoute]);
 
   const today = localDateISO();
-  const bookingDateEntries = Object.entries(bookingCountsByDate);
-  const todayBookingEntries = bookingDateEntries.filter(
-    ([date]) => date === today,
-  );
-  const futureBookingEntries = bookingDateEntries
-    .filter(([date]) => date > today)
-    .sort(([firstDate], [secondDate]) => firstDate.localeCompare(secondDate));
-  const pastBookingEntries = bookingDateEntries
-    .filter(([date]) => date < today)
-    .sort(([firstDate], [secondDate]) => secondDate.localeCompare(firstDate));
-  const futureBookingLimit = todayBookingEntries.length ? 5 : 6;
-  const visibleFutureBookingEntries = futureBookingEntries.slice(
-    0,
-    futureBookingLimit,
-  );
-  const remainingPastBookingSlots = Math.max(
-    0,
-    6 - todayBookingEntries.length - visibleFutureBookingEntries.length,
-  );
-  const dashboardBookingEntries = [
-    ...todayBookingEntries,
-    ...visibleFutureBookingEntries,
-    ...pastBookingEntries.slice(0, remainingPastBookingSlots),
-  ].sort(([firstDate], [secondDate]) => secondDate.localeCompare(firstDate));
   const formManifest = bookings.filter(
     (booking) => booking.route === form.route && booking.date === form.date,
   );
@@ -697,16 +647,9 @@ function App() {
       const sourceText = isFromN8n
         ? "wa otomatis whatsapp otomatis n8n bot"
         : "manual web loket";
-      const matchesSearch =
-        `${booking.name} ${booking.phone} ${booking.route} ${booking.bookingNo} ${sourceText}`
-          .toLowerCase()
-          .includes(search.toLowerCase());
-      const matchesFilter =
-        filter === "Semua" ||
-        (filter === "SOURCE_N8N" && isFromN8n) ||
-        (filter === "SOURCE_WEB" && !isFromN8n) ||
-        booking.status === filter;
-      return matchesSearch && matchesFilter;
+      return `${booking.name} ${booking.phone} ${booking.route} ${booking.bookingNo} ${booking.status} ${sourceText}`
+        .toLowerCase()
+        .includes(search.toLowerCase());
     })
     .sort((first, second) => {
       const firstDate = first.bookingDate || first.createdAt || "";
@@ -727,12 +670,16 @@ function App() {
     const sorted = [...currentBookings].sort(
       (a, b) => Number(a.bookingNo) - Number(b.bookingNo),
     );
+    const checkedCount = sorted.filter((b) =>
+      isBookingCheckedIn(b, checkedInOverrides),
+    ).length;
     const lines = [
       `*MANIFES PENERBANGAN SUSI AIR*`,
       `Rute: *${routeInfo.label}*`,
       `Tanggal: *${weekdayName(selectedDate)}, ${dateLabel(selectedDate)}*`,
       `Kapasitas: *${occupiedSeats}/${BOOKING_LIMIT} Kursi* (${infantCount} Infant)`,
       `Status: ${paidCount} Lunas • ${bookedCount} Dipesan • ${waitingCount} Menunggu`,
+      `Check-in: *${checkedCount}/${sorted.length} PAX*`,
       `--------------------------------`,
     ];
 
@@ -752,8 +699,11 @@ function App() {
             : b.status === STATUSES[1]
               ? "• Dipesan"
               : "? Menunggu";
+        const checkInTag = isBookingCheckedIn(b, checkedInOverrides)
+          ? " | ✅ Check-in"
+          : "";
         lines.push(
-          `${String(b.bookingNo).padStart(2, "0")}. *${b.name}*${tag} — ${b.phone} (${statusShort})`,
+          `${String(b.bookingNo).padStart(2, "0")}. *${b.name}*${tag} — ${b.phone} (${statusShort}${checkInTag})`,
         );
       });
     }
@@ -906,7 +856,12 @@ function App() {
       setSelectedMonth(notification.date.slice(0, 7));
       setSelectedDate(notification.date);
     }
-    setActivePage("bookings");
+    setActivePage("overview");
+    window.setTimeout(() => {
+      document
+        .getElementById("manifest-section")
+        ?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 60);
   }
 
   function openBookingForm() {
@@ -995,6 +950,61 @@ function App() {
     } finally {
       isSavingBookingRef.current = false;
       setIsSavingBooking(false);
+    }
+  }
+
+  async function toggleCheckIn(booking) {
+    if (!booking) return;
+    const nextCheckedIn = !isBookingCheckedIn(booking, checkedInOverrides);
+
+    setCheckedInOverrides((prev) => {
+      const next = { ...prev, [booking.id]: nextCheckedIn };
+      try {
+        window.localStorage.setItem(
+          "seatflow-checked-in-v1",
+          JSON.stringify(next),
+        );
+      } catch {
+        // Abaikan jika penyimpanan lokal penuh
+      }
+      return next;
+    });
+    setBookings((current) =>
+      current.map((item) =>
+        item.id === booking.id ? { ...item, checkedIn: nextCheckedIn } : item,
+      ),
+    );
+
+    try {
+      const updatedBooking = await apiRequest(
+        `${BOOKINGS_ENDPOINT}?id=${booking.id}`,
+        {
+          method: "PATCH",
+          body: JSON.stringify({ checkedIn: nextCheckedIn }),
+        },
+      );
+      if (updatedBooking && typeof updatedBooking.checkedIn === "boolean") {
+        setBookings((current) =>
+          current.map((item) =>
+            item.id === booking.id ? updatedBooking : item,
+          ),
+        );
+        setCheckedInOverrides((prev) => {
+          const next = { ...prev };
+          delete next[booking.id];
+          try {
+            window.localStorage.setItem(
+              "seatflow-checked-in-v1",
+              JSON.stringify(next),
+            );
+          } catch {
+            // Abaikan
+          }
+          return next;
+        });
+      }
+    } catch {
+      // Fallback localStorage tetap menjaga status check-in jika API server belum di-restart
     }
   }
 
@@ -1101,6 +1111,56 @@ function App() {
     100,
   );
 
+  const scheduleControlsNode = (
+    <FlightScheduleTabs
+      key={selectedMonth}
+      embedded
+      dates={flightDates}
+      bookingCounts={bookingCountsByDate}
+      dateDetails={dateDetailsByDate}
+      selectedMonth={selectedMonth}
+      selectedDate={selectedDate}
+      routes={ROUTES}
+      selectedRoute={selectedRoute}
+      isModalOpen={
+        Boolean(showForm) ||
+        Boolean(editingBooking) ||
+        Boolean(deletingBooking) ||
+        Boolean(isFinanceLoginOpen)
+      }
+      isActiveView={!isFlightDataPage}
+      onRouteChange={setSelectedRoute}
+      onMonthChange={(monthNumber) => {
+        const month = `${selectedMonth.slice(0, 4)}-${monthNumber}`;
+        setSelectedMonth(month);
+        setSelectedDate(nearestFlightDateInMonth(month));
+      }}
+      onYearChange={(year) => {
+        const month = `${year}-${selectedMonth.slice(5, 7)}`;
+        setSelectedMonth(month);
+        setSelectedDate(nearestFlightDateInMonth(month));
+      }}
+      onDateChange={setSelectedDate}
+      onJumpNearest={() => {
+        const currentMonth = today.slice(0, 7);
+        const upcomingThisMonth = flightDatesInMonth(currentMonth).find(
+          (d) => d >= today,
+        );
+        if (upcomingThisMonth) {
+          setSelectedMonth(currentMonth);
+          setSelectedDate(upcomingThisMonth);
+          return;
+        }
+        const [y, m] = currentMonth.split("-").map(Number);
+        const next = new Date(y, m, 1);
+        const nextMonth = `${next.getFullYear()}-${String(next.getMonth() + 1).padStart(2, "0")}`;
+        const nextFirst = flightDatesInMonth(nextMonth)[0];
+        setSelectedMonth(nextMonth);
+        if (nextFirst) setSelectedDate(nextFirst);
+      }}
+    />
+  );
+
   return (
     <div className="app-shell" data-theme={theme}>
       <AppSidebar
@@ -1197,8 +1257,40 @@ function App() {
           </div>
         )}
 
-        <div className={isFlightDataPage ? "hidden" : ""}>
-          <div className="ticketing-page-heading">
+        {(activePage === "passengerList" || activePage === "checkIn") && (
+          <div>
+            {dataError && (
+              <div className="alert alert-error" role="alert">
+                <strong>Koneksi Data Terputus</strong>
+                <span>{dataError}</span>
+              </div>
+            )}
+
+            <PassengerListPage
+              mode={activePage === "checkIn" ? "checkin" : "list"}
+              routeInfo={routeInfo}
+              selectedDate={selectedDate}
+              currentBookings={currentBookings}
+              checkedInOverrides={checkedInOverrides}
+              isLoadingBookings={isLoadingBookings}
+              scheduleControls={scheduleControlsNode}
+              onCopyWhatsAppManifest={copyWhatsAppManifest}
+              onShowMessage={showMessage}
+              onToggleCheckIn={toggleCheckIn}
+            />
+          </div>
+        )}
+
+        <div
+          className={
+            isFlightDataPage ||
+            activePage === "passengerList" ||
+            activePage === "checkIn"
+              ? "hidden"
+              : ""
+          }
+        >
+          <div className="ticketing-page-heading compact-page-heading">
             <section className="section-header">
               <div className="section-eyebrow">
                 <span className="eyebrow-badge">{routeInfo.value}</span>
@@ -1208,21 +1300,30 @@ function App() {
                 </span>
               </div>
               <h1 className="section-title">{pageTitles[activePage]}</h1>
-              <p className="section-subtitle">
-                {activePage === "overview" &&
-                  "Kendali kuota kabin 12 kursi, jadwal keberangkatan aktif, dan status verifikasi tiket penumpang."}
-                {activePage === "bookings" &&
-                  "Manifes penumpang terdaftar, pembaruan status pembayaran cepat, dan kontak langsung WhatsApp."}
-              </p>
             </section>
             <div className="heading-cta-group">
+              <button
+                type="button"
+                className="secondary-button refresh-button"
+                onClick={refreshBookings}
+                disabled={isLoadingBookings || isRefreshingBookings}
+                aria-label="Sinkronisasi daftar penumpang"
+                title="Sinkronisasi data dari MySQL"
+              >
+                <RefreshCw
+                  className={isRefreshingBookings ? "spinning" : ""}
+                  aria-hidden="true"
+                  strokeWidth={1.9}
+                />
+                <span>{isRefreshingBookings ? "Memuat..." : "Sinkron"}</span>
+              </button>
               <button
                 type="button"
                 className="btn btn-outline"
                 onClick={copyWhatsAppManifest}
                 title="Salin format laporan manifes untuk dikirim ke grup WhatsApp"
               >
-                <span aria-hidden="true">📋</span> Salin Laporan WA
+                <span aria-hidden="true">📋</span> Salin WA
               </button>
               <button
                 type="button"
@@ -1234,37 +1335,6 @@ function App() {
             </div>
           </div>
 
-          <MobileRouteDateBar
-            routes={ROUTES}
-            selectedRoute={selectedRoute}
-            selectedDate={selectedDate}
-            dates={flightDates}
-            bookingCounts={bookingCountsByDate}
-            occupiedSeats={occupiedSeats}
-            onRouteChange={setSelectedRoute}
-            onDateChange={setSelectedDate}
-            onPrevMonth={() => {
-              const [y, m] = selectedMonth.split("-").map(Number);
-              const prev = new Date(y, m - 2, 1);
-              const prevMonth = `${prev.getFullYear()}-${String(prev.getMonth() + 1).padStart(2, "0")}`;
-              const prevDates = flightDatesInMonth(prevMonth);
-              setSelectedMonth(prevMonth);
-              if (prevDates.length > 0) {
-                setSelectedDate(prevDates[prevDates.length - 1]);
-              }
-            }}
-            onNextMonth={() => {
-              const [y, m] = selectedMonth.split("-").map(Number);
-              const next = new Date(y, m, 1);
-              const nextMonth = `${next.getFullYear()}-${String(next.getMonth() + 1).padStart(2, "0")}`;
-              const nextDates = flightDatesInMonth(nextMonth);
-              setSelectedMonth(nextMonth);
-              if (nextDates.length > 0) {
-                setSelectedDate(nextDates[0]);
-              }
-            }}
-          />
-
           {dataError && (
             <div className="alert alert-error" role="alert">
               <strong>Koneksi Data Terputus</strong>
@@ -1275,119 +1345,48 @@ function App() {
           <FlightDispatchBanner
             routeInfo={routeInfo}
             selectedDate={selectedDate}
+            currentBookings={currentBookings}
+            checkedInOverrides={checkedInOverrides}
             occupiedSeats={occupiedSeats}
             remainingSeats={remainingSeats}
             loadFactorPct={loadFactorPct}
             infantCount={infantCount}
           />
 
-          {activePage === "overview" && (
-            <OverviewMetricsAndTelemetry
-              routeInfo={routeInfo}
-              selectedRoute={selectedRoute}
-              selectedDate={selectedDate}
-              currentBookings={currentBookings}
-              remainingSeats={remainingSeats}
-              adultCount={adultCount}
-              childCount={childCount}
-              infantCount={infantCount}
-              waitingCount={waitingCount}
-              bookedCount={bookedCount}
-              paidCount={paidCount}
-              n8nTelemetry={n8nTelemetry}
-              dualSectorStats={dualSectorStats}
-              onSelectRoute={setSelectedRoute}
-              onSelectSchedule={(route, date) => {
-                if (route) setSelectedRoute(route);
-                if (date) {
-                  setSelectedMonth(date.slice(0, 7));
-                  setSelectedDate(date);
-                }
-              }}
-            />
-          )}
-
-          <FlightScheduleTabs
-            key={selectedMonth}
-            dates={flightDates}
-            bookingCounts={bookingCountsByDate}
-            dateDetails={dateDetailsByDate}
-            selectedMonth={selectedMonth}
+          <PassengerManifestSection
+            routeInfo={routeInfo}
             selectedDate={selectedDate}
-            routes={ROUTES}
-            selectedRoute={selectedRoute}
-            isModalOpen={
-              Boolean(showForm) ||
-              Boolean(editingBooking) ||
-              Boolean(deletingBooking) ||
-              Boolean(isFinanceLoginOpen)
-            }
-            isActiveView={!isFlightDataPage}
-            onRouteChange={setSelectedRoute}
-            onMonthChange={(monthNumber) => {
-              const month = `${selectedMonth.slice(0, 4)}-${monthNumber}`;
-              setSelectedMonth(month);
-              setSelectedDate(nearestFlightDateInMonth(month));
-            }}
-            onYearChange={(year) => {
-              const month = `${year}-${selectedMonth.slice(5, 7)}`;
-              setSelectedMonth(month);
-              setSelectedDate(nearestFlightDateInMonth(month));
-            }}
-            onDateChange={setSelectedDate}
-            onJumpNearest={() => {
-              const currentMonth = today.slice(0, 7);
-              const upcomingThisMonth = flightDatesInMonth(currentMonth).find(
-                (d) => d >= today,
-              );
-              if (upcomingThisMonth) {
-                setSelectedMonth(currentMonth);
-                setSelectedDate(upcomingThisMonth);
-                return;
-              }
-              const [y, m] = currentMonth.split("-").map(Number);
-              const next = new Date(y, m, 1);
-              const nextMonth = `${next.getFullYear()}-${String(next.getMonth() + 1).padStart(2, "0")}`;
-              const nextFirst = flightDatesInMonth(nextMonth)[0];
-              setSelectedMonth(nextMonth);
-              if (nextFirst) setSelectedDate(nextFirst);
-            }}
+            currentBookings={currentBookings}
+            filteredBookings={filteredBookings}
+            occupiedSeats={occupiedSeats}
+            remainingSeats={remainingSeats}
+            search={search}
+            searchInputRef={searchInputRef}
+            isLoadingBookings={isLoadingBookings}
+            onSearchChange={setSearch}
+            onOpenBookingForm={openBookingForm}
+            onUpdateStatus={updateStatus}
+            onOpenEditForm={openEditForm}
+            onRequestDelete={setDeletingBooking}
+            scheduleControls={scheduleControlsNode}
           />
 
-          {activePage === "overview" && (
-            <OverviewDatesAndLiveManifest
-              routeInfo={routeInfo}
-              selectedDate={selectedDate}
-              dashboardBookingEntries={dashboardBookingEntries}
-              currentBookings={currentBookings}
-              onSelectDate={setSelectedDate}
-              onOpenBookingsPage={() => setActivePage("bookings")}
-              onUpdateStatus={updateStatus}
-            />
-          )}
-
-          {activePage === "bookings" && (
-            <PassengerManifestSection
-              routeInfo={routeInfo}
-              selectedDate={selectedDate}
-              currentBookings={currentBookings}
-              filteredBookings={filteredBookings}
-              occupiedSeats={occupiedSeats}
-              remainingSeats={remainingSeats}
-              filter={filter}
-              search={search}
-              searchInputRef={searchInputRef}
-              isLoadingBookings={isLoadingBookings}
-              isRefreshingBookings={isRefreshingBookings}
-              onOpenBookingForm={openBookingForm}
-              onRefreshBookings={refreshBookings}
-              onFilterChange={setFilter}
-              onSearchChange={setSearch}
-              onUpdateStatus={updateStatus}
-              onOpenEditForm={openEditForm}
-              onRequestDelete={setDeletingBooking}
-            />
-          )}
+          <WaOtomatisSummaryCard
+            routeInfo={routeInfo}
+            selectedRoute={selectedRoute}
+            selectedDate={selectedDate}
+            n8nTelemetry={n8nTelemetry}
+            onSelectSchedule={(route, date) => {
+              if (route) setSelectedRoute(route);
+              if (date) {
+                setSelectedMonth(date.slice(0, 7));
+                setSelectedDate(date);
+              }
+              document
+                .getElementById("manifest-section")
+                ?.scrollIntoView({ behavior: "smooth", block: "start" });
+            }}
+          />
         </div>
       </main>
 

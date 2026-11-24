@@ -1,9 +1,9 @@
-import { RefreshCw } from "lucide-react";
 import {
   STATUSES,
   dateLabel,
   isN8nBooking,
   timeLabel,
+  weekdayName,
 } from "../utils/bookingUtils";
 
 function PassengerManifestSection({
@@ -13,148 +13,119 @@ function PassengerManifestSection({
   filteredBookings,
   occupiedSeats,
   remainingSeats,
-  filter,
   search,
   searchInputRef,
   isLoadingBookings,
-  isRefreshingBookings,
-  onOpenBookingForm,
-  onRefreshBookings,
-  onFilterChange,
+  scheduleControls,
   onSearchChange,
+  onOpenBookingForm,
   onUpdateStatus,
   onOpenEditForm,
   onRequestDelete,
 }) {
-  const n8nCount = currentBookings.filter(isN8nBooking).length;
-  const webCount = currentBookings.length - n8nCount;
-
   return (
-    <section className="bookings-section">
-      <div className="manifest-heading-row">
-        <section className="section-header">
-          <div className="section-eyebrow">
-            PASSENGER MANIFEST • {routeInfo.value} •{" "}
+    <section id="manifest-section" className="bookings-section unified-manifest-card">
+      <div className="unified-manifest-header">
+        <div>
+          <span className="section-kicker">
+            MANIFES AKTIF • {routeInfo.value} •{" "}
+            {weekdayName(selectedDate).toUpperCase()},{" "}
             {dateLabel(selectedDate).toUpperCase()}
-          </div>
+          </span>
           <h2 className="section-title">
             Daftar Penumpang{" "}
             <span className="table-total text-sm font-semibold text-teal-dark">
               {currentBookings.length}
             </span>
           </h2>
-        </section>
-        <div className="manifest-heading-actions">
+        </div>
+
+        <div className="manifest-search-cta">
+          <label className="search-box">
+            <span className="search-icon">⌕</span>
+            <input
+              ref={searchInputRef}
+              aria-label="Cari penumpang"
+              placeholder="Cari nama, WA, atau kursi..."
+              value={search}
+              onChange={(event) => onSearchChange(event.target.value)}
+              className="search-input"
+            />
+            {search && (
+              <button
+                type="button"
+                className="search-clear-btn"
+                onClick={() => {
+                  onSearchChange("");
+                  searchInputRef.current?.focus();
+                }}
+                aria-label="Bersihkan pencarian"
+                title="Bersihkan pencarian"
+              >
+                ×
+              </button>
+            )}
+            <span className="search-shortcut">⌘ K</span>
+          </label>
+
           <button
             type="button"
-            className="btn btn-primary manifest-add-button"
+            className="btn btn-primary manifest-add-btn"
             onClick={onOpenBookingForm}
           >
             <span aria-hidden="true">+</span> Tambah PAX
           </button>
-          <button
-            type="button"
-            className="secondary-button refresh-button"
-            onClick={onRefreshBookings}
-            disabled={isLoadingBookings || isRefreshingBookings}
-            aria-label="Refresh daftar penumpang"
-            title="Refresh daftar penumpang"
-          >
-            <RefreshCw
-              className={isRefreshingBookings ? "spinning" : ""}
-              aria-hidden="true"
-              strokeWidth={1.9}
-            />
-            {isRefreshingBookings ? "Memuat..." : "Sinkronisasi"}
-          </button>
         </div>
       </div>
 
-      <div className="table-toolbar">
-        <div className="flex gap-2 flex-wrap">
-          {["Semua", ...STATUSES].map((status) => {
-            const statusCount =
-              status === "Semua"
-                ? currentBookings.length
-                : currentBookings.filter((b) => b.status === status).length;
-            return (
-              <button
-                type="button"
-                key={status}
-                className={`filter-btn ${filter === status ? "active" : ""}`}
-                onClick={() => onFilterChange(status)}
-              >
-                {status === "Menunggu verifikasi"
-                  ? "Menunggu"
-                  : status === "Booked"
-                    ? "Dipesan"
-                    : status}
-                <span>{statusCount}</span>
-              </button>
-            );
-          })}
-          <button
-            type="button"
-            className={`filter-btn ${filter === "SOURCE_N8N" ? "active" : ""}`}
-            onClick={() => onFilterChange("SOURCE_N8N")}
-            title="Filter penumpang yang memesan lewat WA Otomatis"
-          >
-            WA Otomatis
-            <span>{n8nCount}</span>
-          </button>
-          <button
-            type="button"
-            className={`filter-btn ${filter === "SOURCE_WEB" ? "active" : ""}`}
-            onClick={() => onFilterChange("SOURCE_WEB")}
-            title="Filter penumpang yang diinput manual lewat Web Dashboard"
-          >
-            Manual Web
-            <span>{webCount}</span>
-          </button>
-        </div>
-        <label className="search-box">
-          <span className="search-icon">⌕</span>
-          <input
-            ref={searchInputRef}
-            aria-label="Cari penumpang"
-            placeholder="Cari nama, WA, atau no. kursi..."
-            value={search}
-            onChange={(event) => onSearchChange(event.target.value)}
-            className="search-input"
-          />
-          {search && (
-            <button
-              type="button"
-              className="search-clear-btn"
-              onClick={() => {
-                onSearchChange("");
-                searchInputRef.current?.focus();
-              }}
-              aria-label="Bersihkan pencarian"
-              title="Bersihkan pencarian"
+      {scheduleControls}
+
+      {filteredBookings.length === 0 ? (
+        <div className="manifest-empty-box" role="status">
+          <span className="empty-state-icon" aria-hidden="true">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.7"
+              strokeLinecap="round"
+              strokeLinejoin="round"
             >
-              ×
-            </button>
-          )}
-          <span className="search-shortcut">⌘ K</span>
-        </label>
-      </div>
-
-      <div className="table-wrap">
-        <table className="table w-full border-collapse text-sm">
-          <thead>
-            <tr>
-              <th>SEAT / NO</th>
-              <th>IDENTITAS PENUMPANG</th>
-              <th>SUMBER PESANAN</th>
-              <th>KONTAK WHATSAPP</th>
-              <th>STATUS TIKET</th>
-              <th>WAKTU RESERVASI</th>
-              <th>AKSI</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredBookings.map((booking) => {
+              <path d="M6 4.5h12a1.5 1.5 0 0 1 1.5 1.5v12a1.5 1.5 0 0 1-1.5 1.5H6A1.5 1.5 0 0 1 4.5 18V6A1.5 1.5 0 0 1 6 4.5Z" />
+              <path d="M8 9h8M8 12.5h8M8 16h5" />
+            </svg>
+          </span>
+          <strong className="manifest-empty-title">
+            {isLoadingBookings
+              ? "Memuat manifes dari MySQL..."
+              : search
+                ? "Penumpang tidak ditemukan"
+                : "Belum ada penumpang pada jadwal ini"}
+          </strong>
+          <span className="manifest-empty-desc">
+            {isLoadingBookings
+              ? "Sedang mengambil data penumpang terbaru."
+              : search
+                ? "Coba periksa kembali nama, nomor WhatsApp, atau nomor kursi."
+                : "Klik tombol + Tambah PAX di atas untuk mulai mengisi manifes."}
+          </span>
+        </div>
+      ) : (
+        <div className="table-wrap">
+          <table className="table w-full border-collapse text-sm">
+            <thead>
+              <tr>
+                <th>SEAT / NO</th>
+                <th>IDENTITAS PENUMPANG</th>
+                <th>SUMBER PESANAN</th>
+                <th>KONTAK WHATSAPP</th>
+                <th>STATUS TIKET</th>
+                <th>WAKTU RESERVASI</th>
+                <th>AKSI</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredBookings.map((booking) => {
               const initial =
                 String(booking.name || "P")
                   .trim()
@@ -301,40 +272,10 @@ function PassengerManifestSection({
                 </tr>
               );
             })}
-            {filteredBookings.length === 0 && (
-              <tr className="empty-row">
-                <td className="empty-state" colSpan="7">
-                  <div className="empty-state-content">
-                    <span className="empty-state-icon" aria-hidden="true">
-                      <svg
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="1.7"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      >
-                        <path d="M6 4.5h12a1.5 1.5 0 0 1 1.5 1.5v12a1.5 1.5 0 0 1-1.5 1.5H6A1.5 1.5 0 0 1 4.5 18V6A1.5 1.5 0 0 1 6 4.5Z" />
-                        <path d="M8 9h8M8 12.5h8M8 16h5" />
-                      </svg>
-                    </span>
-                    <strong className="text-base text-ink block">
-                      {isLoadingBookings
-                        ? "Memuat manifes dari MySQL..."
-                        : "Manifes masih kosong atau tidak cocok"}
-                    </strong>
-                    <span className="text-sm">
-                      {isLoadingBookings
-                        ? "Sedang mengambil data penumpang terbaru."
-                        : "Tambahkan reservasi baru atau ubah filter pencarian di atas."}
-                    </span>
-                  </div>
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
+            </tbody>
+          </table>
+        </div>
+      )}
       <footer className="manifest-footer">
         <span>
           Menampilkan{" "}

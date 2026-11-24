@@ -29,126 +29,6 @@ const MONTHS = Array.from({ length: 12 }, (_, index) => ({
 
 const NEAR_FULL_THRESHOLD = 9;
 
-export function MobileRouteDateBar({
-  routes,
-  selectedRoute,
-  selectedDate,
-  dates,
-  bookingCounts,
-  occupiedSeats,
-  onRouteChange,
-  onDateChange,
-  onPrevMonth,
-  onNextMonth,
-}) {
-  const currentIdx = dates.indexOf(selectedDate);
-
-  const stepDate = (delta) => {
-    const nextIdx = currentIdx + delta;
-    if (nextIdx >= 0 && nextIdx < dates.length) {
-      onDateChange(dates[nextIdx]);
-    } else if (delta < 0 && onPrevMonth) {
-      onPrevMonth();
-    } else if (delta > 0 && onNextMonth) {
-      onNextMonth();
-    }
-  };
-
-  const compactDateText = new Intl.DateTimeFormat("id-ID", {
-    weekday: "short",
-    day: "numeric",
-    month: "short",
-  }).format(new Date(`${selectedDate}T00:00:00`));
-
-  return (
-    <div
-      className="mobile-schedule-quickbar"
-      aria-label="Akses cepat rute dan tanggal"
-    >
-      <div
-        className="mobile-route-Toggle"
-        role="group"
-        aria-label="Pilih rute cepat"
-      >
-        {routes.map((route) => {
-          const isActive = route.value === selectedRoute;
-          return (
-            <button
-              key={route.value}
-              type="button"
-              className={`mobile-route-pill ${isActive ? "active" : ""}`}
-              onClick={() => onRouteChange(route.value)}
-              aria-pressed={isActive}
-            >
-              <span>{route.originCode}</span>
-              <span className="mobile-route-arrow" aria-hidden="true">
-                ✈
-              </span>
-              <span>{route.destinationCode}</span>
-            </button>
-          );
-        })}
-      </div>
-
-      <div className="mobile-date-stepper">
-        <button
-          type="button"
-          className="mobile-date-step-btn"
-          onClick={() => stepDate(-1)}
-          aria-label="Jadwal sebelumnya"
-        >
-          ‹
-        </button>
-
-        <label className="mobile-date-select-wrap">
-          <span className="mobile-date-display">
-            <strong>{compactDateText}</strong>
-            <small
-              className={`mobile-date-quota ${occupiedSeats >= BOOKING_LIMIT ? "full" : occupiedSeats >= NEAR_FULL_THRESHOLD ? "warn" : ""}`}
-            >
-              {occupiedSeats >= BOOKING_LIMIT
-                ? "FULL"
-                : `${occupiedSeats}/${BOOKING_LIMIT}`}
-            </small>
-            <span className="mobile-date-caret" aria-hidden="true">
-              ▾
-            </span>
-          </span>
-          <select
-            aria-label="Pilih cepat tanggal penerbangan"
-            value={selectedDate}
-            onChange={(e) => onDateChange(e.target.value)}
-          >
-            {dates.map((d) => {
-              const cnt = bookingCounts[d] || 0;
-              const label = new Intl.DateTimeFormat("id-ID", {
-                weekday: "short",
-                day: "2-digit",
-                month: "short",
-                year: "numeric",
-              }).format(new Date(`${d}T00:00:00`));
-              return (
-                <option key={d} value={d}>
-                  {label} — {cnt >= BOOKING_LIMIT ? "FULL" : `${cnt}/12 kursi`}
-                </option>
-              );
-            })}
-          </select>
-        </label>
-
-        <button
-          type="button"
-          className="mobile-date-step-btn"
-          onClick={() => stepDate(1)}
-          aria-label="Jadwal berikutnya"
-        >
-          ›
-        </button>
-      </div>
-    </div>
-  );
-}
-
 function FlightScheduleTabs({
   dates,
   bookingCounts,
@@ -157,6 +37,7 @@ function FlightScheduleTabs({
   selectedDate,
   routes,
   selectedRoute,
+  embedded = false,
   isModalOpen = false,
   isActiveView = true,
   onRouteChange,
@@ -254,64 +135,51 @@ function FlightScheduleTabs({
     onMonthChange(nextMonth);
   };
 
-  const totalMonthPax = Object.values(bookingCounts).reduce(
-    (acc, count) => acc + count,
-    0,
-  );
-
   const nearestUpcomingToday = dates.includes(today);
 
+  const WrapperTag = embedded ? "div" : "section";
+
   return (
-    <section className="schedule-tabs" aria-label="Pilih jadwal penerbangan">
-      <div className="schedule-command-top">
-        <div className="schedule-route-deck">
-          <div className="schedule-deck-header">
-            <span className="deck-tag">SECTOR ROUTE</span>
-            <span className="deck-sub">Pilih sektor penerbangan aktif</span>
-          </div>
-          <div
-            className="route-switcher-cards"
-            role="group"
-            aria-label="Pilih rute penerbangan"
-          >
-            {routes.map((route) => {
-              const isActive = selectedRoute === route.value;
-              return (
-                <button
-                  key={route.value}
-                  type="button"
-                  className={`route-sector-card ${isActive ? "active" : ""}`}
-                  onClick={() => onRouteChange(route.value)}
-                  aria-pressed={isActive}
-                >
-                  <div className="route-sector-codes">
-                    <strong>{route.originCode}</strong>
-                    <span className="route-sector-arrow" aria-hidden="true">
-                      ✈
-                    </span>
-                    <strong>{route.destinationCode}</strong>
-                  </div>
-                  <div className="route-sector-cities">
-                    <span>
-                      {route.origin} → {route.destination}
-                    </span>
-                  </div>
-                </button>
-              );
-            })}
-          </div>
+    <WrapperTag
+      className={`schedule-tabs ${embedded ? "schedule-tabs-embedded" : ""}`}
+      aria-label="Pilih rute dan jadwal penerbangan"
+    >
+      <div className="schedule-command-top compact-command-top">
+        <div
+          className="route-switcher-cards"
+          role="group"
+          aria-label="Pilih rute penerbangan"
+        >
+          {routes.map((route) => {
+            const isActive = selectedRoute === route.value;
+            return (
+              <button
+                key={route.value}
+                type="button"
+                className={`route-sector-card ${isActive ? "active" : ""}`}
+                onClick={() => onRouteChange(route.value)}
+                aria-pressed={isActive}
+              >
+                <div className="route-sector-codes">
+                  <strong>{route.originCode}</strong>
+                  <span className="route-sector-arrow" aria-hidden="true">
+                    ✈
+                  </span>
+                  <strong>{route.destinationCode}</strong>
+                </div>
+                <div className="route-sector-cities">
+                  <span>
+                    {route.origin} → {route.destination}
+                  </span>
+                </div>
+              </button>
+            );
+          })}
         </div>
 
-        <div className="schedule-period-deck">
-          <div className="schedule-deck-header">
-            <span className="deck-tag">PERIODE OPERASIONAL</span>
-            <span className="deck-sub">
-              {totalMonthPax} kursi terpesan bulan ini
-            </span>
-          </div>
+        <div className="schedule-period-deck compact-period-deck">
           <div className="schedule-period-controls">
-            <label className="schedule-period-field">
-              <span>Bulan</span>
+            <label className="schedule-period-field" aria-label="Bulan penerbangan">
               <select
                 aria-label="Bulan penerbangan"
                 value={selectedMonthNumber}
@@ -324,8 +192,10 @@ function FlightScheduleTabs({
                 ))}
               </select>
             </label>
-            <label className="schedule-period-field year-field">
-              <span>Tahun</span>
+            <label
+              className="schedule-period-field year-field"
+              aria-label="Tahun penerbangan"
+            >
               <input
                 aria-label="Tahun penerbangan"
                 type="text"
@@ -371,7 +241,7 @@ function FlightScheduleTabs({
       <div className="flight-date-section">
         <div className="flight-date-heading">
           <div className="flight-date-heading-main">
-            <strong>Tanggal — {monthLabel(selectedMonth)}</strong>
+            <strong>Jadwal {monthLabel(selectedMonth)}</strong>
             <span className="schedule-freq-pill">SEN • RAB • SAB</span>
           </div>
 
@@ -515,7 +385,7 @@ function FlightScheduleTabs({
           </span>
         </div>
       </div>
-    </section>
+    </WrapperTag>
   );
 }
 

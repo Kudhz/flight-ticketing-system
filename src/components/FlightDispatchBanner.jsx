@@ -3,17 +3,30 @@ import {
   BOOKING_LIMIT,
   BOOKING_NUMBERS,
   dateLabel,
+  isBookingCheckedIn,
+  isOccupiedSeat,
   weekdayName,
 } from "../utils/bookingUtils";
 
 function FlightDispatchBanner({
   routeInfo,
   selectedDate,
+  currentBookings = [],
+  checkedInOverrides = {},
   occupiedSeats,
   remainingSeats,
   loadFactorPct,
   infantCount,
 }) {
+  const seatMap = new Map();
+  let checkedInSeatsCount = 0;
+  currentBookings.forEach((booking) => {
+    if (isOccupiedSeat(booking) && booking.bookingNo) {
+      const checked = isBookingCheckedIn(booking, checkedInOverrides);
+      if (checked) checkedInSeatsCount += 1;
+      seatMap.set(Number(booking.bookingNo), { booking, checked });
+    }
+  });
   return (
     <section
       className="flight-banner"
@@ -121,15 +134,28 @@ function FlightDispatchBanner({
           </div>
           <div className="capacity-seats">
             {BOOKING_NUMBERS.map((number) => {
-              const isFilled = number <= occupiedSeats;
+              const seatEntry = seatMap.get(number);
+              const isFilled = seatMap.size > 0 ? Boolean(seatEntry) : number <= occupiedSeats;
+              const isCheckedIn = Boolean(seatEntry?.checked);
               return (
                 <span
                   key={number}
-                  className={`seat ${isFilled ? "seat-occupied" : "seat-free"}`}
+                  className={`seat ${
+                    isCheckedIn
+                      ? "seat-checked-in"
+                      : isFilled
+                        ? "seat-occupied"
+                        : "seat-free"
+                  }`}
+                  title={
+                    seatEntry
+                      ? `#${String(number).padStart(2, "0")} ${seatEntry.booking.name}${isCheckedIn ? " (Sudah Check-in)" : ""}`
+                      : `Kursi #${String(number).padStart(2, "0")} Kosong`
+                  }
                   aria-hidden="true"
                 >
                   <span className="seat-num">
-                    {String(number).padStart(2, "0")}
+                    {isCheckedIn ? "✓" : String(number).padStart(2, "0")}
                   </span>
                 </span>
               );
@@ -139,10 +165,13 @@ function FlightDispatchBanner({
 
         <div className="cabin-seat-legend">
           <span>
-            <i className="seat-dot free" /> Kursi Kosong ({remainingSeats})
+            <i className="seat-dot free" /> Kosong ({remainingSeats})
           </span>
           <span>
-            <i className="seat-dot occupied" /> Kursi Terisi ({occupiedSeats})
+            <i className="seat-dot occupied" /> Terisi ({occupiedSeats})
+          </span>
+          <span>
+            <i className="seat-dot checked-in" /> Check-in ({checkedInSeatsCount})
           </span>
         </div>
       </div>

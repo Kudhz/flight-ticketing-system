@@ -3085,6 +3085,13 @@ select {
   box-shadow: 0 3px 10px rgb(13 148 136 / 38%);
 }
 
+.seat-checked-in {
+  background: linear-gradient(135deg, #10b981, #059669);
+  border-color: #6ee7b7;
+  color: #fff;
+  box-shadow: 0 3px 10px rgb(16 185 129 / 45%);
+}
+
 .cabin-seat-legend {
   display: flex;
   align-items: center;
@@ -3116,6 +3123,11 @@ select {
 .seat-dot.occupied {
   border: 1px solid #5eead4;
   background: #14b8a6;
+}
+
+.seat-dot.checked-in {
+  border: 1px solid #6ee7b7;
+  background: #10b981;
 }
 
 /* ---------- Schedule Command Bar ---------- */
@@ -5514,7 +5526,7 @@ select {
   }
 
   .empty-state-content {
-    width: calc(100vw - 2rem);
+    width: 100%;
     max-width: 100%;
   }
 
@@ -6803,44 +6815,828 @@ select {
     font-size: 0.74rem;
   }
 
-  /* Ringkaskan pemilih rute & bulan di dalam section jadwal pada tampilan HP */
+  /* Ringkaskan pemilih rute, bulan, & kotak tanggal 6 kolom mini di layar HP */
+  .compact-command-top {
+    gap: 0.45rem;
+    padding-bottom: 0.55rem;
+    margin-bottom: 0.55rem;
+  }
+
   .schedule-tabs .route-switcher-cards {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 0.45rem;
+    gap: 0.38rem;
   }
 
   .schedule-tabs .route-sector-card {
-    padding: 0.55rem 0.65rem;
+    min-height: 2.25rem;
+    padding: 0.4rem 0.5rem;
+    border-radius: 0.65rem;
+  }
+
+  .schedule-tabs .route-sector-codes strong {
+    font-size: 0.82rem;
   }
 
   .schedule-tabs .route-sector-cities,
-  .schedule-tabs .deck-sub {
+  .schedule-tabs .deck-sub,
+  .schedule-freq-pill,
+  .flight-calendar-legend {
     display: none;
   }
 
   .schedule-period-deck .schedule-period-controls {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) 4.8rem auto;
-    align-items: end;
-    gap: 0.4rem;
+    grid-template-columns: minmax(0, 1fr) 4.4rem auto;
+    align-items: center;
+    gap: 0.35rem;
+    margin-bottom: 0;
+  }
+
+  .schedule-period-field select,
+  .schedule-period-field input {
+    min-height: 2.15rem;
+    padding: 0.3rem 0.5rem;
+    font-size: 0.78rem;
+  }
+
+  .period-step-btn {
+    width: 2.05rem;
+    height: 2.15rem;
+  }
+
+  .flight-date-heading {
+    margin-bottom: 0.42rem;
+    gap: 0.35rem;
+  }
+
+  .flight-date-heading-main strong {
+    font-size: 0.8rem;
+  }
+
+  .calendar-quick-btn {
+    padding: 0.22rem 0.5rem;
+    font-size: 0.66rem;
   }
 
   .flight-date-tabs {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 0.42rem;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: 0.28rem;
   }
 
   .flight-date-tab {
-    min-height: 4.2rem;
-    padding: 0.45rem 0.3rem 0.58rem;
-    border-radius: 0.8rem;
+    min-height: 2.95rem;
+    padding: 0.24rem 0.14rem 0.34rem;
+    gap: 0.05rem;
+    border-radius: 0.55rem;
+  }
+
+  .flight-date-tab .date-tab-top {
+    gap: 0.16rem;
+  }
+
+  .flight-date-tab .date-tab-day {
+    font-size: 0.52rem;
+    letter-spacing: 0.02em;
+  }
+
+  .flight-date-tab .date-tab-today-dot {
+    width: 0.28rem;
+    height: 0.28rem;
+  }
+
+  .flight-date-tab .date-waiting-corner {
+    top: 0.18rem;
+    right: 0.18rem;
+    width: 0.34rem;
+    height: 0.34rem;
   }
 
   .flight-date-tab .date-tab-num {
-    font-size: 1.02rem;
+    font-size: 0.84rem;
+    line-height: 1.05;
   }
 
-  .calendar-kbd-hint {
+  .flight-date-tab .date-tab-status {
+    padding: 0.02rem 0.22rem;
+    font-size: 0.52rem;
+    line-height: 1.15;
+  }
+
+  .flight-date-tab .date-tab-meter {
+    height: 0.15rem;
+  }
+}
+
+/* ---------- Unified Simple Ticketing & Manifest Workspace ---------- */
+.compact-page-heading {
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.compact-command-top {
+  align-items: center;
+  gap: 0.9rem;
+  padding-bottom: 0.9rem;
+  margin-bottom: 0.85rem;
+}
+
+.compact-period-deck .schedule-period-controls {
+  align-items: center;
+}
+
+.unified-manifest-card {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  margin-top: 0;
+  margin-bottom: 1.35rem;
+  padding: 1.25rem 1.35rem;
+  border: 1px solid var(--sf-line);
+  border-top: 3px solid var(--lf-terracotta);
+  border-radius: 1rem;
+  background: var(--sf-surface);
+  box-shadow: var(--sf-shadow);
+  box-sizing: border-box;
+}
+
+.manifest-empty-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  padding: 1.75rem 1rem;
+  border: 1px dashed var(--sf-line);
+  border-radius: 0.85rem;
+  background: var(--sf-surface-hover);
+  text-align: center;
+  box-sizing: border-box;
+}
+
+.manifest-empty-box .empty-state-icon {
+  margin-bottom: 0.6rem;
+  background: var(--sf-surface);
+}
+
+.manifest-empty-title {
+  display: block;
+  margin-bottom: 0.28rem;
+  color: var(--sf-ink);
+  font-size: 0.96rem;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.manifest-empty-desc {
+  display: block;
+  max-width: 24rem;
+  color: var(--sf-muted);
+  font-size: 0.82rem;
+  line-height: 1.45;
+}
+
+.unified-manifest-card .schedule-tabs.schedule-tabs-embedded {
+  margin: 0 0 1.05rem;
+  padding: 0.95rem 0 1rem;
+  border: 0;
+  border-top: 1px solid var(--sf-line);
+  border-bottom: 1px solid var(--sf-line);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.unified-manifest-card .table-wrap {
+  border-radius: 0.85rem;
+  box-shadow: none;
+}
+
+.unified-manifest-card .manifest-footer {
+  margin-top: 0.95rem;
+  padding: 0.85rem 0.1rem 0;
+  border: 0;
+  border-top: 1px solid var(--sf-line);
+  border-radius: 0;
+  background: transparent;
+}
+
+.unified-manifest-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.75rem 1rem;
+  margin-bottom: 0.95rem;
+}
+
+.unified-manifest-header .section-title {
+  margin: 0.2rem 0 0;
+  font-size: 1.3rem;
+}
+
+.manifest-search-cta {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+.manifest-add-btn {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
+.wa-summary-standalone {
+  margin-top: 0.25rem;
+}
+
+.wa-card-head-actions {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+@media (max-width: 640px) {
+  .compact-page-heading .heading-cta-group {
+    display: grid;
+    grid-template-columns: auto auto 1fr;
+    width: 100%;
+    gap: 0.45rem;
+  }
+
+  .compact-page-heading .heading-cta-group .btn,
+  .compact-page-heading .heading-cta-group .refresh-button {
+    min-height: 2.45rem;
+    padding: 0.45rem 0.65rem;
+    font-size: 0.78rem;
+  }
+
+  .unified-manifest-card {
+    padding: 0.85rem;
+  }
+
+  .unified-manifest-card .schedule-tabs.schedule-tabs-embedded {
+    margin: 0 0 0.75rem;
+    padding: 0.65rem 0 0.7rem;
+  }
+
+  .unified-manifest-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.6rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .manifest-search-cta {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 0.45rem;
+    width: 100%;
+  }
+
+  .unified-manifest-header .search-box,
+  .unified-manifest-header .search-input {
+    width: 100%;
+  }
+
+  .unified-manifest-header .search-shortcut {
     display: none;
+  }
+
+  .unified-manifest-header .search-input {
+    min-height: 2.4rem;
+    padding-right: 2rem;
+    font-size: 0.82rem;
+  }
+
+  .manifest-add-btn {
+    min-height: 2.4rem;
+    padding: 0.45rem 0.75rem;
+    font-size: 0.78rem;
+  }
+}
+
+/* ---------- Check-in Checklist & Dedicated Passenger List Page ---------- */
+.pax-checklist-row.mode-checkin {
+  cursor: pointer;
+}
+
+.checkin-box-btn {
+  display: inline-flex;
+  flex: 0 0 1.55rem;
+  align-items: center;
+  justify-content: center;
+  width: 1.55rem;
+  height: 1.55rem;
+  padding: 0;
+  border: 1.8px solid var(--sf-border-focus);
+  border-radius: 0.45rem;
+  background: var(--sf-surface);
+  color: #fff;
+  cursor: pointer;
+  transition:
+    background var(--sf-transition),
+    border-color var(--sf-transition),
+    transform 0.12s ease,
+    box-shadow var(--sf-transition);
+}
+
+.checkin-box-btn:hover {
+  border-color: #10b981;
+  box-shadow: 0 0 0 3px rgb(16 185 129 / 16%);
+}
+
+.checkin-box-btn:active {
+  transform: scale(0.93);
+}
+
+.checkin-box-btn.checked {
+  border-color: #059669;
+  background: linear-gradient(135deg, #10b981, #059669);
+  box-shadow: 0 2px 8px rgb(16 185 129 / 32%);
+}
+
+.checkin-box-btn svg {
+  width: 0.95rem;
+  height: 0.95rem;
+}
+
+.table tbody tr.row-checked-in {
+  background: rgb(16 185 129 / 6%);
+}
+
+.table tbody tr.row-checked-in:hover {
+  background: rgb(16 185 129 / 10%);
+}
+
+.passenger-list-only-card {
+  margin-bottom: 0.5rem;
+}
+
+.pax-list-wa-btn {
+  align-self: flex-start;
+  white-space: nowrap;
+}
+
+.checkin-head-actions {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.checkin-ops-deck {
+  display: grid;
+  gap: 0.65rem;
+  margin-bottom: 0.95rem;
+}
+
+.checkin-progress-panel {
+  display: grid;
+  gap: 0.42rem;
+  padding: 0.68rem 0.85rem;
+  border: 1px solid var(--sf-line);
+  border-radius: 0.8rem;
+  background: var(--sf-surface-hover);
+}
+
+.checkin-progress-panel.is-complete {
+  border-color: rgb(16 185 129 / 42%);
+  background: var(--sf-green-light);
+}
+
+.checkin-progress-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  font-size: 0.78rem;
+}
+
+.checkin-progress-meta strong {
+  color: var(--sf-ink);
+  font-weight: 700;
+}
+
+.checkin-progress-panel.is-complete .checkin-progress-meta strong,
+.checkin-progress-panel.is-complete .checkin-progress-meta span {
+  color: var(--sf-green);
+}
+
+.checkin-progress-meta span {
+  color: var(--sf-teal-dark);
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.checkin-progress-track {
+  width: 100%;
+  height: 0.42rem;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--sf-line);
+}
+
+.checkin-progress-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #10b981, #059669);
+  transition: width 0.25s ease;
+}
+
+.checkin-toolbar {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.checkin-search-box {
+  position: relative;
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+
+.checkin-search-input {
+  width: 100%;
+  min-width: 0;
+  min-height: 2.35rem;
+  padding: 0.42rem 2rem 0.42rem 2.2rem;
+  border: 1px solid var(--sf-line);
+  border-radius: 999px;
+  background: var(--sf-surface);
+  color: var(--sf-ink);
+  font-size: 0.82rem;
+  box-sizing: border-box;
+}
+
+.checkin-search-input:focus {
+  border-color: var(--sf-border-focus);
+  outline: none;
+  box-shadow: 0 0 0 3px rgb(38 121 168 / 14%);
+}
+
+.checkin-search-clear {
+  position: absolute;
+  right: 0.55rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.35rem;
+  height: 1.35rem;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: var(--sf-surface-hover);
+  color: var(--sf-muted);
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.checkin-filter-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-height: 2.35rem;
+  padding: 0.35rem 0.78rem;
+  border: 1px solid var(--sf-line);
+  border-radius: 999px;
+  background: var(--sf-surface);
+  color: var(--sf-muted);
+  font-size: 0.76rem;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    background var(--sf-transition),
+    border-color var(--sf-transition),
+    color var(--sf-transition);
+}
+
+.checkin-filter-toggle strong {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.25rem;
+  height: 1.25rem;
+  padding: 0 0.32rem;
+  border-radius: 999px;
+  background: var(--sf-surface-hover);
+  color: var(--sf-ink);
+  font-size: 0.68rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.checkin-filter-toggle.active {
+  border-color: var(--lf-terracotta-strong);
+  background: var(--lf-terracotta);
+  color: #fff;
+}
+
+.checkin-filter-toggle.active strong {
+  background: rgb(255 255 255 / 22%);
+  color: #fff;
+}
+
+.checkin-groups-stack {
+  display: grid;
+  gap: 0.95rem;
+}
+
+.checkin-group-block {
+  display: grid;
+  gap: 0.48rem;
+}
+
+.checkin-group-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  padding: 0 0.15rem;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+}
+
+.checkin-group-label.pending span {
+  color: var(--lf-amber);
+}
+
+.checkin-group-label.done span {
+  color: var(--sf-green);
+}
+
+.checkin-group-label small {
+  color: var(--sf-muted);
+  font-size: 0.68rem;
+  font-weight: 500;
+  letter-spacing: 0;
+}
+
+.pax-name-truncate {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.unpaid-checkin-warn {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  width: 1.2rem;
+  height: 1.2rem;
+  border-radius: 999px;
+  background: var(--sf-amber-light);
+  color: #b45309;
+  font-size: 0.7rem;
+  font-weight: 800;
+  line-height: 1;
+}
+
+:root[data-theme="dark"] .unpaid-checkin-warn {
+  color: var(--lf-amber);
+}
+
+.pax-checklist-phone.is-reminder-link {
+  color: var(--sf-teal-dark);
+  font-weight: 600;
+}
+
+.checkin-summary-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.42rem 0.85rem;
+  border: 1px solid var(--sf-line);
+  border-radius: 999px;
+  background: var(--sf-surface-hover);
+  color: var(--sf-muted);
+  font-size: 0.8rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.checkin-summary-pill strong {
+  color: var(--sf-ink);
+  font-weight: 750;
+}
+
+.checkin-summary-dot {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  background: #10b981;
+}
+
+.checkin-summary-pill.all-done {
+  border-color: rgb(16 185 129 / 40%);
+  background: var(--sf-green-light);
+  color: var(--sf-green);
+}
+
+.checkin-summary-pill.all-done strong {
+  color: var(--sf-green);
+}
+
+.pax-checklist-wrap {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.pax-checklist-row {
+  display: grid;
+  align-items: center;
+  gap: 0.8rem;
+  padding: 0.8rem 0.95rem;
+  border: 1px solid var(--sf-line);
+  border-radius: 0.85rem;
+  background: var(--sf-surface);
+  transition:
+    border-color var(--sf-transition),
+    background var(--sf-transition);
+}
+
+.pax-checklist-row.mode-list {
+  grid-template-columns: auto minmax(0, 1fr) auto;
+}
+
+.pax-checklist-row.mode-checkin {
+  grid-template-columns: auto auto minmax(0, 1fr) auto;
+}
+
+.pax-checklist-row:hover {
+  border-color: var(--sf-border-focus);
+}
+
+.pax-checklist-row.is-checked {
+  border-color: rgb(16 185 129 / 42%);
+  background: rgb(16 185 129 / 7%);
+}
+
+.pax-checklist-identity {
+  display: grid;
+  gap: 0.18rem;
+  min-width: 0;
+}
+
+.pax-checklist-name {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.42rem;
+  color: var(--sf-ink);
+  font-size: 0.94rem;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.pax-checklist-row.is-checked .pax-checklist-name > span:first-child {
+  color: var(--sf-ink);
+}
+
+.pax-checklist-phone {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.38rem;
+  width: fit-content;
+  color: var(--sf-muted);
+  font-size: 0.78rem;
+  text-decoration: none;
+}
+
+.pax-checklist-phone:hover {
+  color: var(--sf-teal-dark);
+}
+
+.pax-checklist-right {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.pax-ticket-chip {
+  padding: 0.24rem 0.6rem;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.pax-ticket-chip.paid {
+  background: var(--sf-green-light);
+  color: var(--sf-green);
+}
+
+.pax-ticket-chip.booked {
+  background: rgb(63 127 166 / 14%);
+  color: var(--sf-blue);
+}
+
+.pax-ticket-chip.waiting {
+  background: var(--sf-amber-light);
+  color: #a87c22;
+}
+
+:root[data-theme="dark"] .pax-ticket-chip.waiting {
+  color: var(--lf-amber);
+}
+
+.checkin-pill-btn {
+  min-height: 2.1rem;
+  padding: 0.3rem 0.75rem;
+  border: 1px solid var(--sf-line);
+  border-radius: 999px;
+  background: var(--sf-surface-hover);
+  color: var(--sf-ink);
+  font-size: 0.74rem;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    background var(--sf-transition),
+    border-color var(--sf-transition),
+    color var(--sf-transition);
+}
+
+.checkin-pill-btn:hover {
+  border-color: #10b981;
+  color: #059669;
+}
+
+.checkin-pill-btn.checked {
+  border-color: #059669;
+  background: #10b981;
+  color: #fff;
+}
+
+@media (max-width: 640px) {
+  .pax-desktop-only {
+    display: none !important;
+  }
+
+  .pax-checklist-row.mode-list {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.25rem;
+    padding: 0.68rem 0.8rem;
+  }
+
+  .pax-checklist-row.mode-checkin {
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 0.65rem;
+    padding: 0.68rem 0.8rem;
+  }
+
+  .pax-checklist-identity {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.55rem;
+  }
+
+  .pax-checklist-name {
+    flex-wrap: nowrap;
+    font-size: 0.86rem;
+    min-width: 0;
+    overflow: hidden;
+  }
+
+  .pax-name-truncate {
+    white-space: nowrap;
+  }
+
+  .checkin-head-actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    gap: 0.45rem;
+  }
+
+  .checkin-head-actions .pax-list-wa-btn {
+    min-height: 2.2rem;
+    padding: 0.35rem 0.65rem;
+    font-size: 0.75rem;
+  }
+
+  .checkin-progress-meta {
+    font-size: 0.74rem;
+  }
+
+  .pax-checklist-phone {
+    flex: 0 0 auto;
+    font-size: 0.78rem;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .checkin-summary-pill {
+    align-self: flex-start;
+    padding: 0.34rem 0.7rem;
+    font-size: 0.75rem;
   }
 }

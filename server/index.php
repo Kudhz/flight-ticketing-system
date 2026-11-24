@@ -62,6 +62,7 @@ function bookingForApi(array $row): array
         'date' => (string) $row['travel_date'],
         'status' => $row['status'],
         'source' => ($row['booking_source'] ?? 'web') === 'n8n' ? 'n8n' : 'web',
+        'checkedIn' => (bool) ((int) ($row['checked_in'] ?? 0)),
         'createdAt' => substr($bookingAt, 0, 10),
         'bookingDate' => substr($bookingAt, 0, 10),
         'bookingAt' => $bookingAt,
@@ -299,8 +300,7 @@ function validateRouteAndDate(string $route, string $date): void
 function fetchBooking(PDO $database, int $id): ?array
 {
     $statement = $database->prepare(
-        'SELECT id, passenger_name, phone, passenger_type, booking_no, route_code, travel_date, status, booking_source, booking_at
-         FROM bookings WHERE id = :id'
+        'SELECT * FROM bookings WHERE id = :id'
     );
     $statement->execute(['id' => $id]);
     $row = $statement->fetch();
@@ -483,8 +483,7 @@ try {
     if ($method === 'GET') {
         if (!isset($_GET['route']) && !isset($_GET['date'])) {
             $statement = $database->query(
-                'SELECT id, passenger_name, phone, passenger_type, booking_no, route_code, travel_date, status, booking_source, booking_at
-                 FROM bookings ORDER BY booking_at DESC, id DESC'
+                'SELECT * FROM bookings ORDER BY booking_at DESC, id DESC'
             );
             sendJson(200, array_map('bookingForApi', $statement->fetchAll()));
         }
@@ -795,10 +794,15 @@ if ($method === 'POST') {
 
     if ($method === 'PATCH') {
         $body = requestBody();
+        if (array_key_exists('checkedIn', $body)) {
+            try {
+                $database->exec('ALTER TABLE bookings ADD COLUMN checked_in TINYINT(1) NOT NULL DEFAULT 0');
+            } catch (Throwable $ignored) {
+            }
+        }
         $database->beginTransaction();
         $statement = $database->prepare(
-            'SELECT id, passenger_name, phone, passenger_type, booking_no, route_code, travel_date, status, booking_source, booking_at
-             FROM bookings WHERE id = :id FOR UPDATE'
+            'SELECT * FROM bookings WHERE id = :id FOR UPDATE'
         );
         $statement->execute(['id' => $id]);
         $row = $statement->fetch();
@@ -816,6 +820,7 @@ if ($method === 'POST') {
         $bookingNo = $booking['bookingNo'];
         $status = $booking['status'];
         $source = $booking['source'];
+        $checkedIn = $booking['checkedIn'];
 
         if (array_key_exists('name', $body)) {
             $name = trim((string) $body['name']);
@@ -863,6 +868,15 @@ if ($method === 'POST') {
                 );
             }
         }
+        if (array_key_exists('checkedIn', $body)) {
+            if (is_bool($body['checkedIn'])) {
+                $checkedIn = $body['checkedIn'];
+            } elseif ($body['checkedIn'] === 1 || $body['checkedIn'] === 0) {
+                $checkedIn = (bool) $body['checkedIn'];
+            } else {
+                throw new InvalidArgumentException('Status check-in harus berupa boolean.');
+            }
+        }
         if (
             !array_key_exists('name', $body)
             && !array_key_exists('phone', $body)
@@ -871,6 +885,7 @@ if ($method === 'POST') {
             && !array_key_exists('date', $body)
             && !array_key_exists('status', $body)
             && !array_key_exists('source', $body)
+            && !array_key_exists('checkedIn', $body)
         ) {
             throw new InvalidArgumentException('Tidak ada perubahan data pemesanan.');
         }
@@ -898,24 +913,46 @@ if ($method === 'POST') {
             }
         }
 
-        $statement = $database->prepare(
-            'UPDATE bookings
-             SET passenger_name = :name, phone = :phone, passenger_type = :type,
-                 route_code = :route, travel_date = :date, booking_no = :booking_no,
-                 status = :status, booking_source = :source
-             WHERE id = :id'
-        );
-        $statement->execute([
-            'name' => $name,
-            'phone' => $phone,
-            'type' => $type,
-            'route' => $route,
-            'date' => $date,
-            'booking_no' => $bookingNo,
-            'status' => $status,
-            'source' => $source,
-            'id' => $id,
-        ]);
+        if (array_key_exists('checkedIn', $body)) {
+            $statement = $database->prepare(
+                'UPDATE bookings
+                 SET passenger_name = :name, phone = :phone, passenger_type = :type,
+                     route_code = :route, travel_date = :date, booking_no = :booking_no,
+                     status = :status, booking_source = :source, checked_in = :checked_in
+                 WHERE id = :id'
+            );
+            $statement->execute([
+                'name' => $name,
+                'phone' => $phone,
+                'type' => $type,
+                'route' => $route,
+                'date' => $date,
+                'booking_no' => $bookingNo,
+                'status' => $status,
+                'source' => $source,
+                'checked_in' => $checkedIn ? 1 : 0,
+                'id' => $id,
+            ]);
+        } else {
+            $statement = $database->prepare(
+                'UPDATE bookings
+                 SET passenger_name = :name, phone = :phone, passenger_type = :type,
+                     route_code = :route, travel_date = :date, booking_no = :booking_no,
+                     status = :status, booking_source = :source
+                 WHERE id = :id'
+            );
+            $statement->execute([
+                'name' => $name,
+                'phone' => $phone,
+                'type' => $type,
+                'route' => $route,
+                'date' => $date,
+                'booking_no' => $bookingNo,
+                'status' => $status,
+                'source' => $source,
+                'id' => $id,
+            ]);
+        }
         $database->commit();
 
 $updatedBooking = fetchBooking($database, $id);

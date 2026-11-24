@@ -99,6 +99,13 @@ export const normalizePassengerName = (name) =>
     .trim()
     .toLocaleUpperCase("id-ID");
 
+export const isBookingCheckedIn = (booking, overrides = {}) => {
+  if (booking && overrides && Object.hasOwn(overrides, booking.id)) {
+    return Boolean(overrides[booking.id]);
+  }
+  return Boolean(booking?.checkedIn);
+};
+
 export const FINANCE_PAGES = new Set(["flightDashboard", "flightIncome"]);
 
 export const apiRequest = async (path, options = {}) => {
