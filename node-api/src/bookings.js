@@ -29,6 +29,19 @@ const BOOKING_COLUMNS =
   "id, passenger_name, phone, passenger_type, booking_no, route_code, travel_date, status, booking_at";
 
 const VALID_PASSENGER_TYPES = ["adult", "child", "infant"];
+const bookingSourceById = new Map();
+
+export function inferBookingSource(row) {
+  const id = Number(row.id);
+  if (bookingSourceById.has(id)) {
+    return bookingSourceById.get(id);
+  }
+  if (row.source === "web" || row.source === "n8n") {
+    return row.source;
+  }
+  const phone = String(row.phone ?? "").trim();
+  return phone.startsWith("62") || phone.startsWith("+62") ? "n8n" : "web";
+}
 
 export function bookingForApi(row) {
   const bookingAt = String(row.booking_at).replaceAll(" ", "T");
@@ -42,6 +55,7 @@ export function bookingForApi(row) {
     route: row.route_code,
     date: String(row.travel_date),
     status: row.status,
+    source: inferBookingSource(row),
     createdAt: bookingAt.slice(0, 10),
     bookingDate: bookingAt.slice(0, 10),
     bookingAt,
@@ -542,6 +556,47 @@ export function bookingsRouter({
   now = () => new Date(),
 }) {
   const router = Router();
+  const sseClients = new Set();
+
+  function broadcastBookingCreated(payload) {
+    if (sseClients.size === 0) return;
+    const message = `event: booking_created\ndata: ${JSON.stringify(payload)}\n\n`;
+    for (const client of sseClients) {
+      try {
+        client.write(message);
+      } catch {
+        sseClients.delete(client);
+      }
+    }
+  }
+
+  router.get("/stream", (req, res) => {
+    res.set({
+      "Content-Type": "text/event-stream",
+      "Cache-Control": "no-cache, no-store, must-revalidate",
+      Connection: "keep-alive",
+      "X-Accel-Buffering": "no",
+    });
+    res.flushHeaders?.();
+    res.write(`event: connected\ndata: {"status":"ok"}\n\n`);
+    sseClients.add(res);
+
+    const heartbeat = setInterval(() => {
+      try {
+        res.write(": ping\n\n");
+      } catch {
+        clearInterval(heartbeat);
+        sseClients.delete(res);
+      }
+    }, 25_000);
+    heartbeat.unref?.();
+
+    req.on("close", () => {
+      clearInterval(heartbeat);
+      sseClients.delete(res);
+    });
+  });
+
   router.use(express.json({ limit: "1mb", type: () => true }));
 
   const send = (res, { status, body }) => res.status(status).json(body);
@@ -579,10 +634,30 @@ export function bookingsRouter({
       if (!["create_booking", "booking"].includes(action)) {
         throw new InvalidInput("Action tidak dikenal.");
       }
-      send(
-        res,
-        await createBookings(pool, extractPassengers(body), route, date),
+      const source =
+        toText(body.source ?? "").trim().toLowerCase() === "web"
+          ? "web"
+          : "n8n";
+      const result = await createBookings(
+        pool,
+        extractPassengers(body),
+        route,
+        date,
       );
+      result.body.forEach((item) => {
+        if (item && item.id !== undefined) {
+          bookingSourceById.set(Number(item.id), source);
+          item.source = source;
+        }
+      });
+      broadcastBookingCreated({
+        source,
+        route,
+        date,
+        bookings: result.body,
+        createdAt: now().toISOString(),
+      });
+      send(res, result);
     }),
   );
 

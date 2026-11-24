@@ -2,6 +2,7 @@
 const useNodeApi = import.meta.env.VITE_API_BACKEND === "node";
 
 export const BOOKINGS_ENDPOINT = useNodeApi ? "/api/bookings" : "/server/index.php";
+export const BOOKINGS_STREAM_ENDPOINT = useNodeApi ? "/api/bookings/stream" : null;
 export const FINANCE_AUTH_ENDPOINT = useNodeApi
   ? "/api/finance"
   : "/server/index.php?path=/api/finance";

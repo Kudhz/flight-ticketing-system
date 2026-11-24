@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import AppSidebar from "./components/AppSidebar";
 import FlightScheduleTabs from "./components/FlightScheduleTabs";
 import FlightDataPages from "./components/FlightDataPages";
@@ -14,8 +14,12 @@ import {
   FinanceLoginDialog,
   NewReservationDialog,
 } from "./components/BookingDialogs";
+import {
+  BookingNotificationBell,
+  BookingNotificationPopup,
+} from "./components/BookingNotifications";
 import { NAV_ITEMS } from "./components/navigation";
-import { BOOKINGS_ENDPOINT } from "./apiConfig";
+import { BOOKINGS_ENDPOINT, BOOKINGS_STREAM_ENDPOINT } from "./apiConfig";
 import {
   BOOKING_LIMIT,
   BOOKING_NUMBERS,
@@ -26,15 +30,19 @@ import {
   STATUSES,
   apiRequest,
   bookingsFromApiResponse,
+  createBookingNotifications,
   dateLabel,
   fetchBookings,
   financeAuthUrl,
   flightDatesInMonth,
   isFlightDate,
+  isN8nBooking,
   isOccupiedSeat,
   localDateISO,
   nearestFlightDateInMonth,
   normalizePassengerName,
+  playNotificationChime,
+  triggerBrowserNotification,
   weekdayName,
 } from "./utils/bookingUtils";
 import "./App.css";
@@ -76,11 +84,84 @@ function App() {
     route: DEFAULT_ROUTE,
   });
   const [toast, setToast] = useState("");
+  const [notifications, setNotifications] = useState([]);
+  const [activeNotifPopup, setActiveNotifPopup] = useState(null);
+  const [notifSoundEnabled, setNotifSoundEnabled] = useState(
+    () => window.localStorage.getItem("seatflow-notif-sound") !== "off",
+  );
+  const [bookingSources, setBookingSources] = useState(() => {
+    try {
+      const saved = window.localStorage.getItem("seatflow-booking-sources");
+      return saved ? JSON.parse(saved) : {};
+    } catch {
+      return {};
+    }
+  });
+  const knownBookingIdsRef = useRef(new Set());
+  const hasInitialBookingsLoadedRef = useRef(false);
+  const isSavingBookingRef = useRef(false);
+  const notifSoundEnabledRef = useRef(notifSoundEnabled);
+  const popupTimeoutRef = useRef(null);
   const [form, setForm] = useState({
     passengers: [{ name: "", phone: "", type: "adult" }],
     route: DEFAULT_ROUTE,
     date: DEFAULT_DATE,
   });
+
+  useEffect(() => {
+    notifSoundEnabledRef.current = notifSoundEnabled;
+    window.localStorage.setItem(
+      "seatflow-notif-sound",
+      notifSoundEnabled ? "on" : "off",
+    );
+  }, [notifSoundEnabled]);
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(
+        "seatflow-booking-sources",
+        JSON.stringify(bookingSources),
+      );
+    } catch {
+      // Abaikan jika localStorage penuh
+    }
+  }, [bookingSources]);
+
+  const handleIncomingExternalBookings = useCallback(
+    (incomingBookings, source = "n8n") => {
+      if (!Array.isArray(incomingBookings) || incomingBookings.length === 0) {
+        return;
+      }
+      setBookingSources((current) => {
+        const next = { ...current };
+        incomingBookings.forEach((item) => {
+          if (item?.id !== undefined) next[item.id] = source;
+        });
+        return next;
+      });
+      const createdNotifs = createBookingNotifications(
+        incomingBookings,
+        source,
+      );
+      if (createdNotifs.length === 0) return;
+
+      setNotifications((current) => [...createdNotifs, ...current].slice(0, 30));
+      setActiveNotifPopup(createdNotifs[0]);
+
+      if (popupTimeoutRef.current) {
+        window.clearTimeout(popupTimeoutRef.current);
+      }
+      popupTimeoutRef.current = window.setTimeout(() => {
+        setActiveNotifPopup(null);
+      }, 9000);
+
+      if (notifSoundEnabledRef.current) {
+        playNotificationChime();
+      }
+      createdNotifs.forEach((notif) => triggerBrowserNotification(notif));
+    },
+    [],
+  );
 
   useEffect(() => {
     let isCurrent = true;
@@ -90,7 +171,13 @@ function App() {
       setDataError("");
       try {
         const loadedBookings = await fetchBookings();
-        if (isCurrent) setBookings(loadedBookings);
+        if (isCurrent) {
+          knownBookingIdsRef.current = new Set(
+            loadedBookings.map((booking) => Number(booking.id)),
+          );
+          hasInitialBookingsLoadedRef.current = true;
+          setBookings(loadedBookings);
+        }
       } catch (error) {
         if (isCurrent) {
           setDataError(
@@ -107,6 +194,95 @@ function App() {
       isCurrent = false;
     };
   }, []);
+
+  useEffect(() => {
+    let isCurrent = true;
+    let eventSource = null;
+
+    if (BOOKINGS_STREAM_ENDPOINT && typeof window.EventSource === "function") {
+      try {
+        eventSource = new window.EventSource(BOOKINGS_STREAM_ENDPOINT);
+        eventSource.addEventListener("booking_created", (event) => {
+          if (!isCurrent) return;
+          try {
+            const payload = JSON.parse(event.data || "{}");
+            const incoming = Array.isArray(payload.bookings)
+              ? payload.bookings
+              : [];
+            if (incoming.length === 0) return;
+
+            const unseenBookings = incoming.filter(
+              (booking) => !knownBookingIdsRef.current.has(Number(booking.id)),
+            );
+            incoming.forEach((booking) => {
+              knownBookingIdsRef.current.add(Number(booking.id));
+            });
+
+            if (unseenBookings.length > 0) {
+              setBookings((current) => {
+                const existingIds = new Set(
+                  current.map((item) => Number(item.id)),
+                );
+                const toAdd = unseenBookings.filter(
+                  (item) => !existingIds.has(Number(item.id)),
+                );
+                return toAdd.length > 0 ? [...toAdd, ...current] : current;
+              });
+            }
+
+            if (payload.source !== "web" && unseenBookings.length > 0) {
+              handleIncomingExternalBookings(
+                unseenBookings,
+                payload.source || "n8n",
+              );
+            }
+          } catch {
+            // Abaikan jika format payload SSE tidak valid
+          }
+        });
+      } catch {
+        // Fallback ke polling berkala
+      }
+    }
+
+    const pollInterval = window.setInterval(async () => {
+      if (
+        !isCurrent ||
+        !hasInitialBookingsLoadedRef.current ||
+        isSavingBookingRef.current
+      ) {
+        return;
+      }
+      try {
+        const latestBookings = await fetchBookings();
+        if (!isCurrent || isSavingBookingRef.current) return;
+
+        const newExternalBookings = latestBookings.filter(
+          (booking) => !knownBookingIdsRef.current.has(Number(booking.id)),
+        );
+
+        latestBookings.forEach((booking) => {
+          knownBookingIdsRef.current.add(Number(booking.id));
+        });
+
+        setBookings(latestBookings);
+
+        if (newExternalBookings.length > 0) {
+          handleIncomingExternalBookings(newExternalBookings, "n8n");
+        }
+      } catch {
+        // Abaikan error jaringan sementara saat background polling
+      }
+    }, 8000);
+
+    return () => {
+      isCurrent = false;
+      window.clearInterval(pollInterval);
+      if (eventSource) {
+        eventSource.close();
+      }
+    };
+  }, [handleIncomingExternalBookings]);
 
   useEffect(() => {
     let isCurrent = true;
@@ -209,6 +385,14 @@ function App() {
   const paidCount = currentBookings.filter(
     (b) => b.status === STATUSES[2],
   ).length;
+  const n8nCurrentCount = currentBookings.filter((b) =>
+    isN8nBooking(b, bookingSources),
+  ).length;
+  const webCurrentCount = currentBookings.length - n8nCurrentCount;
+  const n8nTotalCount = useMemo(
+    () => bookings.filter((b) => isN8nBooking(b, bookingSources)).length,
+    [bookings, bookingSources],
+  );
 
   const dualSectorStats = useMemo(
     () =>
@@ -452,13 +636,46 @@ function App() {
     setDataError("");
     try {
       const loadedBookings = await fetchBookings();
+      const newExternalBookings = hasInitialBookingsLoadedRef.current
+        ? loadedBookings.filter(
+            (booking) => !knownBookingIdsRef.current.has(Number(booking.id)),
+          )
+        : [];
+      loadedBookings.forEach((booking) => {
+        knownBookingIdsRef.current.add(Number(booking.id));
+      });
+      hasInitialBookingsLoadedRef.current = true;
       setBookings(loadedBookings);
-      showMessage("Daftar penumpang berhasil diperbarui.");
+      if (newExternalBookings.length > 0) {
+        handleIncomingExternalBookings(newExternalBookings, "n8n");
+      } else {
+        showMessage("Daftar penumpang berhasil diperbarui.");
+      }
     } catch (error) {
       setDataError(error.message);
     } finally {
       setIsRefreshingBookings(false);
     }
+  }
+
+  function openNotificationSchedule(notification) {
+    if (!notification) return;
+    setNotifications((current) =>
+      current.map((item) =>
+        item.id === notification.id ? { ...item, read: true } : item,
+      ),
+    );
+    setActiveNotifPopup((current) =>
+      current?.id === notification.id ? null : current,
+    );
+    if (notification.route) {
+      setSelectedRoute(notification.route);
+    }
+    if (notification.date) {
+      setSelectedMonth(notification.date.slice(0, 7));
+      setSelectedDate(notification.date);
+    }
+    setActivePage("bookings");
   }
 
   function openBookingForm() {
@@ -503,6 +720,7 @@ function App() {
     }
 
     setIsSavingBooking(true);
+    isSavingBookingRef.current = true;
     setDataError("");
     try {
       const booking = await apiRequest(BOOKINGS_ENDPOINT, {
@@ -511,6 +729,7 @@ function App() {
           passengers,
           route: form.route,
           date: form.date,
+          source: "web",
         }),
       });
       const createdBookings = bookingsFromApiResponse(booking);
@@ -520,7 +739,24 @@ function App() {
         );
       }
 
-      setBookings((current) => [...createdBookings, ...current]);
+      createdBookings.forEach((item) => {
+        knownBookingIdsRef.current.add(Number(item.id));
+      });
+      setBookingSources((current) => {
+        const next = { ...current };
+        createdBookings.forEach((item) => {
+          if (item?.id !== undefined) next[item.id] = "web";
+        });
+        return next;
+      });
+
+      setBookings((current) => {
+        const existingIds = new Set(current.map((item) => Number(item.id)));
+        const uniqueCreated = createdBookings.filter(
+          (item) => !existingIds.has(Number(item.id)),
+        );
+        return [...uniqueCreated, ...current];
+      });
       setShowForm(false);
       setForm((current) => ({
         ...current,
@@ -532,6 +768,7 @@ function App() {
     } catch (error) {
       setDataError(error.message);
     } finally {
+      isSavingBookingRef.current = false;
       setIsSavingBooking(false);
     }
   }
@@ -656,6 +893,21 @@ function App() {
               <span className="topbar-text">Database Sinkron</span>
             </div>
             <span className="topbar-date">{dateLabel(localDateISO())}</span>
+            <BookingNotificationBell
+              notifications={notifications}
+              soundEnabled={notifSoundEnabled}
+              onToggleSound={() => setNotifSoundEnabled((prev) => !prev)}
+              onMarkAllRead={() =>
+                setNotifications((current) =>
+                  current.map((item) => ({ ...item, read: true })),
+                )
+              }
+              onClearAll={() => {
+                setNotifications([]);
+                setActiveNotifPopup(null);
+              }}
+              onSelectNotification={openNotificationSchedule}
+            />
             <button
               className="theme-toggle"
               type="button"
@@ -764,7 +1016,6 @@ function App() {
               selectedRoute={selectedRoute}
               selectedDate={selectedDate}
               currentBookings={currentBookings}
-              occupiedSeats={occupiedSeats}
               remainingSeats={remainingSeats}
               adultCount={adultCount}
               childCount={childCount}
@@ -772,6 +1023,9 @@ function App() {
               waitingCount={waitingCount}
               bookedCount={bookedCount}
               paidCount={paidCount}
+              n8nCurrentCount={n8nCurrentCount}
+              webCurrentCount={webCurrentCount}
+              n8nTotalCount={n8nTotalCount}
               dualSectorStats={dualSectorStats}
               onSelectRoute={setSelectedRoute}
             />
@@ -887,6 +1141,12 @@ function App() {
           onSubmit={loginFinance}
         />
       )}
+
+      <BookingNotificationPopup
+        activePopup={activeNotifPopup}
+        onDismiss={() => setActiveNotifPopup(null)}
+        onOpenSchedule={openNotificationSchedule}
+      />
 
       {toast && (
         <div className="toast-message">

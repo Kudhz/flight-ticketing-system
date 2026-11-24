@@ -10,7 +10,6 @@ export function OverviewMetricsAndTelemetry({
   selectedRoute,
   selectedDate,
   currentBookings,
-  occupiedSeats,
   remainingSeats,
   adultCount,
   childCount,
@@ -18,6 +17,9 @@ export function OverviewMetricsAndTelemetry({
   waitingCount,
   bookedCount,
   paidCount,
+  n8nCurrentCount,
+  webCurrentCount,
+  n8nTotalCount,
   dualSectorStats,
   onSelectRoute,
 }) {
@@ -203,18 +205,18 @@ export function OverviewMetricsAndTelemetry({
         <div className="telemetry-card">
           <div className="telemetry-card-head">
             <div>
-              <span className="section-kicker">DISTRIBUSI MANIFES</span>
-              <h3>Status Tiket & Komposisi PAX ({routeInfo.value})</h3>
+              <span className="section-kicker">OTOMASI n8n & WHATSAPP</span>
+              <h3>Ringkasan Pemesanan via n8n ({routeInfo.value})</h3>
             </div>
-            <span className="telemetry-pill">{currentBookings.length} PAX</span>
+            <span className="telemetry-pill">{n8nCurrentCount} via n8n</span>
           </div>
 
           <div className="distribution-block">
             <div className="distribution-header">
-              <strong>Progres Pembayaran & Verifikasi</strong>
+              <strong>Proporsi Pemesanan n8n vs Input Web</strong>
               <span>
                 {currentBookings.length
-                  ? `${Math.round((paidCount / currentBookings.length) * 100)}% Lunas`
+                  ? `${Math.round((n8nCurrentCount / currentBookings.length) * 100)}% Otomasi n8n`
                   : "Belum ada data"}
               </span>
             </div>
@@ -222,57 +224,47 @@ export function OverviewMetricsAndTelemetry({
               <div
                 className="stacked-segment paid"
                 style={{
-                  width: `${currentBookings.length ? (paidCount / currentBookings.length) * 100 : 0}%`,
+                  width: `${currentBookings.length ? (n8nCurrentCount / currentBookings.length) * 100 : 0}%`,
                 }}
-                title={`Dibayar: ${paidCount}`}
+                title={`Via n8n / WhatsApp: ${n8nCurrentCount} PAX`}
               />
               <div
                 className="stacked-segment booked"
                 style={{
-                  width: `${currentBookings.length ? (bookedCount / currentBookings.length) * 100 : 0}%`,
+                  width: `${currentBookings.length ? (webCurrentCount / currentBookings.length) * 100 : 0}%`,
                 }}
-                title={`Dipesan: ${bookedCount}`}
-              />
-              <div
-                className="stacked-segment waiting"
-                style={{
-                  width: `${currentBookings.length ? (waitingCount / currentBookings.length) * 100 : 0}%`,
-                }}
-                title={`Menunggu: ${waitingCount}`}
+                title={`Input Manual Web: ${webCurrentCount} PAX`}
               />
             </div>
             <div className="distribution-legend">
               <span>
-                <i className="dist-dot paid" /> Dibayar ({paidCount})
+                <i className="dist-dot paid" /> Via n8n / WhatsApp (
+                {n8nCurrentCount} PAX)
               </span>
               <span>
-                <i className="dist-dot booked" /> Dipesan ({bookedCount})
-              </span>
-              <span>
-                <i className="dist-dot waiting" /> Menunggu ({waitingCount})
+                <i className="dist-dot booked" /> Input Manual Web (
+                {webCurrentCount} PAX)
               </span>
             </div>
           </div>
 
           <div className="distribution-block">
             <div className="distribution-header">
-              <strong>Komposisi Kategori Penumpang</strong>
-              <span>
-                {occupiedSeats} Kursi + {infantCount} Non-Seat
-              </span>
+              <strong>Total Trafik Pemesanan Otomasi n8n</strong>
+              <span>Jadwal Aktif & Keseluruhan</span>
             </div>
             <div className="pax-demographic-chips">
               <div className="pax-demo-chip">
-                <span>DEWASA</span>
-                <strong>{adultCount}</strong>
+                <span>VIA n8n (JADWAL INI)</span>
+                <strong>{n8nCurrentCount}</strong>
               </div>
               <div className="pax-demo-chip">
-                <span>ANAK-ANAK</span>
-                <strong>{childCount}</strong>
+                <span>MANUAL WEB</span>
+                <strong>{webCurrentCount}</strong>
               </div>
               <div className="pax-demo-chip">
-                <span>BAYI (INF)</span>
-                <strong>{infantCount}</strong>
+                <span>TOTAL n8n (SEMUA)</span>
+                <strong>{n8nTotalCount}</strong>
               </div>
             </div>
           </div>
@@ -388,7 +380,6 @@ export function OverviewDatesAndLiveManifest({
           <div className="quick-manifest-list">
             {[...currentBookings]
               .sort((a, b) => Number(a.bookingNo) - Number(b.bookingNo))
-              .slice(0, 6)
               .map((booking) => (
                 <div className="quick-manifest-item" key={booking.id}>
                   <span className="booking-number-pill">

@@ -6,6 +6,13 @@ export const BOOKING_NUMBERS = Array.from(
   (_, index) => index + 1,
 );
 export const isOccupiedSeat = (booking) => booking.type !== "infant";
+export const isN8nBooking = (booking, localSources = {}) => {
+  const recorded = localSources[booking?.id] || booking?.source;
+  if (recorded === "n8n") return true;
+  if (recorded === "web") return false;
+  const phone = String(booking?.phone ?? "").trim();
+  return phone.startsWith("62") || phone.startsWith("+62");
+};
 export const STATUSES = ["Menunggu verifikasi", "Booked", "Dibayar"];
 export const ROUTES = [
   {
@@ -156,3 +163,93 @@ export const weekdayName = (date) =>
   new Intl.DateTimeFormat("id-ID", {
     weekday: "long",
   }).format(new Date(`${date}T00:00:00`));
+
+export const playNotificationChime = () => {
+  try {
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    if (!AudioCtx) return;
+    const ctx = new AudioCtx();
+    const now = ctx.currentTime;
+
+    // Nada chime kabin pesawat (2 nada: E5 -> G#5)
+    const notes = [
+      { freq: 659.25, start: 0, duration: 0.18 },
+      { freq: 830.61, start: 0.16, duration: 0.32 },
+    ];
+
+    notes.forEach(({ freq, start, duration }) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = "sine";
+      osc.frequency.setValueAtTime(freq, now + start);
+      gain.gain.setValueAtTime(0.001, now + start);
+      gain.gain.exponentialRampToValueAtTime(0.18, now + start + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + start + duration);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(now + start);
+      osc.stop(now + start + duration + 0.02);
+    });
+
+    window.setTimeout(() => {
+      ctx.close().catch(() => {});
+    }, 700);
+  } catch {
+    // Abaikan jika browser memblokir autoplay audio sebelum interaksi user
+  }
+};
+
+export const createBookingNotifications = (newBookings, source = "n8n") => {
+  const groups = new Map();
+
+  newBookings.forEach((booking) => {
+    const key = `${booking.route}|${booking.date}|${booking.phone || ""}`;
+    if (!groups.has(key)) {
+      groups.set(key, {
+        id: `notif-${booking.id}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+        source,
+        route: booking.route,
+        date: booking.date,
+        phone: booking.phone || "-",
+        createdAt: booking.bookingAt || new Date().toISOString(),
+        read: false,
+        passengers: [],
+      });
+    }
+    groups.get(key).passengers.push({
+      id: booking.id,
+      name: booking.name,
+      type: booking.type || "adult",
+      bookingNo: booking.bookingNo,
+      status: booking.status,
+    });
+  });
+
+  return Array.from(groups.values());
+};
+
+export const triggerBrowserNotification = (notification) => {
+  try {
+    if (
+      typeof window === "undefined" ||
+      !("Notification" in window) ||
+      window.Notification.permission !== "granted"
+    ) {
+      return;
+    }
+
+    const paxNames = notification.passengers
+      .map((p) => `${p.name} (#${String(p.bookingNo).padStart(2, "0")})`)
+      .join(", ");
+    const title = `Pesanan Baru WhatsApp • ${notification.route}`;
+    const body = `${notification.passengers.length} PAX: ${paxNames}\nJadwal: ${weekdayName(notification.date)}, ${dateLabel(notification.date)}`;
+
+    new window.Notification(title, {
+      body,
+      icon: "/favicon.svg",
+      tag: notification.id,
+    });
+  } catch {
+    // Abaikan jika browser tidak mendukung Notification constructor
+  }
+};
