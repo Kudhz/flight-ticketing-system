@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   ROUTES,
   dateLabel,
@@ -17,6 +17,28 @@ const shouldAutoFocusInput = () =>
   typeof window !== "undefined" &&
   window.innerWidth > 1024 &&
   !window.matchMedia?.("(pointer: coarse)").matches;
+
+function useAnimatedClose(onClose, duration = 180) {
+  const [isClosing, setIsClosing] = useState(false);
+  const timerRef = useRef(null);
+
+  useEffect(
+    () => () => {
+      if (timerRef.current) window.clearTimeout(timerRef.current);
+    },
+    [],
+  );
+
+  const requestClose = useCallback(() => {
+    if (isClosing) return;
+    setIsClosing(true);
+    timerRef.current = window.setTimeout(() => {
+      onClose?.();
+    }, duration);
+  }, [duration, isClosing, onClose]);
+
+  return { isClosing, requestClose };
+}
 
 function parseWhatsAppPassengerText(rawText, fallbackPhone = "") {
   const lines = String(rawText || "")
@@ -87,6 +109,7 @@ export function NewReservationDialog({
 }) {
   const [showWaPaste, setShowWaPaste] = useState(false);
   const [waPasteText, setWaPasteText] = useState("");
+  const { isClosing, requestClose } = useAnimatedClose(onClose);
 
   const seatedInFormCount = form.passengers.filter(
     (passenger) => (passenger.type || "adult") !== "infant",
@@ -123,9 +146,9 @@ export function NewReservationDialog({
 
   return (
     <div
-      className="modal-backdrop"
+      className={`modal-backdrop ${isClosing ? "is-closing" : ""}`}
       onMouseDown={(event) => {
-        if (event.target === event.currentTarget) onClose();
+        if (event.target === event.currentTarget) requestClose();
       }}
     >
       <section
@@ -148,7 +171,7 @@ export function NewReservationDialog({
           <button
             type="button"
             className="close-button"
-            onClick={onClose}
+            onClick={requestClose}
             aria-label="Tutup"
           >
             ×
@@ -477,7 +500,7 @@ export function NewReservationDialog({
             <button
               type="button"
               className="btn btn-outline"
-              onClick={onClose}
+              onClick={requestClose}
             >
               Batal
             </button>
@@ -505,12 +528,13 @@ export function EditPassengerDialog({
   onShowMessage,
 }) {
   const activeMonth = (editForm.date || editingBooking.date || "").slice(0, 7);
+  const { isClosing, requestClose } = useAnimatedClose(onClose);
 
   return (
     <div
-      className="modal-backdrop"
+      className={`modal-backdrop ${isClosing ? "is-closing" : ""}`}
       onMouseDown={(event) => {
-        if (event.target === event.currentTarget) onClose();
+        if (event.target === event.currentTarget) requestClose();
       }}
     >
       <section
@@ -529,7 +553,7 @@ export function EditPassengerDialog({
           <button
             type="button"
             className="close-button"
-            onClick={onClose}
+            onClick={requestClose}
             aria-label="Tutup"
           >
             ×
@@ -684,7 +708,7 @@ export function EditPassengerDialog({
             <button
               type="button"
               className="btn btn-outline"
-              onClick={onClose}
+              onClick={requestClose}
               disabled={isUpdatingBooking}
             >
               Batal
@@ -709,12 +733,14 @@ export function DeleteConfirmDialog({
   onClose,
   onConfirmDelete,
 }) {
+  const { isClosing, requestClose } = useAnimatedClose(onClose);
+
   return (
     <div
-      className="modal-backdrop"
+      className={`modal-backdrop ${isClosing ? "is-closing" : ""}`}
       onMouseDown={(event) => {
         if (event.target === event.currentTarget && !isDeletingBooking) {
-          onClose();
+          requestClose();
         }
       }}
     >
@@ -732,7 +758,7 @@ export function DeleteConfirmDialog({
           <button
             type="button"
             className="close-button"
-            onClick={onClose}
+            onClick={requestClose}
             disabled={isDeletingBooking}
             aria-label="Tutup"
           >
@@ -758,7 +784,7 @@ export function DeleteConfirmDialog({
             <button
               type="button"
               className="btn btn-outline"
-              onClick={onClose}
+              onClick={requestClose}
               disabled={isDeletingBooking}
             >
               Batal
@@ -789,12 +815,14 @@ export function FinanceLoginDialog({
   onClose,
   onSubmit,
 }) {
+  const { isClosing, requestClose } = useAnimatedClose(onClose);
+
   return (
     <div
-      className="modal-backdrop"
+      className={`modal-backdrop ${isClosing ? "is-closing" : ""}`}
       onMouseDown={(event) => {
         if (event.target === event.currentTarget && !isFinanceSubmitting) {
-          onClose();
+          requestClose();
         }
       }}
     >
@@ -812,7 +840,7 @@ export function FinanceLoginDialog({
           <button
             className="close-button"
             type="button"
-            onClick={onClose}
+            onClick={requestClose}
             disabled={isFinanceSubmitting}
             aria-label="Tutup"
           >
@@ -862,7 +890,7 @@ export function FinanceLoginDialog({
             <button
               className="btn btn-outline"
               type="button"
-              onClick={onClose}
+              onClick={requestClose}
               disabled={isFinanceSubmitting}
             >
               Batal

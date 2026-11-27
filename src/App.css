@@ -9137,3 +9137,34 @@ a.contact-link:active {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* Smooth Modal Close Animation */
+@keyframes modalBackdropOut {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes modalDialogOut {
+  from {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(10px) scale(0.97);
+  }
+}
+
+.modal-backdrop.is-closing {
+  animation: modalBackdropOut 0.18s var(--flow-ease) forwards;
+  pointer-events: none;
+}
+
+.modal-backdrop.is-closing .booking-modal,
+.modal-backdrop.is-closing .reservation-dialog {
+  animation: modalDialogOut 0.18s var(--flow-ease) forwards;
+}

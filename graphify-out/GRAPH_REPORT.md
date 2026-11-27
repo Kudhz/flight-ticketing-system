@@ -1,17 +1,17 @@
 # Graph Report - flight-ticketing-system  (2026-11-27)
 
 ## Corpus Check
-- 60 files · ~58,303 words
+- 60 files · ~58,409 words
 - Verdict: corpus is large enough that graph structure adds value.
 - Unclassified: 10 file(s) not represented in the graph (top: (none) 3, .example 2, .css 2)
 
 ## Summary
-- 597 nodes · 1134 edges · 37 communities (26 shown, 11 thin omitted)
+- 598 nodes · 1139 edges · 37 communities (26 shown, 11 thin omitted)
 - Extraction: 96% EXTRACTED · 4% INFERRED · 0% AMBIGUOUS · INFERRED: 42 edges (avg confidence: 0.88)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `96fc5207`
+- Built from commit: `53e5abde`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -80,7 +80,7 @@
 
 ### Community 0 - "Main React App & Bookings"
 Cohesion: 0.07
-Nodes (72): BOOKINGS_ENDPOINT, App(), addBooking(), checkFinanceSession(), checkLatestBookings(), copyWhatsAppManifest(), deleteBooking(), loadBookings() (+64 more)
+Nodes (73): BOOKINGS_ENDPOINT, App(), addBooking(), checkFinanceSession(), checkLatestBookings(), copyWhatsAppManifest(), deleteBooking(), loadBookings() (+65 more)
 
 ### Community 1 - "Node API Auth & Bookings"
 Cohesion: 0.07
@@ -197,7 +197,7 @@ _Questions this graph is uniquely positioned to answer:_
 - **What connects `Frontend Entry Module (/src/main.jsx)`, `Pre-Node-API PHP/PDO & Keuangan Setup`, `Flight & Penghasilan PDF Reports` to the rest of the system?**
   _17 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `Main React App & Bookings` be split into smaller, more focused modules?**
-  _Cohesion score 0.06977808281857699 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.06942889137737962 - nodes in this community are weakly interconnected._
 - **Why does `FlightDataPages()` connect `Flight Data & Income Pages` to `Main React App & Bookings`, `Backup Flight Data Pages`, `Flight History PDF Generator`, `Finance Invoice PDF Generator`, `Frontend API Endpoint Config`?**
   _High betweenness centrality (0.012) - this node is a cross-community bridge._
 - **Are the 3 inferred relationships involving `FlightDataPages()` (e.g. with `formatIncomePaxCount()` and `formatPdfDate()`) actually correct?**
