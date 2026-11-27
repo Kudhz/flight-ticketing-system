@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import signatureUrl from "../assets/ttd.png";
 import { FLIGHTS_ENDPOINT, flightPdfUrl } from "../apiConfig";
+import { buildFlightHistoryPdf } from "../utils/flightHistoryPdf";
+import { buildFinanceInvoicePdf } from "../utils/flightFinancePdf";
 
 const MONTHS = [
   "Januari",
@@ -536,242 +538,35 @@ function FlightDataPages({
       });
 
       if (page === "history") {
-        doc.setFont("helvetica", "bold");
-        doc.setFontSize(14);
-        doc.text(
-          `RIWAYAT PENERBANGAN - ${monthName.toUpperCase()} ${year}`,
-          doc.internal.pageSize.getWidth() / 2,
-          15,
-          { align: "center" },
-        );
-        doc.autoTable({
-          startY: 23,
-          head: [["RINGKASAN BULANAN", "JUMLAH"]],
-          body: [
-            ["Total penerbangan", flights.length],
-            ["Total penumpang (PAX ADULT/CHILD/INFANT)", formatPax(totals.adultPax, totals.childPax, totals.infantPax)],
-            ["Total berat penumpang", formatWeight(totals.passengerWeight)],
-            ["Jumlah koli bagasi", totals.baggagePieces],
-            ["Total berat bagasi", formatWeight(totals.baggageWeight)],
-            ["Jumlah koli bagasi cabin", totals.cabinBaggagePieces],
-            [
-              "Total berat bagasi cabin",
-              formatWeight(totals.cabinBaggageWeight),
-            ],
-            ["Jumlah koli cargo", totals.cargoPieces],
-            ["Total berat cargo", formatWeight(totals.cargoWeight)],
-            ["Total seluruh berat", formatWeight(totals.totalWeight)],
-          ],
-          theme: "grid",
-          styles: { fontSize: 9, cellPadding: 2.5 },
-          headStyles: { fontStyle: "bold", fillColor: [23, 118, 109] },
-          columnStyles: { 1: { halign: "right" } },
-          tableWidth: 110,
-        });
-        doc.autoTable({
-          startY: doc.lastAutoTable.finalY + 5,
-          head: [["RINGKASAN RUTE", "PENERBANGAN", "PAX"]],
-          body: ROUTES.map((route) => [
-            route,
-            totals.routes[route].flights,
-            formatPax(
-              totals.routes[route].adultPax,
-              totals.routes[route].childPax,
-              totals.routes[route].infantPax,
-            ),
-          ]),
-          theme: "grid",
-          styles: { fontSize: 9, cellPadding: 2.5 },
-          headStyles: { fontStyle: "bold", fillColor: [23, 118, 109] },
-          tableWidth: 110,
-        });
-        doc.addPage();
-        doc.setFontSize(12);
-        doc.text(
-          `RINCIAN PENERBANGAN - ${monthName.toUpperCase()} ${year}`,
-          doc.internal.pageSize.getWidth() / 2,
-          12,
-          { align: "center" },
-        );
-        doc.autoTable({
-          startY: 18,
-          head: [
-            [
-              "TANGGAL",
-              "RUTE",
-              "PAX",
-              "BERAT PAX",
-              "KOLI BAGASI",
-              "BERAT BAGASI",
-              "KOLI CABIN",
-              "BERAT CABIN",
-              "KOLI CARGO",
-              "BERAT CARGO",
-              "TOTAL BERAT",
-            ],
-          ],
-          body: flights.map((flight) => [
-            formatPdfDate(flight.date, month, year),
-            flight.route,
-            formatPax(flight.adultPax, flight.childPax, flight.infantPax),
-            formatWeight(flight.passengerWeight),
-            flight.baggagePieces,
-            formatWeight(flight.baggageWeight),
-            flight.cabinBaggagePieces,
-            formatWeight(flight.cabinBaggageWeight),
-            flight.cargoPieces,
-            formatWeight(flight.cargoWeight),
-            formatWeight(
-              flight.passengerWeight +
-                flight.baggageWeight +
-                flight.cabinBaggageWeight +
-                flight.cargoWeight,
-            ),
-          ]),
-          foot: [
-            [
-              "TOTAL",
-              "",
-              formatPax(totals.adultPax, totals.childPax, totals.infantPax),
-              formatWeight(totals.passengerWeight),
-              totals.baggagePieces,
-              formatWeight(totals.baggageWeight),
-              totals.cabinBaggagePieces,
-              formatWeight(totals.cabinBaggageWeight),
-              totals.cargoPieces,
-              formatWeight(totals.cargoWeight),
-              formatWeight(totals.totalWeight),
-            ],
-          ],
-          theme: "grid",
-          styles: { fontSize: 7, cellPadding: 2, halign: "center" },
-          headStyles: { fontStyle: "bold", fillColor: [23, 118, 109] },
-          footStyles: {
-            fontStyle: "bold",
-            fillColor: [232, 244, 240],
-            textColor: [23, 59, 62],
-          },
+        buildFlightHistoryPdf({
+          doc,
+          flights,
+          totals,
+          routes: ROUTES,
+          month,
+          monthName,
+          year,
+          formatWeight,
+          formatPdfDate,
         });
       } else {
-        const margin = 14;
-        const pageWidth = doc.internal.pageSize.getWidth();
-        const pageHeight = doc.internal.pageSize.getHeight();
-        const tableWidth = pageWidth - margin * 2;
         const signature = new Image();
         await new Promise((resolve, reject) => {
           signature.onload = resolve;
-          signature.onerror = () => reject(new Error("Gambar tanda tangan tidak dapat dimuat."));
+          signature.onerror = () =>
+            reject(new Error("Gambar tanda tangan tidak dapat dimuat."));
           signature.src = signatureUrl;
         });
 
-        doc.setFont("helvetica", "bold");
-        doc.setFontSize(11);
-        doc.text(
-          [
-            "TAGIHAN FEE TIKET SUSI AIR MELONGUANE",
-            `PERIODE BULAN ${pdfMonthName.toUpperCase()} ${pdfYear}`,
-          ],
-          pageWidth / 2,
-          15,
-          { align: "center" },
-        );
-        doc.autoTable({
-          startY: 30,
-          margin: { left: margin, right: margin, bottom: margin },
-          head: [["NO", "TANGGAL", "ROUTE", "PAX", "BASIC FARE", "FEE TIKET", "KETERANGAN"]],
-          body: incomeFlights.map((flight, index) => [
-            index + 1,
-            `${flight.date} ${pdfMonthName} ${pdfYear}`,
-            flight.route,
-            formatIncomePaxCount(flight.adultPax, flight.childPax),
-            flight.basicFare.toLocaleString("id-ID"),
-            flight.feeTicket.toLocaleString("id-ID"),
-            flight.note,
-          ]),
-          theme: "grid",
-          styles: {
-            fontSize: 8,
-            cellPadding: 2,
-            lineColor: [80, 80, 80],
-            lineWidth: 0.35,
-            textColor: [80, 80, 80],
-          },
-          headStyles: {
-            fontStyle: "bold",
-            halign: "center",
-            fillColor: [26, 189, 156],
-            textColor: [0, 0, 0],
-          },
-          columnStyles: {
-            0: { cellWidth: tableWidth * 12 / 182, halign: "center" },
-            1: { cellWidth: tableWidth * 35 / 182 },
-            2: { cellWidth: tableWidth * 25 / 182, halign: "center" },
-            3: { cellWidth: tableWidth * 15 / 182, halign: "center" },
-            4: { cellWidth: tableWidth * 35 / 182, halign: "right" },
-            5: { cellWidth: tableWidth * 35 / 182, halign: "right" },
-            6: { cellWidth: tableWidth * 25 / 182, halign: "center" },
-          },
+        buildFinanceInvoicePdf({
+          doc,
+          incomeFlights,
+          totals,
+          pdfMonthName,
+          pdfYear,
+          signature,
+          formatIncomePaxCount,
         });
-
-        let summaryY = doc.lastAutoTable.finalY + 6;
-        if (summaryY + 54 > pageHeight - margin) {
-          doc.addPage();
-          summaryY = margin + 4;
-        }
-        const rightX = pageWidth - margin - 48;
-        const formatAmount = (amount) => amount.toLocaleString("id-ID");
-        doc.setTextColor(0, 0, 0);
-        doc.setFontSize(9);
-        doc.setFont("helvetica", "bold");
-        doc.text("Ringkasan:", margin, summaryY);
-        doc.setFont("helvetica", "normal");
-        doc.text(
-          `PAX MNA-MDC: ${formatIncomePaxCount(
-            totals.routes["MNA-MDC"].adultPax,
-            totals.routes["MNA-MDC"].childPax,
-          )}`,
-          margin,
-          summaryY + 5,
-        );
-        doc.text(`Total Flight MNA-MDC: ${totals.routes["MNA-MDC"].flights}`, margin, summaryY + 10);
-        doc.text(
-          `PAX MNA-IAX: ${formatIncomePaxCount(
-            totals.routes["MNA-IAX"].adultPax,
-            totals.routes["MNA-IAX"].childPax,
-          )}`,
-          rightX,
-          summaryY + 5,
-        );
-        doc.text(`Total Flight MNA-IAX: ${totals.routes["MNA-IAX"].flights}`, rightX, summaryY + 10);
-        doc.setFont("helvetica", "bold");
-        doc.text("Total Keseluruhan:", margin, summaryY + 17);
-        doc.setFont("helvetica", "normal");
-        doc.text(
-          `Total PAX: ${formatIncomePaxCount(totals.incomeAdultPax, totals.incomeChildPax)}`,
-          margin,
-          summaryY + 22,
-        );
-        doc.text(`Total Fee MNA-MDC: ${formatAmount(totals.routes["MNA-MDC"].income)}`, margin, summaryY + 27);
-        doc.text(`Total Fee MNA-IAX: ${formatAmount(totals.routes["MNA-IAX"].income)}`, margin, summaryY + 32);
-        doc.text(`Total Fee Agent: ${formatAmount(totals.income)}`, margin, summaryY + 37);
-        doc.text(`Total Flight: ${totals.incomeFlights}`, margin, summaryY + 42);
-        const signedDate = new Intl.DateTimeFormat("id-ID", {
-          timeZone: "Asia/Makassar",
-          day: "numeric",
-          month: "long",
-          year: "numeric",
-        }).format(new Date());
-        doc.text(`Melonguane, ${signedDate}`, rightX + 24, summaryY + 17, { align: "center" });
-        doc.addImage(signature, "PNG", rightX, summaryY + 19, 48, 28);
-        doc.setFont("helvetica", "bold");
-        doc.text("Witri Lia Anggraini", rightX + 24, summaryY + 48, { align: "center" });
-        doc.setFont("helvetica", "normal");
-        doc.text(
-          "BRI - 5788 0104 1260 535",
-          rightX + 24,
-          summaryY + 53,
-          { align: "center" },
-        );
       }
 
       const pdfBlob = doc.output("blob");
