@@ -592,11 +592,7 @@ function App() {
   }, [bookings, currentBookings, selectedMonth]);
 
   const bookingCountsByDate = bookings.reduce((counts, booking) => {
-    if (
-      booking.route === selectedRoute &&
-      booking.date?.startsWith(`${selectedMonth}-`) &&
-      isOccupiedSeat(booking)
-    ) {
+    if (booking.route === selectedRoute && isOccupiedSeat(booking)) {
       counts[booking.date] = (counts[booking.date] || 0) + 1;
     }
     return counts;
@@ -605,7 +601,7 @@ function App() {
   const dateDetailsByDate = useMemo(() => {
     const details = {};
     bookings.forEach((booking) => {
-      if (!booking.date?.startsWith(`${selectedMonth}-`)) return;
+      if (!booking.date) return;
       if (!details[booking.date]) {
         details[booking.date] = {
           mdcSeats: 0,
@@ -625,7 +621,7 @@ function App() {
       }
     });
     return details;
-  }, [bookings, selectedMonth, selectedRoute]);
+  }, [bookings, selectedRoute]);
 
   const today = localDateISO();
   const formManifest = bookings.filter(
@@ -1130,10 +1126,11 @@ function App() {
       }
       isActiveView={!isFlightDataPage}
       onRouteChange={setSelectedRoute}
-      onMonthChange={(monthNumber) => {
-        const month = `${selectedMonth.slice(0, 4)}-${monthNumber}`;
+      onMonthChange={(monthNumber, targetYear, targetDate) => {
+        const yearPart = targetYear || selectedMonth.slice(0, 4);
+        const month = `${yearPart}-${monthNumber}`;
         setSelectedMonth(month);
-        setSelectedDate(nearestFlightDateInMonth(month));
+        setSelectedDate(targetDate || nearestFlightDateInMonth(month));
       }}
       onYearChange={(year) => {
         const month = `${year}-${selectedMonth.slice(5, 7)}`;
@@ -1275,6 +1272,9 @@ function App() {
               isLoadingBookings={isLoadingBookings}
               scheduleControls={scheduleControlsNode}
               onCopyWhatsAppManifest={copyWhatsAppManifest}
+              onOpenBookingForm={openBookingForm}
+              onOpenEditForm={openEditForm}
+              onRequestDelete={setDeletingBooking}
               onShowMessage={showMessage}
               onToggleCheckIn={toggleCheckIn}
             />

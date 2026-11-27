@@ -22,6 +22,9 @@ function PassengerListPage({
   isLoadingBookings,
   scheduleControls,
   onCopyWhatsAppManifest,
+  onOpenBookingForm,
+  onOpenEditForm,
+  onRequestDelete,
   onShowMessage,
   onToggleCheckIn,
 }) {
@@ -205,6 +208,9 @@ function PassengerListPage({
         <div className="pax-checklist-identity">
           <strong className="pax-checklist-name">
             <span className="pax-name-truncate">{booking.name}</span>
+            {booking.type === "infant" && (
+              <span className="pax-inf-tag">(INF)</span>
+            )}
             {isCheckInMode && isUnpaid && (
               <span
                 className="unpaid-checkin-warn"
@@ -212,21 +218,6 @@ function PassengerListPage({
                 aria-label={`Tiket belum lunas: ${statusShort}`}
               >
                 ⚠
-              </span>
-            )}
-            {booking.type === "child" && (
-              <span className="passenger-badge passenger-badge-child pax-desktop-only">
-                ANAK
-              </span>
-            )}
-            {booking.type === "infant" && (
-              <span className="passenger-badge passenger-badge-infant pax-desktop-only">
-                INFANT
-              </span>
-            )}
-            {(!booking.type || booking.type === "adult") && (
-              <span className="passenger-badge passenger-badge-adult pax-desktop-only">
-                DEWASA
               </span>
             )}
           </strong>
@@ -249,11 +240,13 @@ function PassengerListPage({
           </a>
         </div>
 
-        <div className="pax-checklist-right pax-desktop-only">
-          <span className={`pax-ticket-chip ${statusClass}`}>
+        <div
+          className={`pax-checklist-right ${isCheckInMode ? "pax-desktop-only" : ""}`}
+        >
+          <span className={`pax-ticket-chip ${statusClass} pax-desktop-only`}>
             {statusShort}
           </span>
-          {isCheckInMode && (
+          {isCheckInMode ? (
             <button
               type="button"
               onClick={(event) => {
@@ -264,6 +257,51 @@ function PassengerListPage({
             >
               {isChecked ? "✓ Sudah Check-in" : "Check-in"}
             </button>
+          ) : (
+            <div className="booking-actions pax-list-row-actions">
+              <button
+                type="button"
+                title={`Edit data ${booking.name}`}
+                aria-label={`Edit data ${booking.name}`}
+                onClick={() => onOpenEditForm?.(booking)}
+                className="btn-icon btn-icon-edit"
+              >
+                <svg
+                  aria-hidden="true"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.7"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="m15 5 4 4" />
+                  <path d="M4 20h4l11-11a2.1 2.1 0 0 0-4-4L4 16v4Z" />
+                </svg>
+              </button>
+              <button
+                type="button"
+                title={`Hapus data ${booking.name}`}
+                aria-label={`Hapus data ${booking.name}`}
+                onClick={() => onRequestDelete?.(booking)}
+                className="btn-icon btn-icon-delete"
+              >
+                <svg
+                  aria-hidden="true"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.7"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M3 6h18" />
+                  <path d="M8 6V4h8v2" />
+                  <path d="m19 6-1 14H6L5 6" />
+                  <path d="M10 11v5M14 11v5" />
+                </svg>
+              </button>
+            </div>
           )}
         </div>
       </div>
@@ -323,16 +361,27 @@ function PassengerListPage({
             </button>
           </div>
         ) : (
-          onCopyWhatsAppManifest && (
-            <button
-              type="button"
-              className="btn btn-outline pax-list-wa-btn"
-              onClick={onCopyWhatsAppManifest}
-              title="Salin daftar penumpang untuk dikirim ke WhatsApp"
-            >
-              <span aria-hidden="true">📋</span> Salin WA
-            </button>
-          )
+          <div className="pax-list-head-actions">
+            {onCopyWhatsAppManifest && (
+              <button
+                type="button"
+                className="btn btn-outline pax-list-wa-btn"
+                onClick={onCopyWhatsAppManifest}
+                title="Salin daftar penumpang untuk dikirim ke WhatsApp"
+              >
+                <span aria-hidden="true">📋</span> Salin WA
+              </button>
+            )}
+            {onOpenBookingForm && (
+              <button
+                type="button"
+                className="btn btn-primary pax-list-add-btn"
+                onClick={onOpenBookingForm}
+              >
+                <span aria-hidden="true">+</span> Tambah Penumpang
+              </button>
+            )}
+          </div>
         )}
       </div>
 

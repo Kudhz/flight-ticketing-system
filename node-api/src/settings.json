@@ -1,0 +1,7 @@
+{
+  "MNA-MDC": {
+    "basic_fare": 500000,
+    "fee_ticket": 25000
+  },
+  "ground_handling_per_flight": 35000
+}
