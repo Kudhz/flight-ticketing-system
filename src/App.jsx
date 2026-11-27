@@ -1173,8 +1173,8 @@ function App() {
       <main className="app-main">
         <header className="app-topbar">
           <div className="topbar-left">
-            <span className="mobile-brand-mark" aria-label="Lupin Portal">
-              ✈
+            <span className="mobile-brand-mark brand-mark--icon" aria-label="Ticketing Susi Air MNA">
+              <img src="/favicon.svg" alt="" className="brand-mark-img" />
             </span>
             <div className="topbar-breadcrumb">
               <span className="topbar-label">

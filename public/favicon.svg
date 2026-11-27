@@ -1,45 +1,58 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
   <defs>
-    <linearGradient id="bg-grad" x1="4" y1="4" x2="60" y2="60" gradientUnits="userSpaceOnUse">
-      <stop offset="0%" stop-color="#0D192B" />
-      <stop offset="52%" stop-color="#132A46" />
-      <stop offset="100%" stop-color="#0D4B56" />
+    <linearGradient id="mna-bg" x1="4" y1="2" x2="60" y2="62" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#175c32" />
+      <stop offset="55%" stop-color="#114626" />
+      <stop offset="100%" stop-color="#092d17" />
     </linearGradient>
-    <linearGradient id="accent-grad" x1="12" y1="14" x2="52" y2="50" gradientUnits="userSpaceOnUse">
-      <stop offset="0%" stop-color="#2DD4BF" />
-      <stop offset="100%" stop-color="#0D9488" />
+    <linearGradient id="mna-ribbon-bright" x1="4" y1="54" x2="46" y2="12" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#22c55e" stop-opacity="1" />
+      <stop offset="55%" stop-color="#20a53a" stop-opacity="0.88" />
+      <stop offset="100%" stop-color="#168030" stop-opacity="0" />
     </linearGradient>
-    <linearGradient id="plane-grad" x1="16" y1="16" x2="48" y2="48" gradientUnits="userSpaceOnUse">
-      <stop offset="0%" stop-color="#FFFFFF" />
-      <stop offset="100%" stop-color="#CCFBF1" />
+    <linearGradient id="mna-ribbon-mid" x1="12" y1="62" x2="54" y2="20" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#198734" stop-opacity="0.85" />
+      <stop offset="65%" stop-color="#15702c" stop-opacity="0.45" />
+      <stop offset="100%" stop-color="#115e26" stop-opacity="0" />
     </linearGradient>
-    <filter id="glow" x="-15%" y="-15%" width="130%" height="130%">
-      <feDropShadow dx="0" dy="2" stdDeviation="2.5" flood-color="#0D9488" flood-opacity="0.45" />
+    <clipPath id="mna-squircle">
+      <rect x="2" y="2" width="60" height="60" rx="15" />
+    </clipPath>
+    <filter id="mna-shadow" x="-15%" y="-15%" width="130%" height="130%">
+      <feDropShadow dx="0" dy="1.4" stdDeviation="1.4" flood-color="#041b0d" flood-opacity="0.38" />
     </filter>
   </defs>
 
-  <!-- Rounded Squircle Ticket Badge -->
-  <rect x="4" y="4" width="56" height="56" rx="16" fill="url(#bg-grad)" stroke="url(#accent-grad)" stroke-width="2" />
+  <!-- Base Squircle -->
+  <rect x="2" y="2" width="60" height="60" rx="15" fill="url(#mna-bg)" />
 
-  <!-- Subtle Radar / Flight Arc -->
-  <path
-    d="M13 46C20 30 33 21 50 18"
-    stroke="url(#accent-grad)"
-    stroke-width="2.2"
-    stroke-linecap="round"
-    stroke-dasharray="3 4"
-    opacity="0.7"
-  />
+  <!-- Clipped Diagonal Speed Ribbons -->
+  <g clip-path="url(#mna-squircle)">
+    <polygon points="-6,47 42,-1 52,9 4,57" fill="url(#mna-ribbon-bright)" />
+    <polygon points="4,57 52,9 62,19 14,67" fill="url(#mna-ribbon-mid)" />
+  </g>
 
-  <!-- Origin Dot -->
-  <circle cx="14" cy="46" r="3.2" fill="#2DD4BF" />
-  <circle cx="14" cy="46" r="6" fill="#2DD4BF" opacity="0.22" />
+  <!-- Subtle Inner Rim -->
+  <rect x="2.75" y="2.75" width="58.5" height="58.5" rx="14.25" stroke="#4ade80" stroke-opacity="0.22" stroke-width="1.5" />
 
-  <!-- Stylized Aircraft Silhouette -->
-  <g filter="url(#glow)">
+  <!-- Ascending White Airplane -->
+  <g filter="url(#mna-shadow)" transform="translate(36.5 21.5) rotate(-45) scale(1.08)">
     <path
-      d="M48.8 16.4C47.5 15.1 45.1 15.6 43.3 17.4L36.8 23.9L20.6 19.8C19.6 19.5 18.6 19.9 18 20.6L16.7 21.9C16.1 22.5 16.3 23.6 17.1 24.1L29.6 31.1L23.8 36.9L17.6 35.7C16.9 35.5 16.1 35.8 15.6 36.3L14.6 37.3C14.1 37.8 14.2 38.7 14.9 39.1L21.7 42.9L25.5 49.7C25.9 50.4 26.8 50.5 27.3 50L28.3 49C28.8 48.5 29.1 47.7 28.9 47L27.7 40.8L33.5 35L40.5 47.5C41 48.3 42.1 48.5 42.7 47.9L44 46.6C44.7 46 45.1 45 44.8 44L40.7 27.8L47.2 21.3C49 19.5 49.5 17.1 48.8 16.4Z"
-      fill="url(#plane-grad)"
+      d="M14.5 0 C14.5 -1.1 12.8 -1.85 10.6 -1.85 L3.1 -1.85 L-2.6 -12.6 C-3.0 -13.3 -3.7 -13.6 -4.5 -13.6 L-5.9 -13.6 C-6.4 -13.6 -6.7 -13.1 -6.5 -12.6 L-3.1 -1.85 L-9.3 -1.85 L-12.1 -5.8 C-12.4 -6.2 -12.8 -6.4 -13.3 -6.4 L-14.3 -6.4 C-14.7 -6.4 -14.9 -6.0 -14.8 -5.6 L-13.2 0 L-14.8 5.6 C-14.9 6.0 -14.7 6.4 -14.3 6.4 L-13.3 6.4 C-12.8 6.4 -12.4 6.2 -12.1 5.8 L-9.3 1.85 L-3.1 1.85 L-6.5 12.6 C-6.7 13.1 -6.4 13.6 -5.9 13.6 L-4.5 13.6 C-3.7 13.6 -3.0 13.3 -2.6 12.6 L3.1 1.85 L10.6 1.85 C12.8 1.85 14.5 1.1 14.5 0 Z"
+      fill="#FFFFFF"
+    />
+  </g>
+
+  <!-- Crisp Vector Monogram: MNA -->
+  <g filter="url(#mna-shadow)" fill="#FFFFFF">
+    <!-- M -->
+    <path d="M10.8 53.5 V39.5 H13.9 L17.6 46.8 L21.3 39.5 H24.4 V53.5 H21.6 V44.5 L18.8 50.1 H16.4 L13.6 44.5 V53.5 Z" />
+    <!-- N -->
+    <path d="M27.3 53.5 V39.5 H30.2 L35.4 48.5 V39.5 H38.2 V53.5 H35.3 L30.1 44.5 V53.5 Z" />
+    <!-- A -->
+    <path
+      fill-rule="evenodd"
+      d="M45.2 39.5 H48.4 L53.4 53.5 H50.3 L49.3 50.3 H44.3 L43.3 53.5 H40.3 Z M45.1 47.7 H48.5 L46.8 42.6 Z"
     />
   </g>
 </svg>
