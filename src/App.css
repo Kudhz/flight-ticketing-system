@@ -1969,7 +1969,7 @@ select {
 .passenger-list fieldset {
   display: grid;
   grid-template-columns:
-    minmax(0, 1.5fr) minmax(11rem, 1fr) minmax(9rem, 0.75fr)
+    minmax(0, 1.35fr) minmax(9.5rem, 0.95fr) minmax(12.2rem, auto)
     auto;
   align-items: end;
   gap: 0.9rem;
@@ -8130,5 +8130,816 @@ select {
     align-self: flex-start;
     padding: 0.34rem 0.7rem;
     font-size: 0.75rem;
+  }
+}
+
+
+/* ==========================================================================
+   UX UPGRADES (#2 Tambah PAX Cepat, #3 Aksi 1-Tap & Filter, #4 Mobile Ringkas)
+   ========================================================================== */
+
+/* #2: Paste dari WA, Segmented PAX Type Pills & Sync Phone */
+.form-section-heading-actions {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.wa-paste-toggle-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.34rem 0.68rem;
+  border-radius: 999px;
+  border: 1px solid rgb(32 165 58 / 38%);
+  background: rgb(32 165 58 / 10%);
+  color: var(--lf-terracotta, #20a53a);
+  font-size: 0.76rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.16s ease, border-color 0.16s ease, color 0.16s ease;
+}
+
+.wa-paste-toggle-btn:hover,
+.wa-paste-toggle-btn.active {
+  background: #20a53a;
+  border-color: #20a53a;
+  color: #ffffff;
+}
+
+.wa-paste-box {
+  margin-bottom: 0.85rem;
+  padding: 0.78rem 0.85rem;
+  border-radius: 0.8rem;
+  border: 1px dashed rgb(32 165 58 / 42%);
+  background: rgb(32 165 58 / 6%);
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.wa-paste-label {
+  font-size: 0.78rem;
+  color: var(--sf-muted);
+  line-height: 1.4;
+}
+
+.wa-paste-label code {
+  padding: 0.08rem 0.32rem;
+  border-radius: 0.3rem;
+  background: rgb(32 165 58 / 12%);
+  color: var(--sf-ink);
+  font-size: 0.74rem;
+}
+
+.wa-paste-textarea {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.82rem;
+  line-height: 1.45;
+  resize: vertical;
+  min-height: 5.2rem;
+}
+
+.wa-paste-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
+.pax-type-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.38rem;
+  min-width: 0;
+}
+
+.pax-type-label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--sf-muted);
+}
+
+.pax-type-segmented {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-items: center;
+  gap: 0.22rem;
+  padding: 0.22rem;
+  min-height: 2.75rem;
+  width: 100%;
+  border-radius: 0.65rem;
+  border: 1px solid var(--sf-line);
+  background: var(--sf-surface-subtle, rgb(148 163 184 / 10%));
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.pax-type-pill {
+  width: 100%;
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--sf-muted);
+  border-radius: 0.46rem;
+  padding: 0.42rem 0.45rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1.2;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.pax-type-pill:hover {
+  color: var(--sf-ink);
+}
+
+.pax-type-pill.active {
+  background: #20a53a;
+  color: #ffffff;
+  border-color: #19872e;
+  box-shadow: 0 2px 8px rgb(32 165 58 / 28%);
+}
+
+.passenger-actions-buttons {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.sync-phone-button {
+  font-size: 0.8rem;
+  padding: 0.48rem 0.78rem;
+}
+
+/* #3: Quick Filters, 1-Tap Pay Toggle & WA Chat Badge */
+.manifest-quick-filters {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  flex-wrap: wrap;
+  margin: 0.1rem 0 0.85rem;
+}
+
+.manifest-filter-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.36rem 0.72rem;
+  border-radius: 999px;
+  border: 1px solid var(--sf-line);
+  background: var(--sf-surface);
+  color: var(--sf-muted);
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.manifest-filter-pill:hover {
+  border-color: rgb(32 165 58 / 45%);
+  color: var(--sf-ink);
+}
+
+.manifest-filter-pill.active {
+  background: #20a53a;
+  border-color: #20a53a;
+  color: #ffffff;
+}
+
+.manifest-filter-pill.manifest-filter-unpaid.active {
+  background: #d97706;
+  border-color: #d97706;
+  color: #ffffff;
+}
+
+.manifest-filter-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.25rem;
+  height: 1.2rem;
+  padding: 0 0.32rem;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  background: rgb(148 163 184 / 18%);
+  color: inherit;
+}
+
+.manifest-filter-pill.active .manifest-filter-count {
+  background: rgb(255 255 255 / 22%);
+  color: #ffffff;
+}
+
+.contact-link--wa {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.42rem;
+}
+
+.wa-chat-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.12rem 0.38rem;
+  border-radius: 0.35rem;
+  background: rgb(32 165 58 / 14%);
+  color: #20a53a;
+  font-size: 0.66rem;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+}
+
+.status-cell-controls {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
+
+.quick-pay-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.32rem 0.66rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  cursor: pointer;
+  border: 1px solid transparent;
+  white-space: nowrap;
+  transition: transform 0.12s ease, background 0.15s ease, border-color 0.15s ease;
+}
+
+.quick-pay-toggle:active {
+  transform: scale(0.97);
+}
+
+.quick-pay-toggle.is-paid {
+  background: rgb(32 165 58 / 15%);
+  border-color: rgb(32 165 58 / 38%);
+  color: #16a34a;
+}
+
+.quick-pay-toggle.is-paid:hover {
+  background: rgb(32 165 58 / 24%);
+}
+
+.quick-pay-toggle.is-unpaid {
+  background: rgb(245 158 11 / 14%);
+  border-color: rgb(245 158 11 / 42%);
+  color: #d97706;
+}
+
+.quick-pay-toggle.is-unpaid:hover {
+  background: #20a53a;
+  border-color: #20a53a;
+  color: #ffffff;
+}
+
+:root[data-theme="dark"] .quick-pay-toggle.is-paid,
+.app-shell[data-theme="dark"] .quick-pay-toggle.is-paid {
+  color: #4ade80;
+}
+
+:root[data-theme="dark"] .quick-pay-toggle.is-unpaid,
+.app-shell[data-theme="dark"] .quick-pay-toggle.is-unpaid {
+  color: #fbbf24;
+}
+
+.status-label-compact {
+  padding: 0.24rem 0.5rem !important;
+  min-height: 1.75rem;
+  font-size: 0.72rem;
+}
+
+/* #4: Compact Mobile Dispatch Banner & Thumb-Friendly FAB */
+.flight-banner-mobile-bar {
+  display: none;
+}
+
+.mobile-fab-add-pax {
+  display: none;
+}
+
+@media (max-width: 1024px) {
+  .mobile-fab-add-pax {
+    position: fixed;
+    right: 1rem;
+    bottom: calc(4.75rem + env(safe-area-inset-bottom, 0px));
+    z-index: 45;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    height: 2.95rem;
+    padding: 0 1.05rem;
+    border-radius: 999px;
+    border: 1px solid rgb(255 255 255 / 22%);
+    background: linear-gradient(135deg, #22c55e, #20a53a);
+    color: #ffffff;
+    font-size: 0.86rem;
+    font-weight: 800;
+    letter-spacing: 0.02em;
+    box-shadow: 0 10px 24px rgb(20 83 45 / 38%);
+    cursor: pointer;
+    transition: transform 0.14s ease, box-shadow 0.14s ease;
+  }
+
+  .mobile-fab-add-pax:active {
+    transform: scale(0.95);
+  }
+
+  .mobile-fab-plus {
+    font-size: 1.15rem;
+    line-height: 1;
+    font-weight: 900;
+  }
+}
+
+@media (max-width: 768px) {
+  .flight-banner-mobile-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    width: 100%;
+    padding: 0.15rem 0.1rem;
+  }
+
+  .fbm-left {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    flex-wrap: wrap;
+    min-width: 0;
+  }
+
+  .fbm-route {
+    font-weight: 800;
+    font-size: 0.9rem;
+    letter-spacing: 0.02em;
+    color: var(--sf-ink);
+  }
+
+  .fbm-quota {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.18rem 0.55rem;
+    border-radius: 999px;
+    font-size: 0.72rem;
+    font-weight: 800;
+  }
+
+  .fbm-quota.open {
+    background: rgb(32 165 58 / 15%);
+    color: #16a34a;
+  }
+
+  .fbm-quota.full {
+    background: rgb(239 68 68 / 16%);
+    color: #dc2626;
+  }
+
+  :root[data-theme="dark"] .fbm-quota.open,
+  .app-shell[data-theme="dark"] .fbm-quota.open {
+    color: #4ade80;
+  }
+
+  :root[data-theme="dark"] .fbm-quota.full,
+  .app-shell[data-theme="dark"] .fbm-quota.full {
+    color: #fca5a5;
+  }
+
+  .fbm-inf {
+    padding: 0.16rem 0.45rem;
+    border-radius: 999px;
+    font-size: 0.68rem;
+    font-weight: 700;
+    background: rgb(245 158 11 / 16%);
+    color: #d97706;
+  }
+
+  .fbm-toggle-btn {
+    flex: 0 0 auto;
+    border: 1px solid var(--sf-line);
+    background: var(--sf-surface);
+    color: var(--sf-ink);
+    border-radius: 999px;
+    padding: 0.28rem 0.68rem;
+    font-size: 0.74rem;
+    font-weight: 700;
+    cursor: pointer;
+  }
+
+  .flight-banner.is-mobile-collapsed {
+    padding: 0.65rem 0.85rem !important;
+    gap: 0 !important;
+  }
+
+  .flight-banner.is-mobile-collapsed .boarding-pass-side,
+  .flight-banner.is-mobile-collapsed .flight-capacity {
+    display: none;
+  }
+
+  .flight-banner.is-mobile-expanded .flight-banner-mobile-bar {
+    padding-bottom: 0.65rem;
+    margin-bottom: 0.65rem;
+    border-bottom: 1px solid var(--sf-line);
+  }
+}
+
+.passenger-phone-sub {
+  margin-top: 0.16rem;
+  font-size: 0.78rem;
+  line-height: 1.25;
+  width: fit-content;
+}
+
+/* Booked / Paid ON-OFF Switch */
+.pay-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.28rem 0.62rem 0.28rem 0.34rem;
+  border-radius: 999px;
+  border: 1px solid var(--sf-line);
+  background: var(--sf-surface);
+  cursor: pointer;
+  user-select: none;
+  transition: border-color 0.16s ease, background 0.16s ease, transform 0.1s ease;
+}
+
+.pay-switch:active {
+  transform: scale(0.97);
+}
+
+.pay-switch-track {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  width: 2.05rem;
+  height: 1.18rem;
+  border-radius: 999px;
+  background: rgb(148 163 184 / 45%);
+  transition: background 0.18s ease;
+  flex-shrink: 0;
+}
+
+.pay-switch-thumb {
+  position: absolute;
+  left: 0.14rem;
+  width: 0.9rem;
+  height: 0.9rem;
+  border-radius: 999px;
+  background: #ffffff;
+  box-shadow: 0 1px 3px rgb(0 0 0 / 28%);
+  transition: transform 0.18s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.pay-switch-text {
+  font-size: 0.76rem;
+  font-weight: 700;
+  min-width: 2.9rem;
+  text-align: left;
+  color: var(--sf-muted);
+  transition: color 0.16s ease;
+}
+
+.pay-switch.is-booked {
+  border-color: rgb(245 158 11 / 38%);
+  background: rgb(245 158 11 / 8%);
+}
+
+.pay-switch.is-booked .pay-switch-text {
+  color: #b45309;
+}
+
+:root[data-theme="dark"] .pay-switch.is-booked .pay-switch-text,
+.app-shell[data-theme="dark"] .pay-switch.is-booked .pay-switch-text {
+  color: #fbbf24;
+}
+
+.pay-switch.is-paid {
+  border-color: rgb(32 165 58 / 45%);
+  background: rgb(32 165 58 / 12%);
+}
+
+.pay-switch.is-paid .pay-switch-track {
+  background: #20a53a;
+}
+
+.pay-switch.is-paid .pay-switch-thumb {
+  transform: translateX(0.87rem);
+}
+
+.pay-switch.is-paid .pay-switch-text {
+  color: #15803d;
+}
+
+:root[data-theme="dark"] .pay-switch.is-paid .pay-switch-text,
+.app-shell[data-theme="dark"] .pay-switch.is-paid .pay-switch-text {
+  color: #4ade80;
+}
+
+/* Source Pill Under Passenger Name & Booked | Paid Segmented Control */
+.passenger-source-sub {
+  margin-top: 0.22rem;
+  width: fit-content;
+  font-size: 0.68rem !important;
+  padding: 0.14rem 0.48rem !important;
+}
+
+.pay-segment {
+  display: inline-grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  padding: 0.18rem;
+  gap: 0.18rem;
+  border-radius: 0.6rem;
+  border: 1px solid var(--sf-line);
+  background: var(--sf-surface-subtle, rgb(148 163 184 / 10%));
+  min-width: 8.4rem;
+}
+
+.pay-segment-btn {
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--sf-muted);
+  border-radius: 0.44rem;
+  padding: 0.28rem 0.55rem;
+  font-size: 0.74rem;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.pay-segment-btn:hover:not(.active) {
+  color: var(--sf-ink);
+  background: rgb(148 163 184 / 14%);
+}
+
+.pay-segment-booked.active {
+  background: #f59e0b;
+  color: #ffffff;
+  box-shadow: 0 2px 6px rgb(245 158 11 / 30%);
+}
+
+.pay-segment-paid.active {
+  background: #20a53a;
+  color: #ffffff;
+  box-shadow: 0 2px 6px rgb(32 165 58 / 32%);
+}
+
+/* Compact 3-Row Mobile Passenger Card in #manifest-section (Zero Horizontal Overflow) */
+@media (max-width: 1024px) {
+  #manifest-section .table-wrap {
+    overflow-x: hidden;
+  }
+
+  #manifest-section .table tbody {
+    display: flex;
+    flex-direction: column;
+    gap: 0.55rem;
+  }
+
+  #manifest-section .table tbody tr {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) auto !important;
+    row-gap: 0.48rem !important;
+    column-gap: 0 !important;
+    padding: 0.7rem 0.78rem !important;
+    align-items: center;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    border-radius: 0.85rem;
+  }
+
+  #manifest-section .table td {
+    padding: 0 !important;
+    min-width: 0;
+    border: none;
+  }
+
+  #manifest-section .table td::before {
+    content: none !important;
+    display: none !important;
+  }
+
+  /* Row 1: Left = Name + Badge + Source, Right = Seat # */
+  #manifest-section .table td:nth-child(2) {
+    grid-column: 1 / 2 !important;
+    grid-row: 1 !important;
+    min-width: 0;
+    padding-right: 0.55rem !important;
+  }
+
+  #manifest-section .table td:nth-child(2) .passenger-cell {
+    gap: 0;
+    min-width: 0;
+  }
+
+  #manifest-section .table td:nth-child(2) .passenger-avatar {
+    display: none;
+  }
+
+  #manifest-section .table td:nth-child(2) .passenger-info {
+    min-width: 0;
+    gap: 0.16rem;
+  }
+
+  #manifest-section .table td:nth-child(2) .passenger-info strong {
+    font-size: 0.9rem;
+    line-height: 1.25;
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.32rem;
+  }
+
+  #manifest-section .table td:nth-child(1) {
+    grid-column: 2 / 3 !important;
+    grid-row: 1 !important;
+    justify-self: end;
+    align-self: start;
+  }
+
+  #manifest-section .table td:nth-child(1) .booking-number-pill {
+    min-width: 2.2rem;
+    padding: 0.2rem 0.5rem;
+    font-size: 0.78rem;
+  }
+
+  /* Row 2: Left = WA Contact, Right = Booked | Paid Segment */
+  #manifest-section .table td:nth-child(3) {
+    grid-column: 1 / 2 !important;
+    grid-row: 2 !important;
+    min-width: 0;
+    padding-right: 0.55rem !important;
+  }
+
+  #manifest-section .table td:nth-child(3) .contact-link--wa {
+    max-width: 100%;
+    padding: 0.28rem 0.52rem;
+    font-size: 0.78rem;
+    gap: 0.34rem;
+    overflow: hidden;
+  }
+
+  #manifest-section .table td:nth-child(3) .contact-link--wa > span:nth-child(2) {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  #manifest-section .table td:nth-child(4) {
+    grid-column: 2 / 3 !important;
+    grid-row: 2 !important;
+    justify-self: end;
+  }
+
+  #manifest-section .table td:nth-child(4) .pay-segment {
+    min-width: 7.4rem;
+    padding: 0.14rem;
+  }
+
+  #manifest-section .table td:nth-child(4) .pay-segment-btn {
+    padding: 0.26rem 0.48rem;
+    font-size: 0.72rem;
+  }
+
+  /* Row 3: Slim Footer — Left = Date & Time inline, Right = Edit & Delete */
+  #manifest-section .table td:nth-child(5) {
+    grid-column: 1 / 2 !important;
+    grid-row: 3 !important;
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center;
+    align-self: stretch;
+    flex-wrap: wrap;
+    gap: 0.15rem 0.4rem;
+    padding-top: 0.42rem !important;
+    padding-right: 0.55rem !important;
+    border-top: 1px solid var(--sf-line);
+  }
+
+  #manifest-section .table td:nth-child(5) span {
+    font-size: 0.73rem !important;
+    font-weight: 600 !important;
+    color: var(--sf-muted) !important;
+    display: inline !important;
+  }
+
+  #manifest-section .table td:nth-child(5) small {
+    font-size: 0.72rem !important;
+    color: var(--sf-muted) !important;
+  }
+
+  #manifest-section .table td:nth-child(6) {
+    grid-column: 2 / 3 !important;
+    grid-row: 3 !important;
+    display: flex !important;
+    flex-direction: row !important;
+    justify-content: flex-end !important;
+    align-items: center !important;
+    align-self: stretch;
+    justify-self: stretch;
+    width: 100%;
+    padding-top: 0.42rem !important;
+    border-top: 1px solid var(--sf-line);
+  }
+
+  #manifest-section .table td:nth-child(6) .booking-actions {
+    margin-left: auto;
+    align-self: center;
+    gap: 0.35rem;
+  }
+
+  #manifest-section .table td:nth-child(6) .btn-icon {
+    width: 1.95rem;
+    height: 1.95rem;
+  }
+}
+
+/* Distinct Red Borderline for Delete Icon Buttons */
+.btn-icon-delete {
+  border: 1px solid rgb(239 68 68 / 48%) !important;
+  background: rgb(239 68 68 / 9%) !important;
+  color: #dc2626 !important;
+}
+
+.btn-icon-delete:hover {
+  border-color: #ef4444 !important;
+  background: rgb(239 68 68 / 18%) !important;
+  color: #b91c1c !important;
+}
+
+:root[data-theme="dark"] .btn-icon-delete,
+.app-shell[data-theme="dark"] .btn-icon-delete {
+  border-color: rgb(248 113 113 / 48%) !important;
+  background: rgb(239 68 68 / 12%) !important;
+  color: #f87171 !important;
+}
+
+:root[data-theme="dark"] .btn-icon-delete:hover,
+.app-shell[data-theme="dark"] .btn-icon-delete:hover {
+  border-color: #f87171 !important;
+  background: rgb(239 68 68 / 24%) !important;
+  color: #fca5a5 !important;
+}
+
+/* Mobile Week Edge Previous / Next Arrows Flanking the 3 Date Cards */
+.mobile-week-date-strip {
+  display: none;
+}
+
+@media (max-width: 1024px) {
+  .mobile-week-date-strip {
+    display: grid;
+    grid-template-columns: 2.1rem minmax(0, 1fr) 2.1rem;
+    gap: 0.38rem;
+    align-items: stretch;
+    width: 100%;
+  }
+
+  .mobile-week-edge-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.1rem;
+    min-height: 3.65rem;
+    padding: 0;
+    border-radius: 0.72rem;
+    border: 1px solid var(--sf-line);
+    background: var(--sf-surface);
+    color: var(--sf-ink);
+    cursor: pointer;
+    transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease, transform 0.1s ease;
+  }
+
+  .mobile-week-edge-btn svg {
+    width: 1.05rem;
+    height: 1.05rem;
+  }
+
+  .mobile-week-edge-btn:hover {
+    border-color: rgb(32 165 58 / 55%);
+    background: rgb(32 165 58 / 10%);
+    color: #20a53a;
+  }
+
+  .mobile-week-edge-btn:active {
+    transform: scale(0.95);
+    background: rgb(32 165 58 / 18%);
+  }
+
+  .mobile-week-date-strip .mobile-week-date-grid {
+    gap: 0.38rem;
   }
 }

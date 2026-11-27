@@ -1,3 +1,4 @@
+import { useState } from "react";
 import {
   ROUTES,
   dateLabel,
@@ -5,6 +6,68 @@ import {
   formatBookingSeat,
   isFlightDate,
 } from "../utils/bookingUtils";
+
+const PAX_TYPE_OPTIONS = [
+  { value: "adult", label: "Dewasa" },
+  { value: "child", label: "Anak" },
+  { value: "infant", label: "Infant" },
+];
+
+function parseWhatsAppPassengerText(rawText, fallbackPhone = "") {
+  const lines = String(rawText || "")
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+
+  let lastPhone = String(fallbackPhone || "").trim();
+  const parsed = [];
+
+  for (const rawLine of lines) {
+    // Strip leading numbering or bullet points (e.g. "1.", "2)", "-", "•")
+    let line = rawLine.replace(/^\s*(?:\d+[.)\-:]|\*|-|•)\s*/, "").trim();
+    if (!line) continue;
+
+    // Extract phone number if present in the line
+    const phoneMatch = line.match(/(?:\+?62|0)[\s-]*8[\d\s-]{7,14}/);
+    let phone = "";
+    if (phoneMatch) {
+      phone = phoneMatch[0].replace(/[\s-]+/g, "");
+      lastPhone = phone;
+      line = line.replace(phoneMatch[0], " ").trim();
+    }
+
+    // Detect passenger type from tags/keywords
+    let type = "adult";
+    if (/\b(?:inf|infant|bayi)\b/i.test(line)) {
+      type = "infant";
+    } else if (/\b(?:chd|child|anak|anak-anak)\b/i.test(line)) {
+      type = "child";
+    }
+
+    // Clean type keywords/brackets and stray separators
+    const cleanName = line
+      .replace(/[([]?\s*\b(?:inf|infant|bayi|chd|child|anak-anak|anak|adt|adult|dewasa)\b\s*[)\]]?/gi, " ")
+      .replace(/^[\s\-–—:,/|]+|[\s\-–—:,/|]+$/g, "")
+      .replace(/\s+/g, " ")
+      .trim()
+      .toLocaleUpperCase("id-ID");
+
+    if (!cleanName) continue;
+    parsed.push({
+      name: cleanName,
+      phone: phone || lastPhone,
+      type,
+    });
+  }
+
+  // Backfill phone from first detected phone if earlier lines had none
+  const firstDetectedPhone =
+    parsed.find((item) => item.phone)?.phone || lastPhone;
+  return parsed.map((item) => ({
+    ...item,
+    phone: item.phone || firstDetectedPhone,
+  }));
+}
 
 export function NewReservationDialog({
   form,
@@ -17,10 +80,41 @@ export function NewReservationDialog({
   onSubmit,
   onShowMessage,
 }) {
+  const [showWaPaste, setShowWaPaste] = useState(false);
+  const [waPasteText, setWaPasteText] = useState("");
+
   const seatedInFormCount = form.passengers.filter(
     (passenger) => (passenger.type || "adult") !== "infant",
   ).length;
   const hasSeatQuota = seatedInFormCount <= availableBookingNumbers.length;
+  const primaryPhone = String(form.passengers[0]?.phone || "").trim();
+
+  const handleApplyWaPaste = () => {
+    const parsed = parseWhatsAppPassengerText(waPasteText, primaryPhone);
+    if (parsed.length === 0) {
+      onShowMessage?.("Tidak ada nama penumpang yang terbaca dari teks WA.");
+      return;
+    }
+    setForm((current) => ({
+      ...current,
+      passengers: parsed,
+    }));
+    setWaPasteText("");
+    setShowWaPaste(false);
+    onShowMessage?.(`${parsed.length} penumpang berhasil diisi dari teks WA.`);
+  };
+
+  const handleSyncPhoneFromFirst = () => {
+    if (!primaryPhone) return;
+    setForm((current) => ({
+      ...current,
+      passengers: current.passengers.map((passenger) => ({
+        ...passenger,
+        phone: primaryPhone,
+      })),
+    }));
+    onShowMessage?.("Nomor WA semua penumpang disamakan dengan PAX #01.");
+  };
 
   return (
     <div
@@ -66,10 +160,55 @@ export function NewReservationDialog({
                   aktif.
                 </p>
               </div>
-              <span className="form-section-count">
-                {form.passengers.length} PAX
-              </span>
+              <div className="form-section-heading-actions">
+                <button
+                  type="button"
+                  className={`wa-paste-toggle-btn ${showWaPaste ? "active" : ""}`}
+                  onClick={() => setShowWaPaste((prev) => !prev)}
+                >
+                  📋 Paste dari WA
+                </button>
+                <span className="form-section-count">
+                  {form.passengers.length} PAX
+                </span>
+              </div>
             </div>
+            {showWaPaste && (
+              <div className="wa-paste-box">
+                <label className="wa-paste-label" htmlFor="wa-paste-input">
+                  Tempel daftar nama dari chat WhatsApp (1 nama per baris — bisa
+                  sertakan nomor WA dan tag <code>(anak)</code> / <code>(inf)</code>)
+                </label>
+                <textarea
+                  id="wa-paste-input"
+                  className="form-control wa-paste-textarea"
+                  rows={4}
+                  placeholder={"1. BUDI SANTOSO 081234567890\n2. SITI AMINAH (anak)\n3. ADIK BUDI (inf)"}
+                  value={waPasteText}
+                  onChange={(event) => setWaPasteText(event.target.value)}
+                />
+                <div className="wa-paste-actions">
+                  <button
+                    type="button"
+                    className="btn btn-outline btn-sm"
+                    onClick={() => {
+                      setShowWaPaste(false);
+                      setWaPasteText("");
+                    }}
+                  >
+                    Tutup
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-primary btn-sm"
+                    onClick={handleApplyWaPaste}
+                    disabled={!waPasteText.trim()}
+                  >
+                    Isi Otomatis ke Form
+                  </button>
+                </div>
+              </div>
+            )}
             <div className="passenger-list">
               {form.passengers.map((passenger, index) => (
                 <fieldset className="passenger-card" key={index}>
@@ -133,31 +272,43 @@ export function NewReservationDialog({
                       className="form-control"
                     />
                   </label>
-                  <label>
-                    Kategori PAX
-                    <select
-                      className="form-control"
-                      value={passenger.type || "adult"}
-                      onChange={(event) =>
-                        setForm((current) => ({
-                          ...current,
-                          passengers: current.passengers.map(
-                            (currentPassenger, passengerIndex) =>
-                              passengerIndex === index
-                                ? {
-                                    ...currentPassenger,
-                                    type: event.target.value,
-                                  }
-                                : currentPassenger,
-                          ),
-                        }))
-                      }
+                  <div className="pax-type-field">
+                    <span className="pax-type-label">Kategori PAX</span>
+                    <div
+                      className="pax-type-segmented"
+                      role="group"
+                      aria-label={`Kategori PAX ${index + 1}`}
                     >
-                      <option value="adult">Dewasa (Adult)</option>
-                      <option value="child">Anak-anak (Child)</option>
-                      <option value="infant">Bayi (Infant - Non Seat)</option>
-                    </select>
-                  </label>
+                      {PAX_TYPE_OPTIONS.map((option) => {
+                        const isActive =
+                          (passenger.type || "adult") === option.value;
+                        return (
+                          <button
+                            key={option.value}
+                            type="button"
+                            className={`pax-type-pill ${isActive ? "active" : ""}`}
+                            aria-pressed={isActive}
+                            onClick={() =>
+                              setForm((current) => ({
+                                ...current,
+                                passengers: current.passengers.map(
+                                  (currentPassenger, passengerIndex) =>
+                                    passengerIndex === index
+                                      ? {
+                                          ...currentPassenger,
+                                          type: option.value,
+                                        }
+                                      : currentPassenger,
+                                ),
+                              }))
+                            }
+                          >
+                            {option.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
                   {form.passengers.length > 1 && (
                     <button
                       type="button"
@@ -179,25 +330,41 @@ export function NewReservationDialog({
               ))}
             </div>
             <div className="passenger-actions">
-              <button
-                type="button"
-                className="btn btn-outline add-passenger-button"
-                onClick={() => {
-                  const nextType =
-                    seatedInFormCount >= availableBookingNumbers.length
-                      ? "infant"
-                      : "adult";
-                  setForm((current) => ({
-                    ...current,
-                    passengers: [
-                      ...current.passengers,
-                      { name: "", phone: "", type: nextType },
-                    ],
-                  }));
-                }}
-              >
-                <span aria-hidden="true">+</span> Tambah PAX Lain
-              </button>
+              <div className="passenger-actions-buttons">
+                <button
+                  type="button"
+                  className="btn btn-outline add-passenger-button"
+                  onClick={() => {
+                    const nextType =
+                      seatedInFormCount >= availableBookingNumbers.length
+                        ? "infant"
+                        : "adult";
+                    setForm((current) => ({
+                      ...current,
+                      passengers: [
+                        ...current.passengers,
+                        {
+                          name: "",
+                          phone: current.passengers[0]?.phone || "",
+                          type: nextType,
+                        },
+                      ],
+                    }));
+                  }}
+                >
+                  <span aria-hidden="true">+</span> Tambah PAX Lain
+                </button>
+                {form.passengers.length > 1 && primaryPhone && (
+                  <button
+                    type="button"
+                    className="btn btn-outline sync-phone-button"
+                    onClick={handleSyncPhoneFromFirst}
+                    title="Salin nomor WA PAX #01 ke semua penumpang"
+                  >
+                    Samakan No. WA
+                  </button>
+                )}
+              </div>
               <span className="passenger-capacity-hint">
                 Sisa kuota kursi:{" "}
                 <strong>{availableBookingNumbers.length} kursi</strong> (Infant

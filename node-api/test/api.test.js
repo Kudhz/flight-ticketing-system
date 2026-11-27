@@ -291,8 +291,8 @@ test("POST /api/bookings memberi nomor booking kosong terkecil", async (t) => {
   assert.deepEqual(
     body.map((booking) => [booking.name, booking.phone, booking.bookingNo, booking.status, booking.bookingAt]),
     [
-      ["Ani", "0811", 2, "Menunggu verifikasi", "2026-11-18T13:00:00"],
-      ["Budi", "0899", 4, "Menunggu verifikasi", "2026-11-18T13:00:00"],
+      ["Ani", "0811", 2, "Booked", "2026-11-18T13:00:00"],
+      ["Budi", "0899", 4, "Booked", "2026-11-18T13:00:00"],
     ],
   );
 });

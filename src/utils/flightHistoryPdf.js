@@ -163,10 +163,10 @@ export function buildFlightHistoryPdf({
     theme: "grid",
     styles: {
       font: "helvetica",
-      fontSize: 6.7,
-      cellPadding: { top: 1.15, bottom: 1.15, left: 2, right: 2 },
+      fontSize: 7.5,
+      cellPadding: { top: 1.9, bottom: 1.9, left: 2.2, right: 2.2 },
       lineColor: SUBTLE_LINE,
-      lineWidth: 0.2,
+      lineWidth: 0.25,
       textColor: INK,
       valign: "middle",
     },
@@ -174,14 +174,14 @@ export function buildFlightHistoryPdf({
       fillColor: DEEP_GREEN,
       textColor: [255, 255, 255],
       fontStyle: "bold",
-      fontSize: 6.5,
+      fontSize: 7.2,
       halign: "center",
     },
     footStyles: {
       fillColor: MINT_BG,
       textColor: DEEP_GREEN,
       fontStyle: "bold",
-      fontSize: 6.7,
+      fontSize: 7.5,
     },
     alternateRowStyles: {
       fillColor: ZEBRA_BG,
@@ -241,10 +241,10 @@ export function buildFlightHistoryPdf({
     theme: "grid",
     styles: {
       font: "helvetica",
-      fontSize: 6.7,
-      cellPadding: { top: 1.15, bottom: 1.15, left: 2.2, right: 2.2 },
+      fontSize: 7.5,
+      cellPadding: { top: 1.9, bottom: 1.9, left: 2.4, right: 2.4 },
       lineColor: SUBTLE_LINE,
-      lineWidth: 0.2,
+      lineWidth: 0.25,
       textColor: INK,
       valign: "middle",
     },
@@ -252,14 +252,14 @@ export function buildFlightHistoryPdf({
       fillColor: DEEP_GREEN,
       textColor: [255, 255, 255],
       fontStyle: "bold",
-      fontSize: 6.5,
+      fontSize: 7.2,
       halign: "center",
     },
     footStyles: {
       fillColor: MINT_BG,
       textColor: DEEP_GREEN,
       fontStyle: "bold",
-      fontSize: 6.7,
+      fontSize: 7.5,
     },
     alternateRowStyles: {
       fillColor: ZEBRA_BG,
@@ -281,29 +281,50 @@ export function buildFlightHistoryPdf({
   });
 
   // =========================================================================
-  // DETAIL TABLE ON THE SAME PAGE (AUTO-SCALED TO FIT 1 SHEET)
+  // DETAIL TABLE (COMFORTABLE READABLE SIZE — FLOWS NATURALLY TO PAGE 2+)
   // =========================================================================
-  const detailTitleY = Math.max(leftEndY, doc.lastAutoTable.finalY) + 5;
+  const detailTitleY = Math.max(leftEndY, doc.lastAutoTable.finalY) + 6;
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(7.8);
+  doc.setFontSize(8.4);
   doc.setTextColor(...DEEP_GREEN);
   doc.text(`RINCIAN PENERBANGAN HARIAN — ${periodLabel}`, MARGIN_X, detailTitleY);
 
-  // Adaptive row sizing calculated from remaining vertical space so the report stays on 1 page
-  const detailStartY = detailTitleY + 1.8;
-  const availableH = Math.max(40, pageHeight - 11.5 - detailStartY);
-  const totalTableRows = Math.max(1, flights.length) + 2; // head + body + foot
-  const targetRowH = availableH / totalTableRows;
-  const detailFontSize = Number(
-    Math.max(4.6, Math.min(7.0, (targetRowH - 0.75) / 0.52)).toFixed(2),
-  );
-  const detailPadY = Number(
-    Math.max(0.22, Math.min(1.45, (targetRowH - detailFontSize * 0.46) / 2)).toFixed(2),
-  );
+  const drawContinuationHeader = () => {
+    doc.setFillColor(...BRAND_GREEN);
+    doc.roundedRect(MARGIN_X, 9, 2, 10, 0.7, 0.7, "F");
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(11);
+    doc.setTextColor(...INK);
+    doc.text(`RINCIAN PENERBANGAN — ${periodLabel}`, MARGIN_X + 4.8, 13.8);
+
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(7.2);
+    doc.setTextColor(...MUTED);
+    doc.text(
+      "SUSI AIR PERINTIS DISPATCH MELONGUANE (MNA)",
+      MARGIN_X + 4.8,
+      18,
+    );
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(7.8);
+    doc.setTextColor(...DEEP_GREEN);
+    doc.text(
+      `${totalFlights} Flight  •  ${totalPax} PAX  •  ${formatWeight(totals.totalWeight)}`,
+      pageWidth - MARGIN_X,
+      15.2,
+      { align: "right" },
+    );
+
+    doc.setDrawColor(...SUBTLE_LINE);
+    doc.setLineWidth(0.3);
+    doc.line(MARGIN_X, 21, pageWidth - MARGIN_X, 21);
+  };
 
   doc.autoTable({
-    startY: detailStartY,
-    margin: { top: 14, left: MARGIN_X, right: MARGIN_X, bottom: 10.5 },
+    startY: detailTitleY + 2.2,
+    margin: { top: 24, left: MARGIN_X, right: MARGIN_X, bottom: 13 },
     tableWidth: contentWidth,
     head: [
       [
@@ -362,10 +383,10 @@ export function buildFlightHistoryPdf({
     theme: "grid",
     styles: {
       font: "helvetica",
-      fontSize: detailFontSize,
-      cellPadding: { top: detailPadY, bottom: detailPadY, left: 1.8, right: 1.8 },
+      fontSize: 7.4,
+      cellPadding: { top: 1.9, bottom: 1.9, left: 2, right: 2 },
       lineColor: SUBTLE_LINE,
-      lineWidth: 0.2,
+      lineWidth: 0.25,
       textColor: INK,
       valign: "middle",
     },
@@ -373,14 +394,14 @@ export function buildFlightHistoryPdf({
       fillColor: DEEP_GREEN,
       textColor: [255, 255, 255],
       fontStyle: "bold",
-      fontSize: Math.min(detailFontSize, 6.6),
+      fontSize: 7,
       halign: "center",
     },
     footStyles: {
       fillColor: MINT_BG,
       textColor: DEEP_GREEN,
       fontStyle: "bold",
-      fontSize: detailFontSize,
+      fontSize: 7.4,
     },
     alternateRowStyles: {
       fillColor: ZEBRA_BG,
@@ -411,6 +432,11 @@ export function buildFlightHistoryPdf({
       }
       if (data.section === "foot" && data.column.index <= 3) {
         data.cell.styles.halign = "center";
+      }
+    },
+    didDrawPage: (data) => {
+      if (data.pageNumber > 1) {
+        drawContinuationHeader();
       }
     },
   });

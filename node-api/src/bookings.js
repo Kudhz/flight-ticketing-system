@@ -520,7 +520,7 @@ async function createBookings(pool, passengers, route, date, source = "n8n") {
           bookingNo: assignedNo,
           route,
           date,
-          status: STATUSES[0],
+          status: STATUSES[1],
           source,
         },
       );

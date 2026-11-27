@@ -1,3 +1,4 @@
+import { useMemo, useState } from "react";
 import {
   STATUSES,
   dateLabel,
@@ -6,6 +7,18 @@ import {
   timeLabel,
   weekdayName,
 } from "../utils/bookingUtils";
+
+const PAID_STATUS = STATUSES[2] || "Dibayar";
+const BOOKED_STATUS = STATUSES[1] || "Booked";
+
+const formatWaHref = (booking) => {
+  const digits = String(booking.phone || "")
+    .replace(/\D/g, "")
+    .replace(/^0/, "62");
+  if (!digits) return "";
+  const greeting = `Halo ${booking.name}, ini Ticketing Susi Air Melonguane (MNA) terkait penerbangan ${booking.route} tanggal ${dateLabel(booking.date)}.`;
+  return `https://wa.me/${digits}?text=${encodeURIComponent(greeting)}`;
+};
 
 function PassengerManifestSection({
   routeInfo,
@@ -24,6 +37,26 @@ function PassengerManifestSection({
   onOpenEditForm,
   onRequestDelete,
 }) {
+  const [quickFilter, setQuickFilter] = useState("all");
+
+  const unpaidCount = useMemo(
+    () => currentBookings.filter((b) => b.status !== PAID_STATUS).length,
+    [currentBookings],
+  );
+  const n8nCount = useMemo(
+    () => currentBookings.filter((b) => isN8nBooking(b)).length,
+    [currentBookings],
+  );
+
+  const displayedBookings = useMemo(() => {
+    if (quickFilter === "unpaid") {
+      return filteredBookings.filter((b) => b.status !== PAID_STATUS);
+    }
+    if (quickFilter === "n8n") {
+      return filteredBookings.filter((b) => isN8nBooking(b));
+    }
+    return filteredBookings;
+  }, [filteredBookings, quickFilter]);
   return (
     <section id="manifest-section" className="bookings-section unified-manifest-card">
       <div className="unified-manifest-header">
@@ -81,7 +114,46 @@ function PassengerManifestSection({
 
       {scheduleControls}
 
-      {filteredBookings.length === 0 ? (
+      {currentBookings.length > 0 && (
+        <div
+          className="manifest-quick-filters"
+          role="group"
+          aria-label="Filter cepat daftar penumpang"
+        >
+          <button
+            type="button"
+            className={`manifest-filter-pill ${quickFilter === "all" ? "active" : ""}`}
+            onClick={() => setQuickFilter("all")}
+          >
+            Semua
+            <span className="manifest-filter-count">
+              {currentBookings.length}
+            </span>
+          </button>
+          <button
+            type="button"
+            className={`manifest-filter-pill manifest-filter-unpaid ${quickFilter === "unpaid" ? "active" : ""}`}
+            onClick={() =>
+              setQuickFilter((prev) => (prev === "unpaid" ? "all" : "unpaid"))
+            }
+          >
+            Belum Bayar
+            <span className="manifest-filter-count">{unpaidCount}</span>
+          </button>
+          <button
+            type="button"
+            className={`manifest-filter-pill manifest-filter-n8n ${quickFilter === "n8n" ? "active" : ""}`}
+            onClick={() =>
+              setQuickFilter((prev) => (prev === "n8n" ? "all" : "n8n"))
+            }
+          >
+            WA Otomatis
+            <span className="manifest-filter-count">{n8nCount}</span>
+          </button>
+        </div>
+      )}
+
+      {displayedBookings.length === 0 ? (
         <div className="manifest-empty-box" role="status">
           <span className="empty-state-icon" aria-hidden="true">
             <svg
@@ -99,16 +171,20 @@ function PassengerManifestSection({
           <strong className="manifest-empty-title">
             {isLoadingBookings
               ? "Memuat manifes dari MySQL..."
-              : search
+              : search || quickFilter !== "all"
                 ? "Penumpang tidak ditemukan"
                 : "Belum ada penumpang pada jadwal ini"}
           </strong>
           <span className="manifest-empty-desc">
             {isLoadingBookings
               ? "Sedang mengambil data penumpang terbaru."
-              : search
-                ? "Coba periksa kembali nama, nomor WhatsApp, atau nomor kursi."
-                : "Klik tombol + Tambah PAX di atas untuk mulai mengisi manifes."}
+              : quickFilter === "unpaid"
+                ? "Semua penumpang pada jadwal ini sudah berstatus Dibayar."
+                : quickFilter === "n8n"
+                  ? "Belum ada pesanan dari WA Otomatis pada jadwal ini."
+                  : search
+                    ? "Coba periksa kembali nama, nomor WhatsApp, atau nomor kursi."
+                    : "Klik tombol + Tambah PAX di atas untuk mulai mengisi manifes."}
           </span>
         </div>
       ) : (
@@ -118,7 +194,6 @@ function PassengerManifestSection({
               <tr>
                 <th>SEAT / NO</th>
                 <th>IDENTITAS PENUMPANG</th>
-                <th>SUMBER PESANAN</th>
                 <th>KONTAK WHATSAPP</th>
                 <th>STATUS TIKET</th>
                 <th>WAKTU RESERVASI</th>
@@ -126,7 +201,7 @@ function PassengerManifestSection({
               </tr>
             </thead>
             <tbody>
-              {filteredBookings.map((booking) => {
+              {displayedBookings.map((booking) => {
               const initial =
                 String(booking.name || "P")
                   .trim()
@@ -164,57 +239,63 @@ function PassengerManifestSection({
                             </span>
                           )}
                         </strong>
-                        <span className="text-xs text-muted">
-                          Sektor {booking.route} • {dateLabel(booking.date)}
+                        <span
+                          className={`booking-source-pill passenger-source-sub ${isFromN8n ? "source-n8n" : "source-web"}`}
+                        >
+                          <i className="source-dot" aria-hidden="true" />
+                          {isFromN8n ? "WA Otomatis" : "Manual Web"}
                         </span>
                       </div>
                     </div>
                   </td>
-                  <td data-label="Sumber Pesanan">
-                    <span
-                      className={`booking-source-pill ${isFromN8n ? "source-n8n" : "source-web"}`}
-                    >
-                      <i className="source-dot" aria-hidden="true" />
-                      {isFromN8n ? "WA Otomatis" : "Manual Web"}
-                    </span>
-                  </td>
                   <td data-label="Kontak">
-                    <a
-                      href={`https://wa.me/${String(booking.phone || "")
-                        .replace(/\D/g, "")
-                        .replace(/^0/, "62")}`}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="contact-link"
-                      title={`Hubungi ${booking.name} via WhatsApp`}
-                    >
-                      <span className="wa-dot" aria-hidden="true" />
-                      <span>{booking.phone}</span>
-                    </a>
+                    {formatWaHref(booking) ? (
+                      <a
+                        href={formatWaHref(booking)}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="contact-link contact-link--wa"
+                        title={`Chat WhatsApp ${booking.name}`}
+                      >
+                        <span className="wa-dot" aria-hidden="true" />
+                        <span>{booking.phone}</span>
+                        <span className="wa-chat-badge">WA</span>
+                      </a>
+                    ) : (
+                      <span className="text-xs text-muted">—</span>
+                    )}
                   </td>
                   <td data-label="Status pemesanan">
-                    <label
-                      className={`status-label ${booking.status === STATUSES[0] ? "status-waiting" : booking.status === STATUSES[1] ? "status-verified" : "status-issued"} cursor-pointer`}
+                    <div
+                      className="pay-segment"
+                      role="group"
+                      aria-label={`Status tiket ${booking.name}`}
                     >
-                      <span className="status-dot"></span>
-                      <select
-                        aria-label={`Status ${booking.name}`}
-                        value={booking.status}
-                        onChange={(event) =>
-                          onUpdateStatus(booking.id, event.target.value)
-                        }
-                        className="bg-transparent border-none text-inherit font-inherit text-xs cursor-pointer appearance-none p-0 m-0 w-full"
+                      <button
+                        type="button"
+                        className={`pay-segment-btn pay-segment-booked ${booking.status !== PAID_STATUS ? "active" : ""}`}
+                        aria-pressed={booking.status !== PAID_STATUS}
+                        onClick={() => {
+                          if (booking.status === PAID_STATUS) {
+                            onUpdateStatus(booking.id, BOOKED_STATUS);
+                          }
+                        }}
                       >
-                        {STATUSES.map((status) => (
-                          <option key={status} value={status}>
-                            {status === "Booked" ? "Dipesan" : status}
-                          </option>
-                        ))}
-                      </select>
-                      <span className="select-chevron text-xs text-muted pointer-events-none">
-                        ⌄
-                      </span>
-                    </label>
+                        Booked
+                      </button>
+                      <button
+                        type="button"
+                        className={`pay-segment-btn pay-segment-paid ${booking.status === PAID_STATUS ? "active" : ""}`}
+                        aria-pressed={booking.status === PAID_STATUS}
+                        onClick={() => {
+                          if (booking.status !== PAID_STATUS) {
+                            onUpdateStatus(booking.id, PAID_STATUS);
+                          }
+                        }}
+                      >
+                        {booking.status === PAID_STATUS ? "✓ Paid" : "Paid"}
+                      </button>
+                    </div>
                   </td>
                   <td data-label="Tanggal pemesanan">
                     <span className="text-base font-semibold text-ink block">
@@ -280,7 +361,7 @@ function PassengerManifestSection({
       <footer className="manifest-footer">
         <span>
           Menampilkan{" "}
-          <strong className="text-ink">{filteredBookings.length}</strong> dari{" "}
+          <strong className="text-ink">{displayedBookings.length}</strong> dari{" "}
           <strong className="text-ink">{currentBookings.length}</strong>{" "}
           penumpang terdaftar
         </span>

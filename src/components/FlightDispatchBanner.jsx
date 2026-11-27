@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { PlaneTakeoff } from "lucide-react";
 import {
   BOOKING_LIMIT,
@@ -18,6 +19,7 @@ function FlightDispatchBanner({
   loadFactorPct,
   infantCount,
 }) {
+  const [mobileExpanded, setMobileExpanded] = useState(false);
   const seatMap = new Map();
   let checkedInSeatsCount = 0;
   currentBookings.forEach((booking) => {
@@ -29,9 +31,33 @@ function FlightDispatchBanner({
   });
   return (
     <section
-      className="flight-banner"
+      className={`flight-banner ${mobileExpanded ? "is-mobile-expanded" : "is-mobile-collapsed"}`}
       aria-label="Informasi penerbangan dan peta kursi"
     >
+      <div className="flight-banner-mobile-bar">
+        <div className="fbm-left">
+          <span className="fbm-route">
+            {routeInfo.originCode} → {routeInfo.destinationCode}
+          </span>
+          <span
+            className={`fbm-quota ${remainingSeats === 0 ? "full" : "open"}`}
+          >
+            {occupiedSeats}/{BOOKING_LIMIT}{" "}
+            {remainingSeats === 0 ? "FULL" : `• ${remainingSeats} Sisa`}
+          </span>
+          {infantCount > 0 && (
+            <span className="fbm-inf">INF {infantCount}</span>
+          )}
+        </div>
+        <button
+          type="button"
+          className="fbm-toggle-btn"
+          aria-expanded={mobileExpanded}
+          onClick={() => setMobileExpanded((prev) => !prev)}
+        >
+          {mobileExpanded ? "Tutup ▴" : "Detail ▾"}
+        </button>
+      </div>
       <div className="boarding-pass-side">
         <div className="boarding-pass-top">
           <span className="boarding-airline-tag">

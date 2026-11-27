@@ -1443,6 +1443,24 @@ function App() {
         />
       )}
 
+      {!isFlightDataPage &&
+        !showForm &&
+        !editingBooking &&
+        !deletingBooking &&
+        !isFinanceLoginOpen && (
+          <button
+            type="button"
+            className="mobile-fab-add-pax"
+            onClick={openBookingForm}
+            aria-label="Tambah penumpang baru"
+          >
+            <span className="mobile-fab-plus" aria-hidden="true">
+              +
+            </span>
+            <span>PAX</span>
+          </button>
+        )}
+
       <BookingNotificationPopup
         activePopup={activeNotifPopup}
         onDismiss={() => setActiveNotifPopup(null)}
