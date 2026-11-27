@@ -13,6 +13,11 @@ const PAX_TYPE_OPTIONS = [
   { value: "infant", label: "Infant" },
 ];
 
+const shouldAutoFocusInput = () =>
+  typeof window !== "undefined" &&
+  window.innerWidth > 1024 &&
+  !window.matchMedia?.("(pointer: coarse)").matches;
+
 function parseWhatsAppPassengerText(rawText, fallbackPhone = "") {
   const lines = String(rawText || "")
     .split(/\r?\n/)
@@ -225,7 +230,7 @@ export function NewReservationDialog({
                     <input
                       className="form-control"
                       required
-                      autoFocus={index === 0}
+                      autoFocus={index === 0 && shouldAutoFocusInput()}
                       autoComplete="name"
                       placeholder="Sesuai KTP / Paspor"
                       value={passenger.name}
@@ -540,7 +545,7 @@ export function EditPassengerDialog({
             Nama lengkap
             <input
               required
-              autoFocus
+              autoFocus={shouldAutoFocusInput()}
               autoComplete="name"
               value={editForm.name}
               onChange={(event) =>

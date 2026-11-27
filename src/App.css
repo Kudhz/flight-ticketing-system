@@ -8943,3 +8943,197 @@ select {
     gap: 0.38rem;
   }
 }
+
+/* ==========================================================================
+   SMOOTH FLOW ANIMATIONS & TACTILE BUTTON FEEDBACK (NO ABRUPT BLIP)
+   ========================================================================== */
+:root {
+  --flow-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --flow-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* Remove harsh mobile tap flash & apply fluid transitions to all buttons */
+button,
+a.contact-link,
+.btn,
+.btn-icon,
+.secondary-button,
+.flight-date-tab,
+.route-sector-card,
+.nav-item,
+.mobile-nav-item,
+.pay-segment-btn,
+.pax-type-pill,
+.manifest-filter-pill,
+.mobile-week-edge-btn,
+.mobile-week-btn,
+.period-step-btn,
+.calendar-quick-btn,
+.mobile-fab-add-pax,
+.fbm-toggle-btn,
+.wa-paste-toggle-btn,
+.theme-toggle,
+.notif-bell-btn {
+  -webkit-tap-highlight-color: transparent;
+  transition:
+    transform 0.22s var(--flow-ease),
+    background-color 0.22s var(--flow-ease),
+    background 0.22s var(--flow-ease),
+    border-color 0.22s var(--flow-ease),
+    color 0.2s var(--flow-ease),
+    box-shadow 0.22s var(--flow-ease),
+    opacity 0.2s var(--flow-ease);
+}
+
+/* Tactile press-down with quick response and smooth spring release */
+.btn:active:not(:disabled),
+.secondary-button:active:not(:disabled),
+.flight-date-tab:active:not(:disabled),
+.route-sector-card:active:not(:disabled),
+.nav-item:active:not(:disabled),
+.pay-segment-btn:active:not(:disabled),
+.pax-type-pill:active:not(:disabled),
+.manifest-filter-pill:active:not(:disabled),
+.mobile-week-edge-btn:active:not(:disabled),
+.mobile-week-btn:active:not(:disabled),
+.period-step-btn:active:not(:disabled),
+.calendar-quick-btn:active:not(:disabled),
+.fbm-toggle-btn:active:not(:disabled),
+.wa-paste-toggle-btn:active:not(:disabled),
+.btn-icon:active:not(:disabled),
+.theme-toggle:active:not(:disabled),
+.notif-bell-btn:active:not(:disabled),
+a.contact-link:active {
+  transform: scale(0.96);
+  transition-duration: 0.08s;
+}
+
+.mobile-fab-add-pax:active:not(:disabled) {
+  transform: scale(0.93);
+  transition-duration: 0.08s;
+}
+
+/* Soft press glow ring on primary & active controls */
+.btn-primary,
+.pay-segment-btn,
+.pax-type-pill,
+.manifest-filter-pill,
+.flight-date-tab,
+.mobile-week-edge-btn {
+  position: relative;
+  overflow: hidden;
+}
+
+.mobile-fab-add-pax {
+  overflow: hidden;
+}
+
+.btn-primary::after,
+.mobile-fab-add-pax::after,
+.flight-date-tab::after,
+.mobile-week-edge-btn::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: radial-gradient(
+    circle at center,
+    rgb(255 255 255 / 26%) 0%,
+    rgb(255 255 255 / 0%) 72%
+  );
+  opacity: 0;
+  transform: scale(0.55);
+  pointer-events: none;
+  transition:
+    opacity 0.32s var(--flow-ease),
+    transform 0.36s var(--flow-ease);
+}
+
+.btn-primary:active::after,
+.mobile-fab-add-pax:active::after,
+.flight-date-tab:active::after,
+.mobile-week-edge-btn:active::after {
+  opacity: 1;
+  transform: scale(1.2);
+  transition-duration: 0.1s;
+}
+
+/* Smooth glide when switching weeks, opening panels, and modals */
+@keyframes weekFlowIn {
+  from {
+    opacity: 0;
+    transform: translateY(4px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes modalBackdropIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes modalDialogIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.975);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes panelFlowIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.week-flow-enter {
+  animation: weekFlowIn 0.24s var(--flow-ease) both;
+}
+
+.modal-backdrop {
+  animation: modalBackdropIn 0.18s var(--flow-ease) both;
+}
+
+.booking-modal,
+.reservation-dialog {
+  animation: modalDialogIn 0.24s var(--flow-ease) both;
+}
+
+.wa-paste-box,
+.flight-banner.is-mobile-expanded .boarding-pass-side,
+.flight-banner.is-mobile-expanded .flight-capacity {
+  animation: panelFlowIn 0.22s var(--flow-ease) both;
+}
+
+/* Respect accessibility reduced-motion preference */
+@media (prefers-reduced-motion: reduce) {
+  .week-flow-enter,
+  .modal-backdrop,
+  .booking-modal,
+  .reservation-dialog,
+  .wa-paste-box,
+  .flight-banner.is-mobile-expanded .boarding-pass-side,
+  .flight-banner.is-mobile-expanded .flight-capacity {
+    animation: none !important;
+  }
+
+  button,
+  a.contact-link {
+    transition-duration: 0.01ms !important;
+  }
+}

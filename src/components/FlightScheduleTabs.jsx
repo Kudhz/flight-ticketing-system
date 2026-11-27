@@ -434,7 +434,8 @@ function FlightScheduleTabs({
           </button>
 
           <div
-            className="mobile-week-date-grid"
+            key={activeWeek.key || selectedMonth}
+            className="mobile-week-date-grid week-flow-enter"
             role="group"
             aria-label={`Jadwal minggu ${activeWeekIdx + 1} (Senin, Rabu, Sabtu)`}
           >
