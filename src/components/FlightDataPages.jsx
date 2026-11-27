@@ -465,6 +465,45 @@ function FlightDataPages({
         .includes(tableSearch.toLowerCase());
     return matchesRoute && matchesSearch;
   });
+  const filteredSummary = filteredVisibleFlights.reduce(
+    (acc, flight) => {
+      acc.adultPax += flight.adultPax;
+      acc.childPax += flight.childPax;
+      acc.infantPax += flight.infantPax;
+      acc.pax += flight.pax;
+      acc.chargedPax += flight.adultPax + flight.childPax;
+      acc.passengerWeight += flight.passengerWeight;
+      acc.baggagePieces += flight.baggagePieces;
+      acc.baggageWeight += flight.baggageWeight;
+      acc.cabinBaggagePieces += flight.cabinBaggagePieces;
+      acc.cabinBaggageWeight += flight.cabinBaggageWeight;
+      acc.cargoPieces += flight.cargoPieces;
+      acc.cargoWeight += flight.cargoWeight;
+      acc.totalWeight +=
+        flight.passengerWeight +
+        flight.baggageWeight +
+        flight.cabinBaggageWeight +
+        flight.cargoWeight;
+      acc.feeTotal += (flight.adultPax + flight.childPax) * flight.feeTicket;
+      return acc;
+    },
+    {
+      adultPax: 0,
+      childPax: 0,
+      infantPax: 0,
+      pax: 0,
+      chargedPax: 0,
+      passengerWeight: 0,
+      baggagePieces: 0,
+      baggageWeight: 0,
+      cabinBaggagePieces: 0,
+      cabinBaggageWeight: 0,
+      cargoPieces: 0,
+      cargoWeight: 0,
+      totalWeight: 0,
+      feeTotal: 0,
+    },
+  );
   const isLoading = status.type === "loading";
   const dashboardValue = (value) =>
     isLoading ? "..." : status.type === "error" ? "—" : value;
@@ -1125,55 +1164,148 @@ function FlightDataPages({
               />
             </div>
             <div className="flight-report-table-wrap">
-              <table className="flight-report-table">
+              <table className="flight-report-table history-table">
                 <thead>
                   <tr>
                     <th>Tanggal</th>
                     <th>Rute</th>
-                    <th>PAX</th>
-                    <th>Berat PAX</th>
-                    <th>Koli Bagasi</th>
-                    <th>Berat Bagasi</th>
-                    <th>Koli Cabin</th>
-                    <th>Berat Cabin</th>
-                    <th>Koli Cargo</th>
-                    <th>Berat Cargo</th>
-                    <th>Total Load</th>
+                    <th>Penumpang</th>
+                    <th className="num-col">Berat PAX</th>
+                    <th className="num-col">Bagasi</th>
+                    <th className="num-col">Kabin</th>
+                    <th className="num-col">Kargo</th>
+                    <th className="num-col">Total Load</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredVisibleFlights.map((flight) => (
-                    <tr key={flight.id}>
-                      <td>
-                        {formatFlightDate(flight.date, Number(month), year)}
-                      </td>
-                      <td>{flight.route}</td>
-                      <td>{formatPax(flight.adultPax, flight.childPax, flight.infantPax)}</td>
-                      <td>{formatWeight(flight.passengerWeight)}</td>
-                      <td>{flight.baggagePieces}</td>
-                      <td>{formatWeight(flight.baggageWeight)}</td>
-                      <td>{flight.cabinBaggagePieces}</td>
-                      <td>{formatWeight(flight.cabinBaggageWeight)}</td>
-                      <td>{flight.cargoPieces}</td>
-                      <td>{formatWeight(flight.cargoWeight)}</td>
-                      <td className="emphasized">
-                        {formatWeight(
-                          flight.passengerWeight +
-                            flight.baggageWeight +
-                            flight.cabinBaggageWeight +
-                            flight.cargoWeight,
-                        )}
-                      </td>
-                    </tr>
-                  ))}
+                  {filteredVisibleFlights.map((flight) => {
+                    const rowTotalWeight =
+                      flight.passengerWeight +
+                      flight.baggageWeight +
+                      flight.cabinBaggageWeight +
+                      flight.cargoWeight;
+                    const routeTone = flight.route.includes("MDC")
+                      ? "route-pill-mdc"
+                      : "route-pill-iax";
+                    return (
+                      <tr key={flight.id}>
+                        <td data-label="Tanggal" className="report-date-cell">
+                          <strong>
+                            {formatFlightDate(flight.date, Number(month), year)}
+                          </strong>
+                        </td>
+                        <td data-label="Rute">
+                          <span className={`report-route-pill ${routeTone}`}>
+                            {flight.route}
+                          </span>
+                        </td>
+                        <td data-label="Penumpang">
+                          <div className="report-cell-stack">
+                            <strong>{flight.pax} PAX</strong>
+                            <small>
+                              {flight.adultPax} Dws • {flight.childPax} Ank •{" "}
+                              {flight.infantPax} Inf
+                            </small>
+                          </div>
+                        </td>
+                        <td data-label="Berat PAX" className="num-col">
+                          <span className="report-num">
+                            {formatWeight(flight.passengerWeight)}
+                          </span>
+                        </td>
+                        <td data-label="Bagasi" className="num-col">
+                          <div className="report-cell-stack align-end">
+                            <strong>{formatWeight(flight.baggageWeight)}</strong>
+                            <small>{flight.baggagePieces} koli</small>
+                          </div>
+                        </td>
+                        <td data-label="Kabin" className="num-col">
+                          <div className="report-cell-stack align-end">
+                            <strong>
+                              {formatWeight(flight.cabinBaggageWeight)}
+                            </strong>
+                            <small>{flight.cabinBaggagePieces} koli</small>
+                          </div>
+                        </td>
+                        <td data-label="Kargo" className="num-col">
+                          <div className="report-cell-stack align-end">
+                            <strong>{formatWeight(flight.cargoWeight)}</strong>
+                            <small>{flight.cargoPieces} koli</small>
+                          </div>
+                        </td>
+                        <td data-label="Total Load" className="num-col emphasized">
+                          <span className="report-total-chip">
+                            {formatWeight(rowTotalWeight)}
+                          </span>
+                        </td>
+                      </tr>
+                    );
+                  })}
                   {!isLoading && filteredVisibleFlights.length === 0 && (
-                    <tr>
-                      <td colSpan={11} className="flight-report-empty">
+                    <tr className="report-empty-row">
+                      <td colSpan={8} className="flight-report-empty">
                         Belum ada data penerbangan yang cocok pada periode ini.
                       </td>
                     </tr>
                   )}
                 </tbody>
+                {filteredVisibleFlights.length > 0 && (
+                  <tfoot>
+                    <tr className="report-summary-row">
+                      <td colSpan={2}>
+                        <strong>
+                          TOTAL ({filteredVisibleFlights.length} Penerbangan)
+                        </strong>
+                      </td>
+                      <td>
+                        <div className="report-cell-stack">
+                          <strong>{filteredSummary.pax} PAX</strong>
+                          <small>
+                            {filteredSummary.adultPax} Dws •{" "}
+                            {filteredSummary.childPax} Ank •{" "}
+                            {filteredSummary.infantPax} Inf
+                          </small>
+                        </div>
+                      </td>
+                      <td className="num-col">
+                        <strong>
+                          {formatWeight(filteredSummary.passengerWeight)}
+                        </strong>
+                      </td>
+                      <td className="num-col">
+                        <div className="report-cell-stack align-end">
+                          <strong>
+                            {formatWeight(filteredSummary.baggageWeight)}
+                          </strong>
+                          <small>{filteredSummary.baggagePieces} koli</small>
+                        </div>
+                      </td>
+                      <td className="num-col">
+                        <div className="report-cell-stack align-end">
+                          <strong>
+                            {formatWeight(filteredSummary.cabinBaggageWeight)}
+                          </strong>
+                          <small>
+                            {filteredSummary.cabinBaggagePieces} koli
+                          </small>
+                        </div>
+                      </td>
+                      <td className="num-col">
+                        <div className="report-cell-stack align-end">
+                          <strong>
+                            {formatWeight(filteredSummary.cargoWeight)}
+                          </strong>
+                          <small>{filteredSummary.cargoPieces} koli</small>
+                        </div>
+                      </td>
+                      <td className="num-col emphasized">
+                        <strong>
+                          {formatWeight(filteredSummary.totalWeight)}
+                        </strong>
+                      </td>
+                    </tr>
+                  </tfoot>
+                )}
               </table>
             </div>
           </section>
@@ -1294,35 +1426,97 @@ function FlightDataPages({
               <table className="flight-report-table income">
                 <thead>
                   <tr>
+                    <th className="no-col">No</th>
                     <th>Tanggal</th>
                     <th>Rute</th>
-                    <th>PAX</th>
-                    <th>Fee per PAX</th>
-                    <th>Total Penghasilan</th>
+                    <th>Penumpang (Berbayar)</th>
+                    <th className="num-col">Fee / PAX</th>
+                    <th className="num-col">Total Fee</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredVisibleFlights.map((flight) => (
-                    <tr key={flight.id}>
-                      <td>
-                        {formatFlightDate(flight.date, Number(month), year)}
-                      </td>
-                      <td>{flight.route}</td>
-                      <td>{formatIncomePax(flight.adultPax, flight.childPax, flight.infantPax)}</td>
-                      <td>{formatCurrency(flight.feeTicket)}</td>
-                      <td className="emphasized">
-                        {formatCurrency((flight.adultPax + flight.childPax) * flight.feeTicket)}
-                      </td>
-                    </tr>
-                  ))}
+                  {filteredVisibleFlights.map((flight, index) => {
+                    const chargedPax = flight.adultPax + flight.childPax;
+                    const rowFee = chargedPax * flight.feeTicket;
+                    const routeTone = flight.route.includes("MDC")
+                      ? "route-pill-mdc"
+                      : "route-pill-iax";
+                    return (
+                      <tr key={flight.id}>
+                        <td data-label="No" className="no-col">
+                          <span className="report-index-badge">
+                            {String(index + 1).padStart(2, "0")}
+                          </span>
+                        </td>
+                        <td data-label="Tanggal" className="report-date-cell">
+                          <strong>
+                            {formatFlightDate(flight.date, Number(month), year)}
+                          </strong>
+                        </td>
+                        <td data-label="Rute">
+                          <span className={`report-route-pill ${routeTone}`}>
+                            {flight.route}
+                          </span>
+                        </td>
+                        <td data-label="Penumpang">
+                          <div className="report-cell-stack">
+                            <strong>{chargedPax} PAX</strong>
+                            <small>
+                              {flight.adultPax} Dws • {flight.childPax} Ank •{" "}
+                              {flight.infantPax} Inf
+                            </small>
+                          </div>
+                        </td>
+                        <td data-label="Fee / PAX" className="num-col">
+                          <span className="report-num">
+                            {formatCurrency(flight.feeTicket)}
+                          </span>
+                        </td>
+                        <td data-label="Total Fee" className="num-col emphasized">
+                          <span className="report-total-chip">
+                            {formatCurrency(rowFee)}
+                          </span>
+                        </td>
+                      </tr>
+                    );
+                  })}
                   {!isLoading && filteredVisibleFlights.length === 0 && (
-                    <tr>
-                      <td colSpan={5} className="flight-report-empty">
+                    <tr className="report-empty-row">
+                      <td colSpan={6} className="flight-report-empty">
                         Belum ada data penghasilan yang cocok pada periode ini.
                       </td>
                     </tr>
                   )}
                 </tbody>
+                {filteredVisibleFlights.length > 0 && (
+                  <tfoot>
+                    <tr className="report-summary-row">
+                      <td colSpan={3}>
+                        <strong>
+                          TOTAL ({filteredVisibleFlights.length} Penerbangan)
+                        </strong>
+                      </td>
+                      <td>
+                        <div className="report-cell-stack">
+                          <strong>{filteredSummary.chargedPax} PAX</strong>
+                          <small>
+                            {filteredSummary.adultPax} Dws •{" "}
+                            {filteredSummary.childPax} Ank •{" "}
+                            {filteredSummary.infantPax} Inf
+                          </small>
+                        </div>
+                      </td>
+                      <td className="num-col">
+                        <span className="text-muted text-xs">Akumulasi</span>
+                      </td>
+                      <td className="num-col emphasized">
+                        <strong>
+                          {formatCurrency(filteredSummary.feeTotal)}
+                        </strong>
+                      </td>
+                    </tr>
+                  </tfoot>
+                )}
               </table>
             </div>
           </section>

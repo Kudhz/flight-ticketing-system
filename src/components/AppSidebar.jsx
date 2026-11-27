@@ -163,9 +163,9 @@ function AppSidebar({
           </span>
           <span
             className="sidebar-finance-label"
-            data-mobile-label={isFinanceAuthenticated ? "Keluar" : "Keuangan"}
+            data-mobile-label={isFinanceAuthenticated ? "Logout" : "Login"}
           >
-            {isFinanceAuthenticated ? "Keluar Keuangan" : "Portal Keuangan"}
+            {isFinanceAuthenticated ? "Logout" : "Login"}
           </span>
         </button>
       </div>

@@ -2360,35 +2360,61 @@ select {
 
 .flight-report-table-wrap {
   overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .flight-report-table {
   width: 100%;
-  min-width: 68rem;
-  border-collapse: collapse;
+  min-width: 52rem;
+  border-collapse: separate;
+  border-spacing: 0;
   color: var(--sf-ink);
-  font-size: 0.8rem;
+  font-size: 0.82rem;
   white-space: nowrap;
 }
 
 .flight-report-table.income {
-  min-width: 40rem;
+  min-width: 42rem;
 }
 
 .flight-report-table th,
 .flight-report-table td {
-  padding: 0.78rem 1rem;
+  padding: 0.82rem 1rem;
   border-bottom: 1px solid var(--sf-line);
   text-align: left;
+  vertical-align: middle;
 }
 
 .flight-report-table th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
   background: var(--sf-surface-hover);
   color: var(--sf-muted);
-  font-size: 0.66rem;
+  font-size: 0.67rem;
   font-weight: 750;
   letter-spacing: 0.07em;
   text-transform: uppercase;
+}
+
+.flight-report-table th.num-col,
+.flight-report-table td.num-col {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.flight-report-table th.no-col,
+.flight-report-table td.no-col {
+  width: 3.4rem;
+  text-align: center;
+}
+
+.flight-report-table tbody tr {
+  transition: background var(--sf-transition);
+}
+
+.flight-report-table tbody tr:nth-child(even) {
+  background: rgb(148 163 184 / 4%);
 }
 
 .flight-report-table tbody tr:hover {
@@ -2399,6 +2425,104 @@ select {
   border-bottom: 0;
 }
 
+.flight-report-table tfoot .report-summary-row td {
+  padding: 0.9rem 1rem;
+  border-top: 2px solid var(--sf-line);
+  border-bottom: 0;
+  background: var(--sf-surface-hover);
+  font-variant-numeric: tabular-nums;
+}
+
+.report-date-cell strong {
+  color: var(--sf-ink);
+  font-weight: 680;
+}
+
+.report-index-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.75rem;
+  height: 1.55rem;
+  padding: 0 0.35rem;
+  border: 1px solid var(--sf-line);
+  border-radius: 0.45rem;
+  background: var(--sf-surface-hover);
+  color: var(--sf-muted);
+  font-size: 0.72rem;
+  font-weight: 750;
+  font-variant-numeric: tabular-nums;
+}
+
+.report-route-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.22rem 0.62rem;
+  border: 1px solid var(--sf-line);
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 780;
+  letter-spacing: 0.03em;
+}
+
+.report-route-pill.route-pill-mdc {
+  border-color: rgb(32 165 58 / 32%);
+  background: var(--sf-teal-light);
+  color: var(--sf-teal-dark);
+}
+
+.report-route-pill.route-pill-iax {
+  border-color: rgb(245 158 11 / 36%);
+  background: var(--sf-amber-light);
+  color: #b45309;
+}
+
+:root[data-theme="dark"] .report-route-pill.route-pill-iax {
+  color: var(--lf-amber);
+}
+
+.report-cell-stack {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  line-height: 1.25;
+}
+
+.report-cell-stack.align-end {
+  align-items: flex-end;
+}
+
+.report-cell-stack strong {
+  color: var(--sf-ink);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.report-cell-stack small {
+  color: var(--sf-muted);
+  font-size: 0.69rem;
+  font-weight: 550;
+  font-variant-numeric: tabular-nums;
+}
+
+.report-num {
+  color: var(--sf-ink);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.report-total-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.24rem 0.62rem;
+  border: 1px solid rgb(32 165 58 / 28%);
+  border-radius: 0.5rem;
+  background: var(--sf-green-light);
+  color: var(--sf-teal-dark);
+  font-weight: 780;
+  font-variant-numeric: tabular-nums;
+}
+
 .flight-report-table td.emphasized {
   color: var(--sf-teal-dark);
   font-weight: 750;
@@ -2406,9 +2530,123 @@ select {
 }
 
 .flight-report-empty {
-  padding: 2rem !important;
+  padding: 2.25rem 1rem !important;
   color: var(--sf-muted);
   text-align: center !important;
+  white-space: normal;
+}
+
+@media (max-width: 768px) {
+  .flight-report-table-wrap {
+    overflow: visible;
+    padding: 0.75rem;
+  }
+
+  .flight-report-table,
+  .flight-report-table.income {
+    display: block;
+    min-width: 0;
+    white-space: normal;
+  }
+
+  .flight-report-table thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+  }
+
+  .flight-report-table tbody,
+  .flight-report-table tfoot {
+    display: grid;
+    gap: 0.65rem;
+  }
+
+  .flight-report-table tfoot {
+    margin-top: 0.75rem;
+  }
+
+  .flight-report-table tbody tr {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.65rem 0.75rem;
+    padding: 0.85rem;
+    border: 1px solid var(--sf-line);
+    border-radius: 0.85rem;
+    background: var(--sf-surface);
+  }
+
+  .flight-report-table tbody tr:nth-child(even) {
+    background: var(--sf-surface);
+  }
+
+  .flight-report-table tbody tr.report-empty-row {
+    display: block;
+    padding: 0;
+    border: 1px dashed var(--sf-line);
+  }
+
+  .flight-report-table tbody td {
+    display: flex;
+    flex-direction: column;
+    gap: 0.18rem;
+    padding: 0;
+    border: 0;
+    text-align: left !important;
+  }
+
+  .flight-report-table tbody td::before {
+    content: attr(data-label);
+    color: var(--sf-muted);
+    font-size: 0.62rem;
+    font-weight: 750;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  .flight-report-table tbody td.flight-report-empty::before {
+    content: none;
+  }
+
+  .flight-report-table tbody td.no-col {
+    display: none;
+  }
+
+  .flight-report-table .report-cell-stack.align-end {
+    align-items: flex-start;
+  }
+
+  .flight-report-table tbody td.emphasized {
+    grid-column: 1 / -1;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    padding-top: 0.55rem;
+    border-top: 1px dashed var(--sf-line);
+  }
+
+  .flight-report-table tfoot .report-summary-row {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.5rem 0.75rem;
+    padding: 0.85rem;
+    border: 1px solid rgb(32 165 58 / 35%);
+    border-radius: 0.85rem;
+    background: var(--sf-teal-light);
+  }
+
+  .flight-report-table tfoot .report-summary-row td {
+    padding: 0;
+    border: 0;
+    background: transparent;
+    text-align: left !important;
+  }
+
+  .flight-report-table tfoot .report-summary-row td:first-child {
+    grid-column: 1 / -1;
+  }
 }
 
 .flight-report-actions {
